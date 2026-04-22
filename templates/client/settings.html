@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Parametres entreprise{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="font-display text-2xl font-semibold text-navy">Parametres entreprise</h1>
+  <p class="text-navy-300 mt-1">Modifier les informations de votre entreprise</p>
+</div>
+
+<div class="max-w-lg">
+  <form method="post" action="{{ url_for('client.settings') }}" class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm space-y-4">
+    <div>
+      <label class="block text-sm font-medium text-navy mb-1">Nom de l'entreprise</label>
+      <input type="text" name="name" value="{{ company.name }}" required
+        class="w-full px-3 py-2 border border-cream-300 rounded-lg text-sm focus:outline-none focus:border-terracotta">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-navy mb-1">SIRET</label>
+      <input type="text" name="siret" value="{{ company.siret }}" required maxlength="14" pattern="\d{14}"
+        class="w-full px-3 py-2 border border-cream-300 rounded-lg text-sm focus:outline-none focus:border-terracotta">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-navy mb-1">Adresse</label>
+      <input type="text" name="address" value="{{ company.address or '' }}"
+        class="w-full px-3 py-2 border border-cream-300 rounded-lg text-sm focus:outline-none focus:border-terracotta">
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-navy mb-1">Ville</label>
+        <input type="text" name="city" value="{{ company.city or '' }}"
+          class="w-full px-3 py-2 border border-cream-300 rounded-lg text-sm focus:outline-none focus:border-terracotta">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-navy mb-1">Code postal</label>
+        <input type="text" name="zip_code" value="{{ company.zip_code or '' }}" maxlength="10"
+          class="w-full px-3 py-2 border border-cream-300 rounded-lg text-sm focus:outline-none focus:border-terracotta">
+      </div>
+    </div>
+    <div>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" name="oeth_eligible" value="1" {{ 'checked' if company.oeth_eligible }}
+          class="rounded border-cream-300 text-terracotta focus:ring-terracotta">
+        <span class="text-sm text-navy">Eligible OETH</span>
+      </label>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-navy mb-1">Budget annuel (&euro;)</label>
+      <input type="number" name="budget_annual" value="{{ company.budget_annual or '' }}" step="0.01" min="0"
+        class="w-full px-3 py-2 border border-cream-300 rounded-lg text-sm focus:outline-none focus:border-terracotta">
+    </div>
+    <button type="submit"
+      class="px-6 py-2 bg-terracotta text-white text-sm font-medium rounded-lg hover:bg-terracotta-500 transition-colors">
+      Enregistrer
+    </button>
+  </form>
+</div>
+{% endblock %}

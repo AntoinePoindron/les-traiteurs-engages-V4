@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Entreprises - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="font-display text-2xl font-semibold text-navy">Entreprises</h1>
+    <p class="text-navy-300 mt-1">{{ companies|length }} entreprise{{ 's' if companies|length != 1 }} inscrite{{ 's' if companies|length != 1 }}</p>
+  </div>
+  <a href="{{ url_for('admin.dashboard') }}" class="inline-flex items-center gap-2 text-sm text-navy-300 hover:text-navy transition-colors">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+    Dashboard
+  </a>
+</div>
+
+{% if companies %}
+<div class="bg-white rounded-xl border border-cream-200 shadow-sm overflow-hidden">
+  <table class="w-full">
+    <thead>
+      <tr class="bg-cream-100 border-b border-cream-200">
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">Nom</th>
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">SIRET</th>
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">Ville</th>
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">OETH</th>
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">Inscrite le</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-cream-200">
+      {% for company in companies %}
+      <tr class="hover:bg-cream-50 transition-colors">
+        <td class="px-4 py-3 text-sm font-medium text-navy">{{ company.name }}</td>
+        <td class="px-4 py-3 text-sm text-navy-300 font-mono">{{ company.siret }}</td>
+        <td class="px-4 py-3 text-sm text-navy-300">{{ company.city or '-' }}</td>
+        <td class="px-4 py-3">
+          {% if company.oeth_eligible %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-olive-50 text-olive-600">OETH</span>
+          {% else %}
+          <span class="text-sm text-navy-300">-</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-sm text-navy-300">{{ company.created_at.strftime('%d/%m/%Y') }}</td>
+        <td class="px-4 py-3 text-right">
+          <a href="{{ url_for('admin.company_detail', company_id=company.id) }}"
+            class="inline-flex items-center gap-1 text-sm font-medium text-terracotta hover:text-terracotta-500 transition-colors">
+            Detail
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-cream-200 p-12 text-center shadow-sm">
+  <div class="w-16 h-16 bg-cream-200 rounded-full flex items-center justify-center mx-auto mb-4">
+    <i data-lucide="building-2" class="w-8 h-8 text-navy-300"></i>
+  </div>
+  <h3 class="font-display text-lg font-semibold text-navy mb-2">Aucune entreprise</h3>
+  <p class="text-sm text-navy-300">Aucune entreprise n'est encore inscrite sur la plateforme.</p>
+</div>
+{% endif %}
+<script>lucide.createIcons();</script>
+{% endblock %}

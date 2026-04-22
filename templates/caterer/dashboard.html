@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "components/status_badge.html" import status_badge %}
+
+{% block title %}Dashboard Traiteur - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="font-display text-2xl font-semibold text-navy">Bienvenue, {{ user.first_name }}</h1>
+  <p class="text-navy-300 mt-1">Espace traiteur</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-10 h-10 bg-terracotta-50 rounded-lg flex items-center justify-center">
+        <i data-lucide="file-text" class="w-5 h-5 text-terracotta"></i>
+      </div>
+      <h3 class="font-medium text-navy">Demandes en attente</h3>
+    </div>
+    <p class="text-3xl font-display font-semibold text-navy">{{ pending_count }}</p>
+    <a href="{{ url_for('caterer.requests_list', status='selected') }}" class="text-sm text-terracotta hover:underline mt-2 inline-block">Voir les demandes</a>
+  </div>
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-10 h-10 bg-olive-50 rounded-lg flex items-center justify-center">
+        <i data-lucide="truck" class="w-5 h-5 text-olive"></i>
+      </div>
+      <h3 class="font-medium text-navy">Prochaines livraisons</h3>
+    </div>
+    <p class="text-3xl font-display font-semibold text-navy">{{ upcoming_deliveries|length }}</p>
+    <a href="{{ url_for('caterer.orders_list') }}" class="text-sm text-terracotta hover:underline mt-2 inline-block">Voir les commandes</a>
+  </div>
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-10 h-10 bg-navy-50 rounded-lg flex items-center justify-center">
+        <i data-lucide="banknote" class="w-5 h-5 text-navy"></i>
+      </div>
+      <h3 class="font-medium text-navy">Chiffre d'affaires</h3>
+    </div>
+    <p class="text-3xl font-display font-semibold text-navy">{{ "%.2f"|format(total_revenue) }} &euro;</p>
+    <p class="text-sm text-navy-300 mt-2">Total commandes payees</p>
+  </div>
+</div>
+
+{% if upcoming_deliveries %}
+<div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+  <h2 class="font-display text-lg font-semibold text-navy mb-4">Prochaines livraisons</h2>
+  <div class="space-y-3">
+    {% for order in upcoming_deliveries %}
+    <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-cream-50 transition-colors border border-cream-200">
+      <div>
+        <p class="font-medium text-navy">{{ order.quote.quote_request.company.name if order.quote and order.quote.quote_request and order.quote.quote_request.company else 'Client' }}</p>
+        <p class="text-sm text-navy-300">{{ order.delivery_address or 'Adresse non renseignee' }}</p>
+      </div>
+      <div class="text-right">
+        <p class="text-sm font-medium text-navy">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</p>
+        {{ status_badge(order.status) }}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>lucide.createIcons();</script>
+{% endblock %}

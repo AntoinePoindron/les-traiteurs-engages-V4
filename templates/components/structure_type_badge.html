@@ -1,0 +1,14 @@
+{% macro structure_type_badge(type) %}
+{% set type_str = type.value if type is not string else type %}
+
+{% set styles = {
+  'ESAT': 'bg-purple-100 text-purple-700',
+  'EA': 'bg-teal-100 text-teal-700',
+  'EI': 'bg-amber-100 text-amber-700',
+  'ACI': 'bg-indigo-100 text-indigo-700',
+} %}
+
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ styles.get(type_str, 'bg-gray-100 text-gray-600') }}">
+  {{ type_str }}
+</span>
+{% endmacro %}

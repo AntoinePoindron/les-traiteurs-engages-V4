@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - Les Traiteurs Engages{% endblock %}
+
+{% block public_content %}
+<div class="min-h-screen bg-cream flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 bg-terracotta rounded-xl flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="chef-hat" class="w-8 h-8 text-white"></i>
+      </div>
+      <h1 class="font-display text-2xl font-semibold text-navy">Connectez-vous</h1>
+      <p class="text-sm text-navy-300 mt-1">Accedez a votre espace sur Les Traiteurs Engages</p>
+    </div>
+
+    <!-- Flash messages -->
+    {% include "components/flash_messages.html" %}
+
+    <!-- Login card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-cream-200 p-8">
+      <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-5">
+        <div>
+          <label for="email" class="block text-sm font-medium text-navy mb-1.5">Adresse email</label>
+          <input type="email" id="email" name="email" required autocomplete="email"
+            class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy placeholder-navy-200
+            focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors"
+            placeholder="vous@entreprise.fr">
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-medium text-navy mb-1.5">Mot de passe</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password"
+            class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy placeholder-navy-200
+            focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors"
+            placeholder="Votre mot de passe">
+        </div>
+        <button type="submit"
+          class="w-full py-2.5 px-4 bg-terracotta text-white font-medium rounded-lg
+          hover:bg-terracotta-500 active:bg-terracotta-600 transition-colors shadow-sm">
+          Se connecter
+        </button>
+      </form>
+    </div>
+
+    <!-- Signup link -->
+    <p class="text-center text-sm text-navy-300 mt-6">
+      Pas encore de compte ?
+      <a href="{{ url_for('auth.signup') }}" class="text-terracotta font-medium hover:text-terracotta-500 transition-colors">
+        Creer un compte
+      </a>
+    </p>
+  </div>
+</div>
+<script>lucide.createIcons();</script>
+{% endblock %}

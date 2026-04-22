@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Les Traiteurs Engages{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Marianne:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: {
+              DEFAULT: '#FAF7F2',
+              50: '#FEFDFB',
+              100: '#FAF7F2',
+              200: '#F0E8DA',
+              300: '#E6D9C2',
+            },
+            terracotta: {
+              DEFAULT: '#C4714A',
+              50: '#FCF3EE',
+              100: '#F5DDD0',
+              200: '#E8B89E',
+              300: '#D9946E',
+              400: '#C4714A',
+              500: '#A85D3A',
+              600: '#8C4D30',
+              700: '#6F3D26',
+            },
+            'coral-red': {
+              DEFAULT: '#FF5455',
+              50: '#FFF0F0',
+              100: '#FFD6D6',
+              200: '#FFADAD',
+              300: '#FF8182',
+              400: '#FF5455',
+              500: '#E63B3C',
+              600: '#CC2829',
+            },
+            olive: {
+              DEFAULT: '#6B7C4A',
+              50: '#F4F6EF',
+              100: '#E2E8D4',
+              200: '#C5D1AA',
+              300: '#A3B57B',
+              400: '#6B7C4A',
+              500: '#56653C',
+              600: '#414D2E',
+            },
+            navy: {
+              DEFAULT: '#1A3A52',
+              50: '#EDF2F6',
+              100: '#C8D8E5',
+              200: '#8FAEC8',
+              300: '#5682A4',
+              400: '#2D5B7D',
+              500: '#1A3A52',
+              600: '#132B3E',
+              700: '#0D1D2A',
+            },
+          },
+          fontFamily: {
+            display: ['Fraunces', 'serif'],
+            body: ['Marianne', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body { font-family: 'Marianne', sans-serif; background-color: #FAF7F2; }
+    h1, h2, h3, h4, h5, h6, .font-display { font-family: 'Fraunces', serif; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #FAF7F2; }
+    ::-webkit-scrollbar-thumb { background: #C4714A; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #A85D3A; }
+    * { scrollbar-width: thin; scrollbar-color: #C4714A #FAF7F2; }
+    .sidebar-collapsed { width: 64px; }
+    .sidebar-expanded { width: 256px; }
+    .sidebar-collapsed .nav-label,
+    .sidebar-collapsed .sidebar-logo-text,
+    .sidebar-collapsed .sidebar-user-info { display: none; }
+    .sidebar-collapsed .nav-icon { margin: 0 auto; }
+  </style>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-cream min-h-screen">
+  {% if g.current_user %}
+  <!-- Mobile hamburger -->
+  <button id="mobile-menu-btn" class="fixed top-4 left-4 z-50 lg:hidden bg-navy text-white p-2 rounded-lg shadow-lg">
+    <i data-lucide="menu" class="w-5 h-5"></i>
+  </button>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleMobileMenu()"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed left-0 top-0 h-full bg-navy text-white z-40 transition-all duration-300 sidebar-expanded flex flex-col -translate-x-full lg:translate-x-0">
+    <!-- Logo -->
+    <div class="p-4 border-b border-navy-400 flex items-center gap-3">
+      <div class="w-8 h-8 bg-terracotta rounded-lg flex items-center justify-center flex-shrink-0">
+        <i data-lucide="chef-hat" class="w-5 h-5 text-white"></i>
+      </div>
+      <span class="sidebar-logo-text font-display text-sm font-semibold leading-tight">Les Traiteurs<br>Engages</span>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 py-4 overflow-y-auto">
+      <ul class="space-y-1 px-2">
+        {% if g.current_user.role in ('client_admin', 'client_user') %}
+        <li>
+          <a href="{{ url_for('client.dashboard') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="layout-dashboard" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('client.requests_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="file-text" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Mes demandes</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('client.orders_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="shopping-bag" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Mes commandes</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('client.search') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="search" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Catalogue</span>
+          </a>
+        </li>
+        {% if g.current_user.role == 'client_admin' %}
+        <li>
+          <a href="{{ url_for('client.team') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="users" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Equipe</span>
+          </a>
+        </li>
+        {% endif %}
+        <li>
+          <a href="{{ url_for('client.messages') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors relative">
+            <i data-lucide="message-circle" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Messages</span>
+            <span class="notification-badge absolute right-2 top-1 bg-coral-red text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden"></span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('client.profile') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="user" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Mon profil</span>
+          </a>
+        </li>
+        {% if g.current_user.role == 'client_admin' %}
+        <li>
+          <a href="{{ url_for('client.settings') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="settings" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Parametres</span>
+          </a>
+        </li>
+        {% endif %}
+
+        {% elif g.current_user.role == 'caterer' %}
+        <li>
+          <a href="{{ url_for('caterer.dashboard') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="layout-dashboard" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('caterer.requests_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="file-text" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Demandes</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('caterer.orders_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="shopping-bag" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Mes commandes</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('caterer.profile') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="user" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Mon profil</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('caterer.stripe_status') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="credit-card" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Stripe</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('caterer.messages') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors relative">
+            <i data-lucide="message-circle" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Messages</span>
+            <span class="notification-badge absolute right-2 top-1 bg-coral-red text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden"></span>
+          </a>
+        </li>
+
+        {% elif g.current_user.role == 'super_admin' %}
+        <li>
+          <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="layout-dashboard" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('admin.qualification') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="clipboard-check" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Qualification</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('admin.caterers_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="chef-hat" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Traiteurs</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('admin.companies_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="building-2" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Entreprises</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('admin.payments') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="banknote" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Paiements</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('admin.stats') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
+            <i data-lucide="bar-chart-3" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Stats</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('admin.messages') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors relative">
+            <i data-lucide="message-circle" class="nav-icon w-5 h-5 flex-shrink-0"></i>
+            <span class="nav-label text-sm">Messages</span>
+            <span class="notification-badge absolute right-2 top-1 bg-coral-red text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden"></span>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+
+    <!-- Sidebar toggle -->
+    <button id="sidebar-toggle" class="hidden lg:flex items-center justify-center py-2 border-t border-navy-400 hover:bg-navy-400 transition-colors">
+      <i data-lucide="panel-left-close" class="w-5 h-5" id="toggle-icon"></i>
+    </button>
+
+    <!-- User info -->
+    <div class="p-4 border-t border-navy-400">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-terracotta rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold">
+          {{ g.current_user.first_name[0] }}{{ g.current_user.last_name[0] }}
+        </div>
+        <div class="sidebar-user-info flex-1 min-w-0">
+          <p class="text-sm font-medium truncate">{{ g.current_user.first_name }} {{ g.current_user.last_name }}</p>
+          <a href="{{ url_for('auth.logout') }}" class="text-xs text-cream-200 hover:text-white transition-colors">Deconnexion</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main id="main-content" class="transition-all duration-300 lg:ml-64 min-h-screen">
+    <div class="p-6 max-w-7xl mx-auto">
+      {% include "components/flash_messages.html" %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  {% else %}
+  <!-- No sidebar for unauthenticated users -->
+  <main>
+    {% include "components/flash_messages.html" %}
+    {% block public_content %}{% endblock %}
+  </main>
+  {% endif %}
+
+  <script>
+    lucide.createIcons();
+
+    function toggleMobileMenu() {
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebar-overlay');
+      sidebar.classList.toggle('-translate-x-full');
+      overlay.classList.toggle('hidden');
+    }
+
+    var mobileBtn = document.getElementById('mobile-menu-btn');
+    if (mobileBtn) mobileBtn.addEventListener('click', toggleMobileMenu);
+
+    var sidebarToggle = document.getElementById('sidebar-toggle');
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', function() {
+        var sidebar = document.getElementById('sidebar');
+        var main = document.getElementById('main-content');
+        var icon = document.getElementById('toggle-icon');
+        if (sidebar.classList.contains('sidebar-expanded')) {
+          sidebar.classList.remove('sidebar-expanded');
+          sidebar.classList.add('sidebar-collapsed');
+          main.style.marginLeft = '64px';
+          icon.setAttribute('data-lucide', 'panel-left-open');
+        } else {
+          sidebar.classList.remove('sidebar-collapsed');
+          sidebar.classList.add('sidebar-expanded');
+          main.style.marginLeft = '256px';
+          icon.setAttribute('data-lucide', 'panel-left-close');
+        }
+        lucide.createIcons();
+      });
+    }
+
+    function updateNotificationBadge() {
+      fetch('/api/notifications')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var badges = document.querySelectorAll('.notification-badge');
+          badges.forEach(function(badge) {
+            if (data.unread_count > 0) {
+              badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+              badge.classList.remove('hidden');
+            } else {
+              badge.classList.add('hidden');
+            }
+          });
+        })
+        .catch(function() {});
+    }
+    updateNotificationBadge();
+    setInterval(updateNotificationBadge, 30000);
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

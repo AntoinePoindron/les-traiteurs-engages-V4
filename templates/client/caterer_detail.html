@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}{{ caterer.name }} - Catalogue{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="{{ url_for('client.search') }}" class="inline-flex items-center gap-1 text-sm text-navy-300 hover:text-terracotta transition-colors">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i> Retour au catalogue
+  </a>
+</div>
+
+<!-- Hero / Photos -->
+<div class="bg-white rounded-xl border border-cream-200 shadow-sm overflow-hidden mb-6">
+  <div class="h-64 bg-cream-200 flex items-center justify-center">
+    {% if caterer.photos and caterer.photos|length > 0 %}
+    <div class="flex w-full h-full overflow-x-auto snap-x snap-mandatory">
+      {% for photo in caterer.photos %}
+      <img src="{{ photo }}" alt="{{ caterer.name }}" class="w-full h-full object-cover flex-shrink-0 snap-center">
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center">
+      <i data-lucide="chef-hat" class="w-16 h-16 text-cream-300 mx-auto"></i>
+      <p class="text-sm text-navy-300 mt-2">Pas de photos</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Main info -->
+  <div class="lg:col-span-2 space-y-6">
+    <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h1 class="font-display text-2xl font-semibold text-navy">{{ caterer.name }}</h1>
+          <p class="text-sm text-navy-300 mt-1">
+            <i data-lucide="map-pin" class="w-3 h-3 inline"></i> {{ caterer.city or 'Non renseigne' }}
+            {% if caterer.zip_code %} ({{ caterer.zip_code }}){% endif %}
+          </p>
+        </div>
+        {% from "components/structure_type_badge.html" import structure_type_badge %}
+        {{ structure_type_badge(caterer.structure_type) }}
+      </div>
+      {% if caterer.description %}
+      <p class="text-sm text-navy-300 leading-relaxed">{{ caterer.description }}</p>
+      {% endif %}
+    </div>
+
+    {% if caterer.specialties %}
+    <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+      <h2 class="font-display text-lg font-semibold text-navy mb-3">Specialites</h2>
+      <div class="flex flex-wrap gap-2">
+        {% for s in caterer.specialties %}
+        <span class="px-3 py-1 bg-cream-200 text-navy text-sm rounded-full">{{ s }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Dietary flags -->
+    <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+      <h2 class="font-display text-lg font-semibold text-navy mb-3">Options alimentaires</h2>
+      <div class="flex flex-wrap gap-2">
+        {% set diet_pills = [("vegetarian", "Vegetarien", "bg-green-100 text-green-700"), ("vegan", "Vegan", "bg-emerald-100 text-emerald-700"), ("halal", "Halal", "bg-blue-100 text-blue-700"), ("casher", "Casher", "bg-purple-100 text-purple-700"), ("gluten_free", "Sans gluten", "bg-amber-100 text-amber-700"), ("lactose_free", "Sans lactose", "bg-pink-100 text-pink-700")] %}
+        {% set ns = namespace(found=false) %}
+        {% for key, label, style in diet_pills %}
+        {% if caterer["dietary_" + key] %}
+        {% set ns.found = true %}
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ style }}">{{ label }}</span>
+        {% endif %}
+        {% endfor %}
+        {% if not ns.found %}
+        <p class="text-sm text-navy-300">Aucune option renseignee.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Service types -->
+    {% if caterer.service_config %}
+    <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+      <h2 class="font-display text-lg font-semibold text-navy mb-3">Types de prestations</h2>
+      <div class="flex flex-wrap gap-2">
+        {% for key, val in caterer.service_config.items() %}
+        {% if val %}
+        <span class="px-3 py-1 bg-olive-50 text-olive text-sm rounded-full font-medium">{{ meal_type_labels.get(key, key) }}</span>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sidebar -->
+  <div class="space-y-6">
+    <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+      <h2 class="font-display text-lg font-semibold text-navy mb-4">Informations</h2>
+      <dl class="space-y-3 text-sm">
+        {% if caterer.capacity_min or caterer.capacity_max %}
+        <div>
+          <dt class="text-navy-300">Capacite</dt>
+          <dd class="font-medium text-navy">{{ caterer.capacity_min or '?' }} - {{ caterer.capacity_max or '?' }} couverts</dd>
+        </div>
+        {% endif %}
+        {% if caterer.delivery_radius_km %}
+        <div>
+          <dt class="text-navy-300">Rayon de livraison</dt>
+          <dd class="font-medium text-navy">{{ caterer.delivery_radius_km }} km</dd>
+        </div>
+        {% endif %}
+        {% if caterer.address %}
+        <div>
+          <dt class="text-navy-300">Adresse</dt>
+          <dd class="font-medium text-navy">{{ caterer.address }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <a href="{{ url_for('client.requests_new') }}"
+      class="block text-center px-6 py-3 bg-terracotta text-white font-medium rounded-xl hover:bg-terracotta-500 transition-colors shadow-md">
+      <i data-lucide="send" class="w-4 h-4 inline mr-1"></i>
+      Demander un devis
+    </a>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+{% endblock %}

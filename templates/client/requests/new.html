@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+
+{% block title %}Nouvelle demande de devis - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <!-- Header -->
+  <div class="mb-8">
+    <a href="{{ url_for('client.requests_list') }}" class="inline-flex items-center gap-2 text-sm text-navy-300 hover:text-terracotta transition-colors mb-4">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      Retour aux demandes
+    </a>
+    <h1 class="text-2xl font-display font-semibold text-navy">Nouvelle demande de devis</h1>
+    <p class="text-navy-300 mt-1">Decrivez votre evenement en quelques etapes pour recevoir des propositions de traiteurs engages.</p>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="bg-white rounded-2xl shadow-sm border border-cream-200 p-4 mb-6">
+    <div class="flex items-center justify-between">
+      {% for i in range(1, 8) %}
+      <div class="flex flex-col items-center" style="min-width: 0; flex: 0 0 auto;">
+        <div id="progress-dot-{{ i }}" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-cream-200 text-navy-300">
+          {{ i }}
+        </div>
+        <span id="progress-label-{{ i }}" class="text-xs text-navy-200 mt-1 text-center hidden sm:block" style="max-width: 80px;">
+          {% if i == 1 %}Service{% elif i == 2 %}Evenement{% elif i == 3 %}Budget{% elif i == 4 %}Regimes{% elif i == 5 %}Boissons{% elif i == 6 %}Services{% elif i == 7 %}Recapitulatif{% endif %}
+        </span>
+      </div>
+      {% if i < 7 %}
+      <div id="progress-connector-{{ i }}" class="flex-1 h-0.5 bg-cream-200 mx-1"></div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Wizard form -->
+  <form id="wizard-form" method="POST" action="{{ url_for('client.requests_new') }}">
+
+    <!-- ==================== STEP 1: Type de service ==================== -->
+    <div id="step-1" class="bg-white rounded-2xl shadow-sm border border-cream-200 p-6 mb-6" style="display: none;">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-terracotta-50 rounded-xl flex items-center justify-center">
+          <i data-lucide="utensils" class="w-5 h-5 text-terracotta"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-display font-semibold text-navy">Type de service</h2>
+          <p class="text-sm text-navy-300">Quel type de repas souhaitez-vous ?</p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <label class="flex items-center gap-4 p-4 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+          <input type="radio" name="meal_type" value="petit_dejeuner" required class="w-4 h-4 text-terracotta accent-terracotta">
+          <div class="flex items-center gap-3">
+            <i data-lucide="coffee" class="w-5 h-5 text-navy-300"></i>
+            <span class="font-medium text-navy">Petit-dejeuner</span>
+          </div>
+        </label>
+        <label class="flex items-center gap-4 p-4 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+          <input type="radio" name="meal_type" value="dejeuner" class="w-4 h-4 text-terracotta accent-terracotta">
+          <div class="flex items-center gap-3">
+            <i data-lucide="sun" class="w-5 h-5 text-navy-300"></i>
+            <span class="font-medium text-navy">Dejeuner</span>
+          </div>
+        </label>
+        <label class="flex items-center gap-4 p-4 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+          <input type="radio" name="meal_type" value="diner" class="w-4 h-4 text-terracotta accent-terracotta">
+          <div class="flex items-center gap-3">
+            <i data-lucide="moon" class="w-5 h-5 text-navy-300"></i>
+            <span class="font-medium text-navy">Diner</span>
+          </div>
+        </label>
+        <label class="flex items-center gap-4 p-4 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+          <input type="radio" name="meal_type" value="cocktail" class="w-4 h-4 text-terracotta accent-terracotta">
+          <div class="flex items-center gap-3">
+            <i data-lucide="wine" class="w-5 h-5 text-navy-300"></i>
+            <span class="font-medium text-navy">Cocktail</span>
+          </div>
+        </label>
+        <label class="flex items-center gap-4 p-4 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+          <input type="radio" name="meal_type" value="autre" class="w-4 h-4 text-terracotta accent-terracotta">
+          <div class="flex items-center gap-3">
+            <i data-lucide="plus-circle" class="w-5 h-5 text-navy-300"></i>
+            <span class="font-medium text-navy">Autre</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="mt-6">
+        <label for="service_type" class="block text-sm font-medium text-navy mb-2">Precision sur le service <span class="text-navy-200">(optionnel)</span></label>
+        <input type="text" id="service_type" name="service_type" placeholder="Ex: brunch, gouter, pause cafe..." class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+      </div>
+    </div>
+
+    <!-- ==================== STEP 2: Evenement ==================== -->
+    <div id="step-2" class="bg-white rounded-2xl shadow-sm border border-cream-200 p-6 mb-6" style="display: none;">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-terracotta-50 rounded-xl flex items-center justify-center">
+          <i data-lucide="calendar" class="w-5 h-5 text-terracotta"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-display font-semibold text-navy">Evenement</h2>
+          <p class="text-sm text-navy-300">Quand et ou a lieu votre evenement ?</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="event_date" class="block text-sm font-medium text-navy mb-2">Date de l'evenement <span class="text-coral-red">*</span></label>
+          <input type="date" id="event_date" name="event_date" required class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+        </div>
+        <div>
+          <label for="guest_count" class="block text-sm font-medium text-navy mb-2">Nombre de convives <span class="text-coral-red">*</span></label>
+          <input type="number" id="guest_count" name="guest_count" min="1" max="5000" required placeholder="Ex: 50" class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label for="event_address" class="block text-sm font-medium text-navy mb-2">Adresse <span class="text-coral-red">*</span></label>
+        <div class="flex gap-2">
+          <input type="text" id="event_address" name="event_address" required placeholder="Numero et rue" class="flex-1 px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+          <button type="button" id="btn-geocode" class="px-4 py-3 bg-cream-200 hover:bg-cream-300 text-navy rounded-xl transition-colors flex items-center gap-2 text-sm" title="Geolocaliser l'adresse">
+            <i data-lucide="map-pin" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Geolocaliser</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label for="event_zip_code" class="block text-sm font-medium text-navy mb-2">Code postal <span class="text-coral-red">*</span></label>
+          <input type="text" id="event_zip_code" name="event_zip_code" required placeholder="75001" maxlength="5" class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+        </div>
+        <div>
+          <label for="event_city" class="block text-sm font-medium text-navy mb-2">Ville <span class="text-coral-red">*</span></label>
+          <input type="text" id="event_city" name="event_city" required placeholder="Paris" class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+        </div>
+      </div>
+
+      <input type="hidden" id="event_latitude" name="event_latitude">
+      <input type="hidden" id="event_longitude" name="event_longitude">
+    </div>
+
+    <!-- ==================== STEP 3: Budget ==================== -->
+    <div id="step-3" class="bg-white rounded-2xl shadow-sm border border-cream-200 p-6 mb-6" style="display: none;">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-terracotta-50 rounded-xl flex items-center justify-center">
+          <i data-lucide="banknote" class="w-5 h-5 text-terracotta"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-display font-semibold text-navy">Budget</h2>
+          <p class="text-sm text-navy-300">Indiquez votre budget global ou par personne. Les deux champs sont synchronises.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="budget_global" class="block text-sm font-medium text-navy mb-2">Budget global</label>
+          <div class="relative">
+            <input type="number" id="budget_global" name="budget_global" min="0" step="0.01" placeholder="1500.00" class="w-full px-4 py-3 pr-12 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-navy-200 font-medium">EUR</span>
+          </div>
+        </div>
+        <div>
+          <label for="budget_per_person" class="block text-sm font-medium text-navy mb-2">Budget par personne</label>
+          <div class="relative">
+            <input type="number" id="budget_per_person" name="budget_per_person" min="0" step="0.01" placeholder="30.00" class="w-full px-4 py-3 pr-20 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-navy-200 font-medium">EUR/pers.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <label class="block text-sm font-medium text-navy mb-3">Flexibilite du budget</label>
+        <div class="flex flex-wrap gap-3">
+          <label class="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+            <input type="radio" name="budget_flexibility" value="exact" class="w-4 h-4 accent-terracotta">
+            <span class="text-sm font-medium text-navy">Exact</span>
+          </label>
+          <label class="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+            <input type="radio" name="budget_flexibility" value="5" class="w-4 h-4 accent-terracotta">
+            <span class="text-sm font-medium text-navy">+/- 5%</span>
+          </label>
+          <label class="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+            <input type="radio" name="budget_flexibility" value="10" class="w-4 h-4 accent-terracotta">
+            <span class="text-sm font-medium text-navy">+/- 10%</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== STEP 4: Regimes alimentaires ==================== -->
+    <div id="step-4" class="bg-white rounded-2xl shadow-sm border border-cream-200 p-6 mb-6" style="display: none;">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-terracotta-50 rounded-xl flex items-center justify-center">
+          <i data-lucide="leaf" class="w-5 h-5 text-terracotta"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-display font-semibold text-navy">Regimes alimentaires</h2>
+          <p class="text-sm text-navy-300">Cochez les regimes concernes et indiquez le nombre de personnes.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        {% set dietary_items = [
+          ('dietary_vegetarian', 'vegetarian_count', 'Vegetarien', 'sprout'),
+          ('dietary_vegan', 'vegan_count', 'Vegan', 'vegan'),
+          ('dietary_halal', 'halal_count', 'Halal', 'badge-check'),
+          ('dietary_casher', 'casher_count', 'Casher', 'star'),
+          ('dietary_gluten_free', 'gluten_free_count', 'Sans gluten', 'wheat-off'),
+          ('dietary_lactose_free', 'lactose_free_count', 'Sans lactose', 'milk-off'),
+        ] %}
+        {% for field_id, count_id, label, icon in dietary_items %}
+        <div class="p-4 rounded-xl border border-cream-200 hover:border-cream-300 transition-colors">
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-3 cursor-pointer flex-1">
+              <input type="checkbox" id="{{ field_id }}" name="{{ field_id }}" value="1" class="dietary-toggle w-5 h-5 rounded accent-terracotta" data-count-target="{{ count_id }}">
+              <i data-lucide="{{ icon }}" class="w-5 h-5 text-navy-300"></i>
+              <span class="font-medium text-navy">{{ label }}</span>
+            </label>
+          </div>
+          <div class="dietary-count-wrapper mt-3 ml-8 flex items-center gap-3" style="display: none;">
+            <label for="{{ count_id }}" class="text-sm text-navy-300">Nombre de personnes :</label>
+            <input type="number" id="{{ count_id }}" name="{{ count_id }}" min="1" max="5000" placeholder="0" class="w-24 px-3 py-2 rounded-lg border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none text-sm bg-cream-50">
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ==================== STEP 5: Boissons ==================== -->
+    <div id="step-5" class="bg-white rounded-2xl shadow-sm border border-cream-200 p-6 mb-6" style="display: none;">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-terracotta-50 rounded-xl flex items-center justify-center">
+          <i data-lucide="cup-soda" class="w-5 h-5 text-terracotta"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-display font-semibold text-navy">Boissons</h2>
+          <p class="text-sm text-navy-300">Selectionnez les boissons souhaitees pour votre evenement.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+        {% set drink_items = [
+          ('drinks_eau_plate', 'Eau plate', 'droplets'),
+          ('drinks_eau_gazeuse', 'Eau gazeuse', 'droplets'),
+          ('drinks_soft', 'Soft / Jus', 'glass-water'),
+          ('drinks_bieres', 'Bieres', 'beer'),
+          ('drinks_vins', 'Vins', 'wine'),
+          ('drinks_champagne', 'Champagne', 'sparkles'),
+          ('drinks_boissons_chaudes', 'Boissons chaudes', 'coffee'),
+        ] %}
+        {% for field_id, label, icon in drink_items %}
+        <label class="flex items-center gap-3 p-3 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+          <input type="checkbox" name="{{ field_id }}" value="1" class="drink-checkbox w-4 h-4 rounded accent-terracotta" data-label="{{ label }}">
+          <div class="flex items-center gap-2">
+            <i data-lucide="{{ icon }}" class="w-4 h-4 text-navy-300"></i>
+            <span class="text-sm font-medium text-navy">{{ label }}</span>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-navy mb-3">Alcool ?</label>
+        <div class="flex gap-4">
+          <label class="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+            <input type="radio" name="drinks_alcohol" value="1" class="w-4 h-4 accent-terracotta">
+            <span class="text-sm font-medium text-navy">Oui, avec alcool</span>
+          </label>
+          <label class="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+            <input type="radio" name="drinks_alcohol" value="0" class="w-4 h-4 accent-terracotta">
+            <span class="text-sm font-medium text-navy">Non, sans alcool</span>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label for="drinks_details" class="block text-sm font-medium text-navy mb-2">Precisions sur les boissons <span class="text-navy-200">(optionnel)</span></label>
+        <textarea id="drinks_details" name="drinks_details" rows="3" placeholder="Ex: 2 bouteilles de vin rouge, jus d'orange pour 20 personnes..." class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50 resize-none"></textarea>
+      </div>
+    </div>
+
+    <!-- ==================== STEP 6: Services complementaires ==================== -->
+    <div id="step-6" class="bg-white rounded-2xl shadow-sm border border-cream-200 p-6 mb-6" style="display: none;">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-terracotta-50 rounded-xl flex items-center justify-center">
+          <i data-lucide="concierge-bell" class="w-5 h-5 text-terracotta"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-display font-semibold text-navy">Services complementaires</h2>
+          <p class="text-sm text-navy-300">Selectionnez les prestations additionnelles souhaitees.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {% set service_items = [
+          ('wants_equipment', 'Vaisselle / materiel', 'utensils-crossed'),
+          ('service_nappes', 'Nappes / linge de table', 'shirt'),
+          ('wants_decoration', 'Decoration', 'palette'),
+          ('wants_waitstaff', 'Service en salle', 'user-check'),
+          ('service_livraison', 'Livraison', 'truck'),
+          ('wants_setup', 'Installation / mise en place', 'hammer'),
+          ('wants_cleanup', 'Nettoyage / debarrassage', 'sparkles'),
+        ] %}
+        {% for field_id, label, icon in service_items %}
+        <label class="flex items-center gap-3 p-4 rounded-xl border-2 border-cream-200 hover:border-terracotta-200 cursor-pointer transition-colors has-[:checked]:border-terracotta has-[:checked]:bg-terracotta-50">
+          <input type="checkbox" id="{{ field_id }}" name="{{ field_id }}" value="1" class="service-checkbox w-5 h-5 rounded accent-terracotta" data-label="{{ label }}">
+          <i data-lucide="{{ icon }}" class="w-5 h-5 text-navy-300"></i>
+          <span class="font-medium text-navy">{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <div id="waitstaff-details-wrapper" class="mt-4" style="display: none;">
+        <label for="service_waitstaff_details" class="block text-sm font-medium text-navy mb-2">Details du service en salle</label>
+        <textarea id="service_waitstaff_details" name="service_waitstaff_details" rows="3" placeholder="Ex: 3 serveurs pour un service a l'assiette, de 12h a 15h..." class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50 resize-none"></textarea>
+      </div>
+    </div>
+
+    <!-- ==================== STEP 7: Recapitulatif ==================== -->
+    <div id="step-7" class="bg-white rounded-2xl shadow-sm border border-cream-200 p-6 mb-6" style="display: none;">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-terracotta-50 rounded-xl flex items-center justify-center">
+          <i data-lucide="check-circle" class="w-5 h-5 text-terracotta"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-display font-semibold text-navy">Recapitulatif</h2>
+          <p class="text-sm text-navy-300">Verifiez les informations avant d'envoyer votre demande.</p>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="space-y-4 mb-6">
+        <div class="p-4 rounded-xl bg-cream-50 border border-cream-200">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="utensils" class="w-4 h-4 text-terracotta"></i>
+            <span class="text-sm font-semibold text-navy">Type de service</span>
+          </div>
+          <p class="text-navy-400" id="summary-meal-type">-</p>
+          <p class="text-sm text-navy-300" id="summary-service-type"></p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-cream-50 border border-cream-200">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="calendar" class="w-4 h-4 text-terracotta"></i>
+            <span class="text-sm font-semibold text-navy">Evenement</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+            <div>
+              <span class="text-navy-200">Date :</span>
+              <span class="text-navy-400 font-medium" id="summary-event-date">-</span>
+            </div>
+            <div>
+              <span class="text-navy-200">Convives :</span>
+              <span class="text-navy-400 font-medium" id="summary-guest-count">-</span>
+            </div>
+            <div>
+              <span class="text-navy-200">Lieu :</span>
+              <span class="text-navy-400 font-medium" id="summary-event-address">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-cream-50 border border-cream-200">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="banknote" class="w-4 h-4 text-terracotta"></i>
+            <span class="text-sm font-semibold text-navy">Budget</span>
+          </div>
+          <p class="text-navy-400" id="summary-budget">-</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-cream-50 border border-cream-200">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="leaf" class="w-4 h-4 text-terracotta"></i>
+            <span class="text-sm font-semibold text-navy">Regimes alimentaires</span>
+          </div>
+          <p class="text-navy-400" id="summary-dietary">Aucun</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-cream-50 border border-cream-200">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="cup-soda" class="w-4 h-4 text-terracotta"></i>
+            <span class="text-sm font-semibold text-navy">Boissons</span>
+          </div>
+          <p class="text-navy-400" id="summary-drinks">-</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-cream-50 border border-cream-200">
+          <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="concierge-bell" class="w-4 h-4 text-terracotta"></i>
+            <span class="text-sm font-semibold text-navy">Services complementaires</span>
+          </div>
+          <p class="text-navy-400" id="summary-services">Aucun</p>
+        </div>
+      </div>
+
+      <!-- Message to caterer -->
+      <div class="mb-6">
+        <label for="message_to_caterer" class="block text-sm font-medium text-navy mb-2">Message aux traiteurs <span class="text-navy-200">(optionnel)</span></label>
+        <textarea id="message_to_caterer" name="message_to_caterer" rows="4" placeholder="Informations complementaires, contraintes particulieres, questions..." class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50 resize-none"></textarea>
+      </div>
+
+      <!-- Compare mode -->
+      <div class="mb-6 p-4 rounded-xl bg-olive-50 border border-olive-100">
+        <label class="block text-sm font-semibold text-navy mb-3">Mode d'envoi</label>
+        <div class="space-y-3">
+          <label class="flex items-start gap-3 p-3 rounded-lg border-2 border-olive-100 hover:border-olive-200 cursor-pointer transition-colors has-[:checked]:border-olive has-[:checked]:bg-olive-50">
+            <input type="radio" id="is_compare_mode_yes" name="is_compare_mode" value="1" checked class="w-4 h-4 accent-olive mt-0.5">
+            <div>
+              <span class="font-medium text-navy">Comparer 3 devis</span>
+              <p class="text-xs text-navy-300 mt-0.5">Votre demande sera envoyee a plusieurs traiteurs. Vous recevrez jusqu'a 3 propositions a comparer.</p>
+            </div>
+          </label>
+          <label class="flex items-start gap-3 p-3 rounded-lg border-2 border-olive-100 hover:border-olive-200 cursor-pointer transition-colors has-[:checked]:border-olive has-[:checked]:bg-olive-50">
+            <input type="radio" id="is_compare_mode_no" name="is_compare_mode" value="0" class="w-4 h-4 accent-olive mt-0.5">
+            <div>
+              <span class="font-medium text-navy">Envoyer a un traiteur specifique</span>
+              <p class="text-xs text-navy-300 mt-0.5">Choisissez directement le traiteur a qui envoyer votre demande.</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Caterer select (hidden by default) -->
+      <div id="caterer-select-wrapper" class="mb-6" style="display: none;">
+        <label for="target_caterer_id" class="block text-sm font-medium text-navy mb-2">Choisir un traiteur</label>
+        <select id="target_caterer_id" name="target_caterer_id" class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+          <option value="">Selectionnez un traiteur...</option>
+          <!-- Options populated dynamically -->
+        </select>
+      </div>
+
+      <!-- Service interne -->
+      <div class="mb-2">
+        <label for="company_service_id" class="block text-sm font-medium text-navy mb-2">Service interne <span class="text-navy-200">(optionnel)</span></label>
+        <select id="company_service_id" name="company_service_id" class="w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-terracotta focus:ring-2 focus:ring-terracotta-100 outline-none transition-colors bg-cream-50">
+          <option value="">Aucun service selectionne</option>
+          {% if services is defined %}
+          {% for service in services %}
+          <option value="{{ service.id }}">{{ service.name }}</option>
+          {% endfor %}
+          {% endif %}
+        </select>
+        <p class="text-xs text-navy-200 mt-1">Associez cette demande a un service pour le suivi budgetaire.</p>
+      </div>
+    </div>
+
+    <!-- Navigation buttons -->
+    <div class="flex items-center justify-between pb-8">
+      <button type="button" id="btn-prev" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-cream-200 text-navy hover:bg-cream-100 transition-colors font-medium" style="display: none;">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        Precedent
+      </button>
+      <div class="flex-1"></div>
+      <button type="button" id="btn-next" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-terracotta text-white hover:bg-terracotta-500 transition-colors font-medium shadow-sm">
+        Suivant
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+      <button type="submit" id="btn-submit" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-olive text-white hover:bg-olive-500 transition-colors font-medium shadow-sm" style="display: none;">
+        <i data-lucide="send" class="w-4 h-4"></i>
+        Envoyer ma demande
+      </button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/wizard.js') }}"></script>
+{% endblock %}

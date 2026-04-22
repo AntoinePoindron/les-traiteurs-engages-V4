@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Compte Stripe - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="font-display text-2xl font-semibold text-navy">Paiements Stripe</h1>
+  <p class="text-navy-300 mt-1">Gerez votre compte de paiement pour recevoir vos virements</p>
+</div>
+
+<div class="max-w-2xl">
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    {% if not caterer.stripe_account_id %}
+    <div class="flex items-start gap-4">
+      <div class="w-12 h-12 bg-terracotta-50 rounded-lg flex items-center justify-center flex-shrink-0">
+        <i data-lucide="credit-card" class="w-6 h-6 text-terracotta"></i>
+      </div>
+      <div>
+        <h2 class="font-display text-lg font-semibold text-navy mb-2">Connecter votre compte Stripe</h2>
+        <p class="text-navy-300 text-sm mb-4">
+          Pour recevoir les paiements de vos prestations, vous devez connecter un compte Stripe.
+          La plateforme utilise Stripe Connect pour gerer les virements de maniere securisee.
+          L'inscription prend environ 5 minutes.
+        </p>
+        <form method="POST" action="{{ url_for('caterer.stripe_onboard') }}">
+          <button type="submit"
+                  class="inline-flex items-center gap-2 bg-terracotta text-white px-5 py-2.5 rounded-lg font-medium hover:bg-terracotta-500 transition-colors">
+            <i data-lucide="link" class="w-4 h-4"></i>
+            Connecter mon compte Stripe
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {% elif not caterer.stripe_charges_enabled or not caterer.stripe_payouts_enabled %}
+    <div class="flex items-start gap-4">
+      <div class="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0">
+        <i data-lucide="alert-triangle" class="w-6 h-6 text-amber-500"></i>
+      </div>
+      <div>
+        <h2 class="font-display text-lg font-semibold text-navy mb-2">Verification en cours</h2>
+        <p class="text-navy-300 text-sm mb-4">
+          Votre compte Stripe est connecte mais la verification n'est pas encore complete.
+          Veuillez completer les informations requises pour activer les paiements.
+        </p>
+        <div class="flex flex-wrap gap-3 mb-4">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
+            {% if caterer.stripe_charges_enabled %}bg-olive-50 text-olive{% else %}bg-amber-50 text-amber-600{% endif %}">
+            <span class="w-2 h-2 rounded-full {% if caterer.stripe_charges_enabled %}bg-olive{% else %}bg-amber-400{% endif %}"></span>
+            Paiements par carte {% if caterer.stripe_charges_enabled %}actif{% else %}en attente{% endif %}
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
+            {% if caterer.stripe_payouts_enabled %}bg-olive-50 text-olive{% else %}bg-amber-50 text-amber-600{% endif %}">
+            <span class="w-2 h-2 rounded-full {% if caterer.stripe_payouts_enabled %}bg-olive{% else %}bg-amber-400{% endif %}"></span>
+            Virements {% if caterer.stripe_payouts_enabled %}actif{% else %}en attente{% endif %}
+          </span>
+        </div>
+        <form method="POST" action="{{ url_for('caterer.stripe_onboard') }}">
+          <button type="submit"
+                  class="inline-flex items-center gap-2 bg-terracotta text-white px-5 py-2.5 rounded-lg font-medium hover:bg-terracotta-500 transition-colors">
+            <i data-lucide="external-link" class="w-4 h-4"></i>
+            Completer la verification
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="flex items-start gap-4">
+      <div class="w-12 h-12 bg-olive-50 rounded-lg flex items-center justify-center flex-shrink-0">
+        <i data-lucide="check-circle" class="w-6 h-6 text-olive"></i>
+      </div>
+      <div>
+        <h2 class="font-display text-lg font-semibold text-navy mb-2">Compte Stripe connecte</h2>
+        <p class="text-navy-300 text-sm mb-4">
+          Votre compte est actif et pret a recevoir des paiements.
+          Les virements sont effectues automatiquement apres chaque prestation payee.
+        </p>
+        <div class="flex flex-wrap gap-3 mb-4">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-olive-50 text-olive">
+            <span class="w-2 h-2 rounded-full bg-olive"></span>
+            Paiements par carte actif
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-olive-50 text-olive">
+            <span class="w-2 h-2 rounded-full bg-olive"></span>
+            Virements actif
+          </span>
+        </div>
+        <p class="text-xs text-navy-300">
+          Identifiant Stripe : <code class="bg-cream-100 px-1.5 py-0.5 rounded text-navy-400">{{ caterer.stripe_account_id }}</code>
+          {% if caterer.stripe_onboarded_at %}
+          &mdash; connecte le {{ caterer.stripe_onboarded_at.strftime('%d/%m/%Y') }}
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

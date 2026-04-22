@@ -1,0 +1,5 @@
+services:
+  app:
+    env_file: [.deploy.env]
+  db:
+    env_file: [.deploy.env]

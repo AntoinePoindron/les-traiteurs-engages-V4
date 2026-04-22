@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% from "components/structure_type_badge.html" import structure_type_badge %}
+
+{% block title %}Mon profil - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="font-display text-2xl font-semibold text-navy">Mon profil traiteur</h1>
+  <p class="text-navy-300 mt-1">{{ structure_type_badge(caterer.structure_type) }} {{ caterer.siret }}</p>
+</div>
+
+<form method="POST" action="{{ url_for('caterer.profile_save') }}" class="space-y-8 max-w-3xl">
+
+  <!-- Informations -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Informations</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label for="name" class="block text-sm font-medium text-navy mb-1">Nom de la structure</label>
+        <input type="text" id="name" name="name" value="{{ caterer.name }}" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+      </div>
+      <div>
+        <label for="specialties" class="block text-sm font-medium text-navy mb-1">Specialites (separees par des virgules)</label>
+        <input type="text" id="specialties" name="specialties" value="{{ (caterer.specialties or [])|join(', ') }}" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+      </div>
+      <div class="md:col-span-2">
+        <label for="description" class="block text-sm font-medium text-navy mb-1">Description</label>
+        <textarea id="description" name="description" rows="4" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy focus:ring-2 focus:ring-terracotta focus:border-terracotta">{{ caterer.description or '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacite -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Capacite</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label for="capacity_min" class="block text-sm font-medium text-navy mb-1">Minimum couverts</label>
+        <input type="number" id="capacity_min" name="capacity_min" value="{{ caterer.capacity_min or '' }}" min="1" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+      </div>
+      <div>
+        <label for="capacity_max" class="block text-sm font-medium text-navy mb-1">Maximum couverts</label>
+        <input type="number" id="capacity_max" name="capacity_max" value="{{ caterer.capacity_max or '' }}" min="1" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+      </div>
+    </div>
+  </div>
+
+  <!-- Livraison -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Livraison</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label for="address" class="block text-sm font-medium text-navy mb-1">Adresse</label>
+        <input type="text" id="address" name="address" value="{{ caterer.address or '' }}" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+      </div>
+      <div>
+        <label for="city" class="block text-sm font-medium text-navy mb-1">Ville</label>
+        <input type="text" id="city" name="city" value="{{ caterer.city or '' }}" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+      </div>
+      <div>
+        <label for="zip_code" class="block text-sm font-medium text-navy mb-1">Code postal</label>
+        <input type="text" id="zip_code" name="zip_code" value="{{ caterer.zip_code or '' }}" maxlength="5" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+      </div>
+    </div>
+    <div class="mt-4">
+      <label for="delivery_radius_km" class="block text-sm font-medium text-navy mb-1">Rayon de livraison (km)</label>
+      <input type="number" id="delivery_radius_km" name="delivery_radius_km" value="{{ caterer.delivery_radius_km or '' }}" min="1" class="w-48 border border-cream-200 rounded-lg px-3 py-2 text-navy focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+    </div>
+  </div>
+
+  <!-- Regimes alimentaires -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Regimes alimentaires proposes</h2>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+      {% set dietary_options = [
+        ('dietary_vegetarian', 'Vegetarien', caterer.dietary_vegetarian),
+        ('dietary_vegan', 'Vegan', caterer.dietary_vegan),
+        ('dietary_halal', 'Halal', caterer.dietary_halal),
+        ('dietary_casher', 'Casher', caterer.dietary_casher),
+        ('dietary_gluten_free', 'Sans gluten', caterer.dietary_gluten_free),
+        ('dietary_lactose_free', 'Sans lactose', caterer.dietary_lactose_free),
+      ] %}
+      {% for name, label, checked in dietary_options %}
+      <label class="flex items-center gap-2 p-3 rounded-lg border border-cream-200 hover:bg-cream-50 cursor-pointer transition-colors">
+        <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} class="w-4 h-4 text-terracotta rounded border-cream-300 focus:ring-terracotta">
+        <span class="text-sm text-navy">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Services -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Configuration des services</h2>
+    <div>
+      <label for="service_config" class="block text-sm font-medium text-navy mb-1">Configuration JSON</label>
+      <textarea id="service_config" name="service_config" rows="4" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy font-mono text-sm focus:ring-2 focus:ring-terracotta focus:border-terracotta">{{ caterer.service_config|tojson(indent=2) if caterer.service_config else '{}' }}</textarea>
+      <p class="text-xs text-navy-300 mt-1">Types de prestations proposees (dejeuner, diner, cocktail, etc.)</p>
+    </div>
+  </div>
+
+  <!-- Photos -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Photos</h2>
+    {% if caterer.photos %}
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      {% for photo in caterer.photos %}
+      <img src="{{ photo }}" alt="Photo traiteur" class="rounded-lg object-cover h-32 w-full">
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-navy-300">Aucune photo ajoutee pour le moment.</p>
+    {% endif %}
+  </div>
+
+  <div class="flex justify-end">
+    <button type="submit" class="bg-terracotta text-white px-6 py-2.5 rounded-lg font-medium hover:bg-terracotta-500 transition-colors">
+      Enregistrer
+    </button>
+  </div>
+</form>
+
+<script>lucide.createIcons();</script>
+{% endblock %}

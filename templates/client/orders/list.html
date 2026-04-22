@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "components/status_badge.html" import status_badge %}
+{% from "components/structure_type_badge.html" import structure_type_badge %}
+
+{% block title %}Mes commandes - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="font-display text-2xl font-semibold text-navy">Mes commandes</h1>
+  <p class="text-navy-300 mt-1">Suivez vos commandes en cours et passees.</p>
+</div>
+
+{% if orders %}
+<div class="bg-white rounded-xl border border-cream-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-cream-200 bg-cream-50">
+        <th class="text-left px-4 py-3 text-navy-300 font-medium">Traiteur</th>
+        <th class="text-left px-4 py-3 text-navy-300 font-medium">Date livraison</th>
+        <th class="text-left px-4 py-3 text-navy-300 font-medium">Montant HT</th>
+        <th class="text-left px-4 py-3 text-navy-300 font-medium">Statut</th>
+        <th class="text-right px-4 py-3 text-navy-300 font-medium"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr class="border-b border-cream-100 hover:bg-cream-50 transition-colors">
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-2">
+            <span class="font-medium text-navy">{{ order.quote.caterer.name }}</span>
+            {{ structure_type_badge(order.quote.caterer.structure_type) }}
+          </div>
+        </td>
+        <td class="px-4 py-3 text-navy-400">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</td>
+        <td class="px-4 py-3 text-navy-400">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR</td>
+        <td class="px-4 py-3">{{ status_badge(order.status) }}</td>
+        <td class="px-4 py-3 text-right">
+          <a href="{{ url_for('client.order_detail', order_id=order.id) }}" class="inline-flex items-center gap-1 text-terracotta hover:text-terracotta-500 font-medium text-sm">
+            Details <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-cream-200 p-12 text-center shadow-sm">
+  <div class="w-16 h-16 bg-cream-200 rounded-full flex items-center justify-center mx-auto mb-4">
+    <i data-lucide="shopping-bag" class="w-8 h-8 text-navy-200"></i>
+  </div>
+  <h3 class="font-display text-lg font-semibold text-navy mb-2">Aucune commande</h3>
+  <p class="text-navy-300 mb-6">Vous n'avez pas encore de commande. Acceptez un devis pour creer votre premiere commande.</p>
+  <a href="{{ url_for('client.requests_list') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-terracotta text-white hover:bg-terracotta-500 transition-colors font-medium">
+    <i data-lucide="file-text" class="w-4 h-4"></i>
+    Voir mes demandes
+  </a>
+</div>
+{% endif %}
+
+<script>lucide.createIcons();</script>
+{% endblock %}

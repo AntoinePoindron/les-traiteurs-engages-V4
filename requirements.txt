@@ -1,0 +1,9 @@
+Flask>=3.0
+SQLAlchemy>=2.0
+alembic
+psycopg2-binary
+httpx
+python-dotenv
+werkzeug
+gunicorn
+bcrypt

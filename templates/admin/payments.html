@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Paiements - Admin{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="font-display text-2xl font-semibold text-navy">Paiements</h1>
+  <p class="text-navy-300 mt-1">Suivi des paiements Stripe</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+        <i data-lucide="banknote" class="w-5 h-5 text-green-600"></i>
+      </div>
+      <div>
+        <p class="text-2xl font-bold text-navy">{{ "%.2f"|format(total_revenue / 100) }} &euro;</p>
+        <p class="text-xs text-navy-300">Revenu total</p>
+      </div>
+    </div>
+  </div>
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-terracotta-50 rounded-lg flex items-center justify-center">
+        <i data-lucide="percent" class="w-5 h-5 text-terracotta"></i>
+      </div>
+      <div>
+        <p class="text-2xl font-bold text-navy">{{ "%.2f"|format(total_commission / 100) }} &euro;</p>
+        <p class="text-xs text-navy-300">Commission totale</p>
+      </div>
+    </div>
+  </div>
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
+        <i data-lucide="clock" class="w-5 h-5 text-amber-600"></i>
+      </div>
+      <div>
+        <p class="text-2xl font-bold text-navy">{{ pending_count }}</p>
+        <p class="text-xs text-navy-300">Paiements en attente</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl border border-cream-200 shadow-sm">
+  <div class="p-4 border-b border-cream-200 flex flex-wrap items-center gap-2">
+    <span class="text-sm font-medium text-navy-300 mr-2">Filtrer :</span>
+    {% set status_tabs = [("all", "Tous"), ("pending", "En attente"), ("processing", "En cours"), ("succeeded", "Reussis"), ("failed", "Echoues"), ("refunded", "Rembourses")] %}
+    {% for key, label in status_tabs %}
+    <a href="{{ url_for('admin.payments', status=key) }}"
+      class="px-3 py-1 rounded-full text-xs font-medium transition-colors {{ 'bg-terracotta text-white' if current_status == key else 'bg-cream-200 text-navy-300 hover:bg-cream-300' }}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-cream-100 text-navy-300">
+        <tr>
+          <th class="px-4 py-3 text-left font-medium">Commande</th>
+          <th class="px-4 py-3 text-left font-medium">Traiteur</th>
+          <th class="px-4 py-3 text-right font-medium">Total</th>
+          <th class="px-4 py-3 text-right font-medium">Commission</th>
+          <th class="px-4 py-3 text-right font-medium">Traiteur</th>
+          <th class="px-4 py-3 text-center font-medium">Statut</th>
+          <th class="px-4 py-3 text-left font-medium">Stripe</th>
+          <th class="px-4 py-3 text-left font-medium">Date</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-cream-200">
+        {% for p in payments %}
+        <tr class="hover:bg-cream-50">
+          <td class="px-4 py-3">
+            <a href="{{ url_for('admin.company_detail', company_id=p.order.quote.quote_request.company_id) }}" class="text-terracotta hover:underline">
+              #{{ p.order_id|string|truncate(8, True, '') }}
+            </a>
+          </td>
+          <td class="px-4 py-3 font-medium text-navy">{{ p.caterer.name }}</td>
+          <td class="px-4 py-3 text-right text-navy">{{ "%.2f"|format((p.amount_total_cents or 0) / 100) }} &euro;</td>
+          <td class="px-4 py-3 text-right text-terracotta">{{ "%.2f"|format((p.application_fee_cents or 0) / 100) }} &euro;</td>
+          <td class="px-4 py-3 text-right text-olive">{{ "%.2f"|format((p.amount_to_caterer_cents or 0) / 100) }} &euro;</td>
+          <td class="px-4 py-3 text-center">
+            {% from "components/status_badge.html" import status_badge %}
+            {{ status_badge(p.status) }}
+          </td>
+          <td class="px-4 py-3">
+            {% if p.order.stripe_hosted_invoice_url %}
+            <a href="{{ p.order.stripe_hosted_invoice_url }}" target="_blank" class="text-terracotta hover:underline text-xs flex items-center gap-1">
+              <i data-lucide="external-link" class="w-3 h-3"></i> Facture
+            </a>
+            {% else %}
+            <span class="text-navy-300 text-xs">-</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-navy-300">{{ p.created_at.strftime('%d/%m/%Y') }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="px-4 py-8 text-center text-navy-300">Aucun paiement.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>lucide.createIcons();</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "components/structure_type_badge.html" import structure_type_badge %}
+
+{% block title %}Traiteurs - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="font-display text-2xl font-semibold text-navy">Traiteurs</h1>
+    <p class="text-navy-300 mt-1">{{ caterers|length }} traiteur{{ 's' if caterers|length != 1 }} inscrits</p>
+  </div>
+  <a href="{{ url_for('admin.dashboard') }}" class="inline-flex items-center gap-2 text-sm text-navy-300 hover:text-navy transition-colors">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+    Dashboard
+  </a>
+</div>
+
+{% if caterers %}
+<div class="bg-white rounded-xl border border-cream-200 shadow-sm overflow-hidden">
+  <table class="w-full">
+    <thead>
+      <tr class="bg-cream-100 border-b border-cream-200">
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">Nom</th>
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">Type</th>
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">Ville</th>
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">Valide</th>
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">Stripe</th>
+        <th class="text-left text-xs font-medium text-navy-300 uppercase tracking-wider px-4 py-3">Commission</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-cream-200">
+      {% for caterer in caterers %}
+      <tr class="hover:bg-cream-50 transition-colors">
+        <td class="px-4 py-3 text-sm font-medium text-navy">{{ caterer.name }}</td>
+        <td class="px-4 py-3">{{ structure_type_badge(caterer.structure_type) }}</td>
+        <td class="px-4 py-3 text-sm text-navy-300">{{ caterer.city or '-' }}</td>
+        <td class="px-4 py-3">
+          {% if caterer.is_validated %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-olive-50 text-olive-600">Valide</span>
+          {% else %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">En attente</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3">
+          {% if caterer.stripe_charges_enabled %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Actif</span>
+          {% elif caterer.stripe_account_id %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">En cours</span>
+          {% else %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Non configure</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-sm text-navy-300">{{ "%.0f"|format(caterer.commission_rate * 100) }}%</td>
+        <td class="px-4 py-3 text-right">
+          <a href="{{ url_for('admin.caterer_detail', caterer_id=caterer.id) }}"
+            class="inline-flex items-center gap-1 text-sm font-medium text-terracotta hover:text-terracotta-500 transition-colors">
+            Detail
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-cream-200 p-12 text-center shadow-sm">
+  <div class="w-16 h-16 bg-cream-200 rounded-full flex items-center justify-center mx-auto mb-4">
+    <i data-lucide="chef-hat" class="w-8 h-8 text-navy-300"></i>
+  </div>
+  <h3 class="font-display text-lg font-semibold text-navy mb-2">Aucun traiteur</h3>
+  <p class="text-sm text-navy-300">Aucun traiteur n'est encore inscrit sur la plateforme.</p>
+</div>
+{% endif %}
+<script>lucide.createIcons();</script>
+{% endblock %}

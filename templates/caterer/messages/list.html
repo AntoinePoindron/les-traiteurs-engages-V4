@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Messages — Les Traiteurs Engages{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="font-display text-2xl font-semibold text-navy">Messages</h1>
+  <p class="text-sm text-navy-300 mt-1">Vos conversations avec les clients</p>
+</div>
+
+{% if threads %}
+<div class="space-y-3">
+  {% for t in threads %}
+  <a href="{{ url_for('caterer.message_thread', thread_id=t.thread_id) }}"
+     class="block bg-white rounded-xl border border-cream-200 p-4 hover:border-terracotta transition-colors">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 bg-olive-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <i data-lucide="building-2" class="w-5 h-5 text-olive"></i>
+        </div>
+        <div class="min-w-0">
+          <p class="font-medium text-navy truncate">{{ t.other_name }}</p>
+          <p class="text-sm text-navy-300 truncate">{{ t.last_message }}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 flex-shrink-0 ml-4">
+        <span class="text-xs text-navy-200">{{ t.last_at.strftime('%d/%m %H:%M') }}</span>
+        {% if t.unread > 0 %}
+        <span class="bg-coral-red text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{{ t.unread }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-cream-200 p-12 text-center">
+  <i data-lucide="message-circle" class="w-12 h-12 text-cream-300 mx-auto mb-4"></i>
+  <p class="text-navy-300">Aucune conversation pour le moment.</p>
+</div>
+{% endif %}
+{% endblock %}

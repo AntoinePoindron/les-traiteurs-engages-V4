@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "components/status_badge.html" import status_badge %}
+
+{% block title %}Mes commandes - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="font-display text-2xl font-semibold text-navy">Mes commandes</h1>
+  <p class="text-navy-300 mt-1">Commandes confirmees et passees</p>
+</div>
+
+{% if orders %}
+<div class="bg-white rounded-xl border border-cream-200 shadow-sm overflow-hidden">
+  <table class="w-full">
+    <thead>
+      <tr class="border-b border-cream-200 bg-cream-50">
+        <th class="text-left px-5 py-3 text-xs font-medium text-navy-300 uppercase">Client</th>
+        <th class="text-left px-5 py-3 text-xs font-medium text-navy-300 uppercase">Livraison</th>
+        <th class="text-left px-5 py-3 text-xs font-medium text-navy-300 uppercase">Montant HT</th>
+        <th class="text-left px-5 py-3 text-xs font-medium text-navy-300 uppercase">Statut</th>
+        <th class="text-right px-5 py-3 text-xs font-medium text-navy-300 uppercase"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-cream-200">
+      {% for order in orders %}
+      <tr class="hover:bg-cream-50 transition-colors">
+        <td class="px-5 py-4">
+          <p class="text-sm font-medium text-navy">{{ order.quote.quote_request.company.name if order.quote and order.quote.quote_request and order.quote.quote_request.company else '-' }}</p>
+          <p class="text-xs text-navy-300">{{ order.quote.reference if order.quote else '' }}</p>
+        </td>
+        <td class="px-5 py-4">
+          <p class="text-sm text-navy">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</p>
+          <p class="text-xs text-navy-300">{{ order.delivery_address or '' }}</p>
+        </td>
+        <td class="px-5 py-4">
+          <p class="text-sm font-medium text-navy">{{ "%.2f"|format(order.quote.total_amount_ht or 0) }} &euro;</p>
+        </td>
+        <td class="px-5 py-4">
+          {{ status_badge(order.status) }}
+        </td>
+        <td class="px-5 py-4 text-right">
+          <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}" class="text-sm text-terracotta hover:underline">Detail</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-cream-200 p-12 text-center shadow-sm">
+  <i data-lucide="shopping-bag" class="w-12 h-12 text-cream-300 mx-auto mb-4"></i>
+  <p class="text-navy-300">Aucune commande pour le moment.</p>
+</div>
+{% endif %}
+
+<script>lucide.createIcons();</script>
+{% endblock %}

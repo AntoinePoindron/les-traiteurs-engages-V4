@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiques - Admin{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="font-display text-2xl font-semibold text-navy">Statistiques</h1>
+  <p class="text-navy-300 mt-1">Vue d'ensemble de la plateforme</p>
+</div>
+
+<!-- Conversion funnel -->
+<div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mb-8">
+  <h2 class="font-display text-lg font-semibold text-navy mb-4">Entonnoir de conversion</h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {% set steps = [
+      ("Demandes", funnel.requests, "clipboard-check", "bg-navy-50", "text-navy"),
+      ("Devis envoyes", funnel.quotes_sent, "file-text", "bg-blue-50", "text-blue-600"),
+      ("Devis acceptes", funnel.quotes_accepted, "check-circle", "bg-olive-50", "text-olive"),
+      ("Payes", funnel.orders_paid, "banknote", "bg-green-50", "text-green-600"),
+    ] %}
+    {% for label, value, icon, bg, color in steps %}
+    <div class="text-center">
+      <div class="w-12 h-12 {{ bg }} rounded-xl flex items-center justify-center mx-auto mb-2">
+        <i data-lucide="{{ icon }}" class="w-6 h-6 {{ color }}"></i>
+      </div>
+      <p class="text-2xl font-bold text-navy">{{ value }}</p>
+      <p class="text-xs text-navy-300">{{ label }}</p>
+      {% if not loop.first and funnel.requests > 0 %}
+      <p class="text-xs text-terracotta mt-1">{{ "%.1f"|format(value / funnel.requests * 100) }}%</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+  <!-- Revenue chart -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Revenu mensuel (12 mois)</h2>
+    <canvas id="revenueChart" height="250"></canvas>
+  </div>
+
+  <!-- Top caterers -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Top 5 traiteurs</h2>
+    {% if top_caterers %}
+    <table class="w-full text-sm">
+      <thead class="text-navy-300">
+        <tr>
+          <th class="text-left pb-2 font-medium">Traiteur</th>
+          <th class="text-right pb-2 font-medium">Revenu</th>
+          <th class="text-right pb-2 font-medium">Commandes</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-cream-200">
+        {% for c in top_caterers %}
+        <tr>
+          <td class="py-2 font-medium text-navy">{{ c.name }}</td>
+          <td class="py-2 text-right text-terracotta">{{ "%.2f"|format(c.revenue) }} &euro;</td>
+          <td class="py-2 text-right text-navy-300">{{ c.order_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-sm text-navy-300">Aucune donnee.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+  <!-- Geographic distribution -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Top 10 villes</h2>
+    {% if geo_data %}
+    <div class="space-y-2">
+      {% set max_geo = geo_data[0].count if geo_data else 1 %}
+      {% for g in geo_data %}
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-navy w-32 truncate">{{ g.city }}</span>
+        <div class="flex-1 bg-cream-200 rounded-full h-5 overflow-hidden">
+          <div class="bg-terracotta h-full rounded-full" style="width: {{ (g.count / max_geo * 100)|int }}%"></div>
+        </div>
+        <span class="text-sm font-medium text-navy w-8 text-right">{{ g.count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-navy-300">Aucune donnee.</p>
+    {% endif %}
+  </div>
+
+  <!-- Service type distribution -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Types de prestations</h2>
+    {% if meal_data %}
+    <div class="space-y-2">
+      {% set max_meal = meal_data[0].count if meal_data else 1 %}
+      {% for m in meal_data %}
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-navy w-32 truncate">{{ m.type }}</span>
+        <div class="flex-1 bg-cream-200 rounded-full h-5 overflow-hidden">
+          <div class="bg-olive h-full rounded-full" style="width: {{ (m.count / max_meal * 100)|int }}%"></div>
+        </div>
+        <span class="text-sm font-medium text-navy w-8 text-right">{{ m.count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-navy-300">Aucune donnee.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+  var ctx = document.getElementById('revenueChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ months|map(attribute='label')|list|tojson }},
+      datasets: [{
+        label: 'Revenu (EUR)',
+        data: {{ months|map(attribute='revenue')|list|tojson }},
+        backgroundColor: '#C4714A',
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: function(v) { return v + ' \u20ac'; } }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

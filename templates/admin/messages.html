@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Messages — Administration{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="font-display text-2xl font-semibold text-navy">Tous les messages</h1>
+  <p class="text-sm text-navy-300 mt-1">Vue globale des conversations de la plateforme</p>
+</div>
+
+{% if threads %}
+<div class="bg-white rounded-xl border border-cream-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-cream-100">
+      <tr>
+        <th class="text-left px-4 py-3 font-medium text-navy-400">Expediteur</th>
+        <th class="text-left px-4 py-3 font-medium text-navy-400">Destinataire</th>
+        <th class="text-left px-4 py-3 font-medium text-navy-400">Dernier message</th>
+        <th class="text-right px-4 py-3 font-medium text-navy-400">Messages</th>
+        <th class="text-right px-4 py-3 font-medium text-navy-400">Date</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-cream-100">
+      {% for t in threads %}
+      <tr class="hover:bg-cream-50">
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 bg-terracotta-100 rounded-full flex items-center justify-center">
+              <i data-lucide="user" class="w-3.5 h-3.5 text-terracotta"></i>
+            </div>
+            {{ t.sender_name }}
+          </div>
+        </td>
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 bg-olive-100 rounded-full flex items-center justify-center">
+              <i data-lucide="user" class="w-3.5 h-3.5 text-olive"></i>
+            </div>
+            {{ t.recipient_name }}
+          </div>
+        </td>
+        <td class="px-4 py-3 text-navy-300 truncate max-w-xs">{{ t.last_message }}</td>
+        <td class="px-4 py-3 text-right">
+          <span class="bg-cream-200 text-navy-400 text-xs px-2 py-1 rounded-full">{{ t.message_count }}</span>
+        </td>
+        <td class="px-4 py-3 text-right text-navy-200">{{ t.last_at.strftime('%d/%m/%Y %H:%M') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-cream-200 p-12 text-center">
+  <i data-lucide="message-circle" class="w-12 h-12 text-cream-300 mx-auto mb-4"></i>
+  <p class="text-navy-300">Aucune conversation sur la plateforme.</p>
+</div>
+{% endif %}
+{% endblock %}

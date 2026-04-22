@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% from "components/status_badge.html" import status_badge %}
+
+{% block title %}Demande - {{ qr.company.name }} - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="{{ url_for('caterer.requests_list') }}" class="text-sm text-terracotta hover:underline inline-flex items-center gap-1">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i> Retour aux demandes
+  </a>
+</div>
+
+<div class="flex items-center justify-between mb-8">
+  <div>
+    <h1 class="font-display text-2xl font-semibold text-navy">{{ qr.company.name }}</h1>
+    <p class="text-navy-300 mt-1">{{ status_badge(qrc.status) }} {{ status_badge(qr.status) }}</p>
+  </div>
+  <div class="flex gap-3">
+    {% if existing_quote %}
+      {% if existing_quote.status.value == 'draft' %}
+      <a href="{{ url_for('caterer.quote_edit', qr_id=qr.id, q_id=existing_quote.id) }}" class="bg-terracotta text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-terracotta-500 transition-colors inline-flex items-center gap-2">
+        <i data-lucide="pencil" class="w-4 h-4"></i> Modifier le devis
+      </a>
+      <form method="POST" action="{{ url_for('caterer.quote_send', qr_id=qr.id, q_id=existing_quote.id) }}" class="inline">
+        <button type="submit" class="bg-olive text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-olive-500 transition-colors inline-flex items-center gap-2">
+          <i data-lucide="send" class="w-4 h-4"></i> Envoyer le devis
+        </button>
+      </form>
+      {% else %}
+      <span class="text-sm text-navy-300">Devis {{ existing_quote.reference }} &middot; {{ status_badge(existing_quote.status) }}</span>
+      {% endif %}
+    {% elif qrc.status.value == 'selected' %}
+    <a href="{{ url_for('caterer.quote_new', qr_id=qr.id) }}" class="bg-terracotta text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-terracotta-500 transition-colors inline-flex items-center gap-2">
+      <i data-lucide="plus" class="w-4 h-4"></i> Creer un devis
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <!-- Evenement -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Evenement</h2>
+    <dl class="space-y-3">
+      <div class="flex justify-between">
+        <dt class="text-sm text-navy-300">Type</dt>
+        <dd class="text-sm font-medium text-navy">{{ qr.meal_type.value if qr.meal_type else '-' }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-sm text-navy-300">Date</dt>
+        <dd class="text-sm font-medium text-navy">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-sm text-navy-300">Convives</dt>
+        <dd class="text-sm font-medium text-navy">{{ qr.guest_count or '-' }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-sm text-navy-300">Lieu</dt>
+        <dd class="text-sm font-medium text-navy text-right">{{ qr.event_address or '' }}<br>{{ qr.event_city or '' }} {{ qr.event_zip_code or '' }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <!-- Budget -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Budget</h2>
+    <dl class="space-y-3">
+      <div class="flex justify-between">
+        <dt class="text-sm text-navy-300">Budget global</dt>
+        <dd class="text-sm font-medium text-navy">{{ "%.2f"|format(qr.budget_global) }} &euro; {% if qr.budget_global %}{% endif %}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-sm text-navy-300">Budget par personne</dt>
+        <dd class="text-sm font-medium text-navy">{{ "%.2f"|format(qr.budget_per_person) }} &euro; {% if qr.budget_per_person %}{% endif %}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <!-- Regimes alimentaires -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Regimes alimentaires</h2>
+    <div class="flex flex-wrap gap-2">
+      {% set dietary = [
+        (qr.dietary_vegetarian, 'Vegetarien', qr.vegetarian_count),
+        (qr.dietary_vegan, 'Vegan', qr.vegan_count),
+        (qr.dietary_halal, 'Halal', qr.halal_count),
+        (qr.dietary_casher, 'Casher', qr.casher_count),
+        (qr.dietary_gluten_free, 'Sans gluten', qr.gluten_free_count),
+        (qr.dietary_lactose_free, 'Sans lactose', qr.lactose_free_count),
+      ] %}
+      {% for active, label, count in dietary %}
+        {% if active %}
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-olive-50 text-olive-600">
+          {{ label }}{% if count %} ({{ count }}){% endif %}
+        </span>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Services demandes -->
+  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
+    <h2 class="font-display text-lg font-semibold text-navy mb-4">Services demandes</h2>
+    <div class="space-y-2">
+      {% if qr.drinks_alcohol %}
+      <div class="flex items-center gap-2 text-sm text-navy">
+        <i data-lucide="wine" class="w-4 h-4 text-terracotta"></i> Boissons avec alcool
+      </div>
+      {% endif %}
+      {% if qr.drinks_details %}
+      <p class="text-sm text-navy-300 ml-6">{{ qr.drinks_details }}</p>
+      {% endif %}
+      {% if qr.wants_waitstaff %}
+      <div class="flex items-center gap-2 text-sm text-navy">
+        <i data-lucide="users" class="w-4 h-4 text-terracotta"></i> Service / Personnel
+      </div>
+      {% endif %}
+      {% if qr.service_waitstaff_details %}
+      <p class="text-sm text-navy-300 ml-6">{{ qr.service_waitstaff_details }}</p>
+      {% endif %}
+      {% if qr.wants_equipment %}
+      <div class="flex items-center gap-2 text-sm text-navy"><i data-lucide="package" class="w-4 h-4 text-terracotta"></i> Materiel / Vaisselle</div>
+      {% endif %}
+      {% if qr.wants_decoration %}
+      <div class="flex items-center gap-2 text-sm text-navy"><i data-lucide="flower-2" class="w-4 h-4 text-terracotta"></i> Decoration</div>
+      {% endif %}
+      {% if qr.wants_setup %}
+      <div class="flex items-center gap-2 text-sm text-navy"><i data-lucide="hammer" class="w-4 h-4 text-terracotta"></i> Installation</div>
+      {% endif %}
+      {% if qr.wants_cleanup %}
+      <div class="flex items-center gap-2 text-sm text-navy"><i data-lucide="sparkles" class="w-4 h-4 text-terracotta"></i> Nettoyage</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if qr.message_to_caterer %}
+<div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mt-6">
+  <h2 class="font-display text-lg font-semibold text-navy mb-3">Message du client</h2>
+  <p class="text-sm text-navy whitespace-pre-wrap">{{ qr.message_to_caterer }}</p>
+</div>
+{% endif %}
+
+{% if existing_quote and existing_quote.details %}
+<div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mt-6">
+  <h2 class="font-display text-lg font-semibold text-navy mb-3">Devis {{ existing_quote.reference }}</h2>
+  <dl class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div>
+      <dt class="text-xs text-navy-300">Total HT</dt>
+      <dd class="text-lg font-semibold text-navy">{{ "%.2f"|format(existing_quote.total_amount_ht or 0) }} &euro;</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-navy-300">Par personne</dt>
+      <dd class="text-lg font-semibold text-navy">{{ "%.2f"|format(existing_quote.amount_per_person or 0) }} &euro;</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-navy-300">AGEFIPH</dt>
+      <dd class="text-lg font-semibold text-navy">{{ "%.2f"|format(existing_quote.valorisable_agefiph or 0) }} &euro;</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-navy-300">Statut</dt>
+      <dd class="mt-1">{{ status_badge(existing_quote.status) }}</dd>
+    </div>
+  </dl>
+</div>
+{% endif %}
+
+<script>lucide.createIcons();</script>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Les Traiteurs Engages - Traiteurs inclusifs pour vos evenements{% endblock %}
+
+{% block public_content %}
+<!-- Navbar -->
+<nav class="bg-white/80 backdrop-blur-sm border-b border-cream-200 sticky top-0 z-20">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-terracotta rounded-lg flex items-center justify-center">
+        <i data-lucide="chef-hat" class="w-5 h-5 text-white"></i>
+      </div>
+      <span class="font-display text-lg font-semibold text-navy">Les Traiteurs Engages</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="{{ url_for('auth.login') }}"
+        class="text-sm font-medium text-navy hover:text-terracotta transition-colors px-3 py-2">
+        Connexion
+      </a>
+      <a href="{{ url_for('auth.signup') }}"
+        class="text-sm font-medium text-white bg-terracotta px-4 py-2 rounded-lg hover:bg-terracotta-500 transition-colors">
+        S'inscrire
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="py-20 px-4">
+  <div class="max-w-4xl mx-auto text-center">
+    <h1 class="font-display text-4xl sm:text-5xl font-bold text-navy leading-tight mb-6">
+      Traiteurs inclusifs<br>pour vos evenements
+    </h1>
+    <p class="text-lg text-navy-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+      Mettez en relation votre entreprise avec des traiteurs ESAT, EA, EI et ACI.
+      Valorisez votre engagement social tout en offrant des prestations de qualite a vos equipes.
+    </p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="{{ url_for('auth.signup') }}"
+        class="w-full sm:w-auto px-8 py-3 bg-terracotta text-white font-medium rounded-lg hover:bg-terracotta-500 transition-colors shadow-md text-center">
+        Je suis une entreprise
+      </a>
+      <a href="{{ url_for('auth.signup') }}"
+        class="w-full sm:w-auto px-8 py-3 bg-white text-navy font-medium rounded-lg border-2 border-navy hover:bg-navy hover:text-white transition-colors text-center">
+        Je suis un traiteur
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- 3 steps -->
+<section class="py-16 px-4 bg-white">
+  <div class="max-w-5xl mx-auto">
+    <h2 class="font-display text-3xl font-bold text-navy text-center mb-4">Comment ca marche ?</h2>
+    <p class="text-navy-300 text-center mb-12 max-w-xl mx-auto">Trois etapes simples pour trouver le traiteur ideal.</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="text-center">
+        <div class="w-16 h-16 bg-terracotta/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <span class="font-display text-2xl font-bold text-terracotta">1</span>
+        </div>
+        <h3 class="font-display text-lg font-semibold text-navy mb-2">Decrivez votre evenement</h3>
+        <p class="text-sm text-navy-300 leading-relaxed">
+          Type de repas, nombre de convives, regimes alimentaires, services souhaites...
+          Notre formulaire guide vous accompagne.
+        </p>
+      </div>
+      <div class="text-center">
+        <div class="w-16 h-16 bg-olive/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <span class="font-display text-2xl font-bold text-olive">2</span>
+        </div>
+        <h3 class="font-display text-lg font-semibold text-navy mb-2">Comparez 3 devis</h3>
+        <p class="text-sm text-navy-300 leading-relaxed">
+          Recevez jusqu'a 3 propositions de traiteurs qualifies et proches de votre lieu d'evenement.
+          Comparez les offres en detail.
+        </p>
+      </div>
+      <div class="text-center">
+        <div class="w-16 h-16 bg-navy/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <span class="font-display text-2xl font-bold text-navy">3</span>
+        </div>
+        <h3 class="font-display text-lg font-semibold text-navy mb-2">Commandez et payez</h3>
+        <p class="text-sm text-navy-300 leading-relaxed">
+          Acceptez le devis de votre choix, suivez la commande et payez en ligne.
+          Facturation B2B a 30 jours.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section class="py-16 px-4">
+  <div class="max-w-5xl mx-auto">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div class="bg-white rounded-xl p-6 text-center shadow-sm border border-cream-200">
+        <p class="font-display text-3xl font-bold text-terracotta">{{ caterer_count or 0 }}</p>
+        <p class="text-sm text-navy-300 mt-1">Traiteurs engages</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 text-center shadow-sm border border-cream-200">
+        <p class="font-display text-3xl font-bold text-olive">{{ company_count or 0 }}</p>
+        <p class="text-sm text-navy-300 mt-1">Entreprises clientes</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 text-center shadow-sm border border-cream-200">
+        <p class="font-display text-3xl font-bold text-navy">{{ order_count or 0 }}</p>
+        <p class="text-sm text-navy-300 mt-1">Commandes terminees</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 text-center shadow-sm border border-cream-200">
+        <p class="font-display text-3xl font-bold text-terracotta">4</p>
+        <p class="text-sm text-navy-300 mt-1">Types de structures</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Structure types -->
+<section class="py-16 px-4 bg-white">
+  <div class="max-w-5xl mx-auto text-center">
+    <h2 class="font-display text-3xl font-bold text-navy mb-4">Des traiteurs engages dans l'inclusion</h2>
+    <p class="text-navy-300 mb-12 max-w-2xl mx-auto">
+      Notre plateforme regroupe exclusivement des structures de l'insertion par l'activite economique et du secteur adapte.
+    </p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-purple-50 rounded-xl p-6 border border-purple-100">
+        <span class="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold mb-3">ESAT</span>
+        <p class="text-sm text-navy-300">Etablissement et service d'aide par le travail</p>
+      </div>
+      <div class="bg-teal-50 rounded-xl p-6 border border-teal-100">
+        <span class="inline-block px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-bold mb-3">EA</span>
+        <p class="text-sm text-navy-300">Entreprise adaptee</p>
+      </div>
+      <div class="bg-amber-50 rounded-xl p-6 border border-amber-100">
+        <span class="inline-block px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold mb-3">EI</span>
+        <p class="text-sm text-navy-300">Entreprise d'insertion</p>
+      </div>
+      <div class="bg-indigo-50 rounded-xl p-6 border border-indigo-100">
+        <span class="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold mb-3">ACI</span>
+        <p class="text-sm text-navy-300">Atelier et chantier d'insertion</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="py-20 px-4">
+  <div class="max-w-3xl mx-auto text-center">
+    <h2 class="font-display text-3xl font-bold text-navy mb-4">Pret a vous engager ?</h2>
+    <p class="text-navy-300 mb-8">Rejoignez la plateforme et valorisez votre engagement social.</p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="{{ url_for('auth.signup') }}"
+        class="w-full sm:w-auto px-8 py-3 bg-terracotta text-white font-medium rounded-lg hover:bg-terracotta-500 transition-colors shadow-md text-center">
+        Je suis une entreprise
+      </a>
+      <a href="{{ url_for('auth.signup') }}"
+        class="w-full sm:w-auto px-8 py-3 bg-white text-navy font-medium rounded-lg border-2 border-navy hover:bg-navy hover:text-white transition-colors text-center">
+        Je suis un traiteur
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-navy text-white py-8 px-4">
+  <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-terracotta rounded flex items-center justify-center">
+        <i data-lucide="chef-hat" class="w-4 h-4 text-white"></i>
+      </div>
+      <span class="font-display text-sm font-semibold">Les Traiteurs Engages</span>
+    </div>
+    <p class="text-sm text-navy-200">Marketplace B2B pour la restauration inclusive</p>
+  </div>
+</footer>
+
+<script>lucide.createIcons();</script>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Inscription - Les Traiteurs Engages{% endblock %}
+
+{% block public_content %}
+<div class="min-h-screen bg-cream flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-2xl">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 bg-terracotta rounded-xl flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="chef-hat" class="w-8 h-8 text-white"></i>
+      </div>
+      <h1 class="font-display text-2xl font-semibold text-navy">Creer votre compte</h1>
+      <p class="text-sm text-navy-300 mt-1">Rejoignez Les Traiteurs Engages</p>
+    </div>
+
+    <!-- Flash messages -->
+    {% include "components/flash_messages.html" %}
+
+    <!-- Role selection -->
+    <div class="bg-white rounded-2xl shadow-sm border border-cream-200 p-8">
+      <p class="text-sm font-medium text-navy mb-4">Vous etes :</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8" id="role-cards">
+        <button type="button" onclick="selectRole('client')"
+          id="role-card-client"
+          class="role-card flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-cream-200 hover:border-terracotta transition-colors cursor-pointer">
+          <div class="w-12 h-12 bg-navy-50 rounded-lg flex items-center justify-center">
+            <i data-lucide="building-2" class="w-6 h-6 text-navy"></i>
+          </div>
+          <div class="text-center">
+            <p class="font-medium text-navy">Une entreprise</p>
+            <p class="text-xs text-navy-300 mt-1">Je cherche un traiteur pour mes evenements</p>
+          </div>
+        </button>
+        <button type="button" onclick="selectRole('caterer')"
+          id="role-card-caterer"
+          class="role-card flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-cream-200 hover:border-terracotta transition-colors cursor-pointer">
+          <div class="w-12 h-12 bg-olive-50 rounded-lg flex items-center justify-center">
+            <i data-lucide="chef-hat" class="w-6 h-6 text-olive"></i>
+          </div>
+          <div class="text-center">
+            <p class="font-medium text-navy">Un traiteur</p>
+            <p class="text-xs text-navy-300 mt-1">ESAT, EA, EI ou ACI — je propose mes services</p>
+          </div>
+        </button>
+      </div>
+
+      <!-- Signup form -->
+      <form method="POST" action="{{ url_for('auth.signup') }}" class="space-y-5" id="signup-form" style="display:none;">
+        <input type="hidden" name="role" id="role-input" value="">
+
+        <!-- Common fields -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="first_name" class="block text-sm font-medium text-navy mb-1.5">Prenom</label>
+            <input type="text" id="first_name" name="first_name" required
+              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+          </div>
+          <div>
+            <label for="last_name" class="block text-sm font-medium text-navy mb-1.5">Nom</label>
+            <input type="text" id="last_name" name="last_name" required
+              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+          </div>
+        </div>
+        <div>
+          <label for="email" class="block text-sm font-medium text-navy mb-1.5">Adresse email</label>
+          <input type="email" id="email" name="email" required autocomplete="email"
+            class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+            focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors"
+            placeholder="vous@entreprise.fr">
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-medium text-navy mb-1.5">Mot de passe</label>
+          <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password"
+            class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+            focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors"
+            placeholder="Minimum 8 caracteres">
+        </div>
+        <div>
+          <label for="siret" class="block text-sm font-medium text-navy mb-1.5">SIRET</label>
+          <input type="text" id="siret" name="siret" required pattern="\d{14}" maxlength="14"
+            class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+            focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors"
+            placeholder="14 chiffres">
+        </div>
+
+        <!-- Client-specific fields -->
+        <div id="client-fields" style="display:none;">
+          <div>
+            <label for="company_name" class="block text-sm font-medium text-navy mb-1.5">Nom de l'entreprise</label>
+            <input type="text" id="company_name" name="company_name"
+              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+          </div>
+        </div>
+
+        <!-- Caterer-specific fields -->
+        <div id="caterer-fields" class="space-y-5" style="display:none;">
+          <div>
+            <label for="structure_type" class="block text-sm font-medium text-navy mb-1.5">Type de structure</label>
+            <select id="structure_type" name="structure_type"
+              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+              <option value="">Selectionnez</option>
+              <option value="ESAT">ESAT - Etablissement et service d'aide par le travail</option>
+              <option value="EA">EA - Entreprise adaptee</option>
+              <option value="EI">EI - Entreprise d'insertion</option>
+              <option value="ACI">ACI - Atelier et chantier d'insertion</option>
+            </select>
+          </div>
+          <div>
+            <label for="caterer_name" class="block text-sm font-medium text-navy mb-1.5">Nom du traiteur</label>
+            <input type="text" id="caterer_name" name="caterer_name"
+              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+          </div>
+          <div>
+            <label for="address" class="block text-sm font-medium text-navy mb-1.5">Adresse</label>
+            <input type="text" id="address" name="address"
+              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="city" class="block text-sm font-medium text-navy mb-1.5">Ville</label>
+              <input type="text" id="city" name="city"
+                class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+                focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+            </div>
+            <div>
+              <label for="zip_code" class="block text-sm font-medium text-navy mb-1.5">Code postal</label>
+              <input type="text" id="zip_code" name="zip_code" pattern="\d{5}" maxlength="5"
+                class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
+                focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit"
+          class="w-full py-2.5 px-4 bg-terracotta text-white font-medium rounded-lg
+          hover:bg-terracotta-500 active:bg-terracotta-600 transition-colors shadow-sm">
+          Creer mon compte
+        </button>
+      </form>
+    </div>
+
+    <!-- Login link -->
+    <p class="text-center text-sm text-navy-300 mt-6">
+      Deja un compte ?
+      <a href="{{ url_for('auth.login') }}" class="text-terracotta font-medium hover:text-terracotta-500 transition-colors">
+        Se connecter
+      </a>
+    </p>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+
+  function selectRole(role) {
+    document.getElementById('role-input').value = role === 'client' ? 'client_admin' : 'caterer';
+    document.getElementById('signup-form').style.display = 'block';
+    document.getElementById('client-fields').style.display = role === 'client' ? 'block' : 'none';
+    document.getElementById('caterer-fields').style.display = role === 'caterer' ? 'block' : 'none';
+
+    document.querySelectorAll('.role-card').forEach(function(card) {
+      card.classList.remove('border-terracotta', 'bg-terracotta/5');
+      card.classList.add('border-cream-200');
+    });
+    var selected = document.getElementById('role-card-' + role);
+    selected.classList.remove('border-cream-200');
+    selected.classList.add('border-terracotta', 'bg-terracotta/5');
+
+    var clientInputs = document.querySelectorAll('#client-fields input');
+    var catererInputs = document.querySelectorAll('#caterer-fields input, #caterer-fields select');
+    clientInputs.forEach(function(el) { el.required = (role === 'client'); });
+    catererInputs.forEach(function(el) { el.required = (role === 'caterer'); });
+  }
+</script>
+{% endblock %}

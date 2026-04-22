@@ -1,0 +1,30 @@
+{% macro render_flash_messages() %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="space-y-3 mb-6">
+  {% for category, message in messages %}
+  <div class="flash-message flex items-center justify-between px-4 py-3 rounded-lg shadow-sm
+    {% if category == 'success' %}bg-olive-50 text-olive-600 border border-olive-200
+    {% elif category == 'error' %}bg-coral-red-50 text-coral-red-600 border border-coral-red-200
+    {% else %}bg-navy-50 text-navy-500 border border-navy-100{% endif %}">
+    <div class="flex items-center gap-2">
+      {% if category == 'success' %}
+      <i data-lucide="check-circle" class="w-5 h-5 flex-shrink-0"></i>
+      {% elif category == 'error' %}
+      <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0"></i>
+      {% else %}
+      <i data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
+      {% endif %}
+      <span class="text-sm">{{ message }}</span>
+    </div>
+    <button onclick="this.parentElement.remove()" class="ml-4 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+{% endmacro %}
+
+{{ render_flash_messages() }}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% from "components/status_badge.html" import status_badge %}
+{% from "components/structure_type_badge.html" import structure_type_badge %}
+
+{% block title %}Commande - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <!-- Header -->
+  <div class="mb-6">
+    <a href="{{ url_for('client.orders_list') }}" class="inline-flex items-center gap-2 text-sm text-navy-300 hover:text-terracotta transition-colors mb-4">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      Retour aux commandes
+    </a>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-semibold text-navy">Commande</h1>
+        <div class="flex items-center gap-3 mt-2">
+          {{ status_badge(order.status) }}
+          <span class="text-sm text-navy-300">Creee le {{ order.created_at.strftime('%d/%m/%Y') }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status timeline -->
+  <div class="bg-white rounded-xl border border-cream-200 p-5 shadow-sm mb-6">
+    <h3 class="font-display text-sm font-semibold text-navy mb-4">Progression</h3>
+    {% set statuses = ['confirmed', 'delivered', 'invoiced', 'paid'] %}
+    {% set current_idx = statuses.index(order.status.value) if order.status.value in statuses else -1 %}
+    <div class="flex items-center justify-between">
+      {% for s in statuses %}
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
+          {% if loop.index0 <= current_idx %}bg-olive text-white{% elif loop.index0 == current_idx + 1 %}bg-terracotta-100 text-terracotta{% else %}bg-cream-200 text-navy-200{% endif %}">
+          {% if loop.index0 < current_idx %}
+          <i data-lucide="check" class="w-4 h-4"></i>
+          {% else %}
+          {{ loop.index }}
+          {% endif %}
+        </div>
+        <span class="text-xs mt-1 text-center {% if loop.index0 <= current_idx %}text-navy font-medium{% else %}text-navy-200{% endif %}">
+          {{ order_status_labels.get(s, s) }}
+        </span>
+      </div>
+      {% if not loop.last %}
+      <div class="flex-1 h-0.5 mx-1 {% if loop.index0 < current_idx %}bg-olive{% else %}bg-cream-200{% endif %}"></div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Traiteur info -->
+    <div class="bg-white rounded-xl border border-cream-200 p-5 shadow-sm">
+      <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="chef-hat" class="w-4 h-4 text-terracotta"></i>
+        <h3 class="font-display text-sm font-semibold text-navy">Traiteur</h3>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-terracotta-50 rounded-lg flex items-center justify-center">
+          <i data-lucide="chef-hat" class="w-6 h-6 text-terracotta"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-medium text-navy">{{ order.quote.caterer.name }}</span>
+            {{ structure_type_badge(order.quote.caterer.structure_type) }}
+          </div>
+          <span class="text-sm text-navy-300">{{ order.quote.caterer.city or '' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Devis info -->
+    <div class="bg-white rounded-xl border border-cream-200 p-5 shadow-sm">
+      <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="file-text" class="w-4 h-4 text-terracotta"></i>
+        <h3 class="font-display text-sm font-semibold text-navy">Devis accepte</h3>
+      </div>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-navy-200">Reference</span>
+          <span class="text-navy font-medium">{{ order.quote.reference }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-navy-200">Montant HT</span>
+          <span class="text-navy font-medium">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR</span>
+        </div>
+        {% if order.quote.amount_per_person %}
+        <div class="flex justify-between">
+          <span class="text-navy-200">Par personne</span>
+          <span class="text-navy font-medium">{{ "%.2f" | format(order.quote.amount_per_person | float) }} EUR</span>
+        </div>
+        {% endif %}
+        {% if order.quote.valorisable_agefiph %}
+        <div class="flex justify-between">
+          <span class="text-navy-200">Valorisable AGEFIPH</span>
+          <span class="text-olive font-medium">{{ "%.2f" | format(order.quote.valorisable_agefiph | float) }} EUR</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Livraison -->
+  <div class="bg-white rounded-xl border border-cream-200 p-5 shadow-sm mb-6">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="truck" class="w-4 h-4 text-terracotta"></i>
+      <h3 class="font-display text-sm font-semibold text-navy">Livraison</h3>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+      <div>
+        <span class="text-navy-200">Date de livraison</span>
+        <p class="text-navy font-medium">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</p>
+      </div>
+      <div>
+        <span class="text-navy-200">Adresse</span>
+        <p class="text-navy font-medium">{{ order.delivery_address or '-' }}</p>
+      </div>
+    </div>
+    {% if order.notes %}
+    <div class="mt-3">
+      <span class="text-sm text-navy-200">Notes</span>
+      <p class="text-sm text-navy-400">{{ order.notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Invoice / Payment -->
+  {% if order.stripe_hosted_invoice_url %}
+  <div class="bg-white rounded-xl border border-cream-200 p-5 shadow-sm mb-6">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="receipt" class="w-4 h-4 text-terracotta"></i>
+      <h3 class="font-display text-sm font-semibold text-navy">Facture</h3>
+    </div>
+    <a href="{{ order.stripe_hosted_invoice_url }}" target="_blank" rel="noopener"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-navy text-white hover:bg-navy-400 transition-colors text-sm font-medium">
+      <i data-lucide="external-link" class="w-4 h-4"></i>
+      Voir la facture
+    </a>
+  </div>
+  {% endif %}
+
+  {% if order.status.value in ('confirmed', 'delivered') and not order.stripe_hosted_invoice_url %}
+  <div class="bg-olive-50 border border-olive-200 rounded-xl p-5 mb-6">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-olive-100 rounded-lg flex items-center justify-center">
+        <i data-lucide="clock" class="w-5 h-5 text-olive"></i>
+      </div>
+      <div>
+        <p class="font-medium text-navy">En attente de facturation</p>
+        <p class="text-sm text-navy-300">
+          {% if order.status.value == 'confirmed' %}
+          Le traiteur doit d'abord confirmer la livraison.
+          {% else %}
+          La facture sera generee automatiquement.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>lucide.createIcons();</script>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% macro confirm_dialog(id, title, message, action_url, action_label="Confirmer", destructive=False) %}
+<dialog id="{{ id }}" class="rounded-xl shadow-2xl p-0 backdrop:bg-black/50 max-w-md w-full">
+  <div class="p-6">
+    <h3 class="font-display text-lg font-semibold text-navy mb-2">{{ title }}</h3>
+    <p class="text-sm text-navy-300 mb-6">{{ message }}</p>
+    <div class="flex items-center justify-end gap-3">
+      <button type="button" onclick="document.getElementById('{{ id }}').close()"
+        class="px-4 py-2 text-sm font-medium text-navy-300 bg-cream-200 rounded-lg hover:bg-cream-300 transition-colors">
+        Annuler
+      </button>
+      <form method="POST" action="{{ action_url }}">
+        <button type="submit"
+          class="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors
+          {% if destructive %}bg-coral-red hover:bg-coral-red-500{% else %}bg-terracotta hover:bg-terracotta-500{% endif %}">
+          {{ action_label }}
+        </button>
+      </form>
+    </div>
+  </div>
+</dialog>
+<script>
+  (function() {
+    var dialog = document.getElementById('{{ id }}');
+    dialog.addEventListener('click', function(e) {
+      if (e.target === dialog) dialog.close();
+    });
+  })();
+</script>
+{% endmacro %}

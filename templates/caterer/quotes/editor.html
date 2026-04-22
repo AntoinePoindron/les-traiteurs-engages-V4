@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}{% if quote %}Modifier le devis{% else %}Nouveau devis{% endif %} - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="{{ url_for('caterer.request_detail', qr_id=qr.id) }}" class="text-sm text-terracotta hover:underline inline-flex items-center gap-1">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i> Retour a la demande
+  </a>
+</div>
+
+<h1 class="font-display text-2xl font-semibold text-navy mb-2">
+  {% if quote %}Modifier le devis {{ quote.reference }}{% else %}Nouveau devis{% endif %}
+</h1>
+<p class="text-navy-300 mb-8">{{ qr.company.name }} &middot; {{ qr.guest_count or 0 }} convives &middot; {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '' }}</p>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- Request summary (sidebar) -->
+  <div class="lg:col-span-1 space-y-4 order-2 lg:order-1">
+    <div class="bg-white rounded-xl border border-cream-200 p-5 shadow-sm sticky top-6">
+      <h3 class="font-display text-sm font-semibold text-navy mb-3">Resume de la demande</h3>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <dt class="text-navy-300">Type</dt>
+          <dd class="text-navy font-medium">{{ qr.meal_type.value if qr.meal_type else '-' }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-navy-300">Convives</dt>
+          <dd class="text-navy font-medium" id="guest-count-display">{{ qr.guest_count or 0 }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-navy-300">Budget global</dt>
+          <dd class="text-navy font-medium">{{ "%.2f"|format(qr.budget_global or 0) }} &euro;</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-navy-300">Budget/pers</dt>
+          <dd class="text-navy font-medium">{{ "%.2f"|format(qr.budget_per_person or 0) }} &euro;</dd>
+        </div>
+      </dl>
+
+      <hr class="my-4 border-cream-200">
+
+      <h3 class="font-display text-sm font-semibold text-navy mb-3">Totaux du devis</h3>
+      <dl class="space-y-2 text-sm" id="totals-panel">
+        <div class="flex justify-between">
+          <dt class="text-navy-300">Total HT</dt>
+          <dd class="text-navy font-semibold" id="display-total-ht">0.00 &euro;</dd>
+        </div>
+        <div id="tva-breakdown"></div>
+        <div class="flex justify-between border-t border-cream-200 pt-2">
+          <dt class="text-navy font-semibold">Total TTC</dt>
+          <dd class="text-navy font-bold text-lg" id="display-total-ttc">0.00 &euro;</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-navy-300">Par personne</dt>
+          <dd class="text-navy font-medium" id="display-per-person">0.00 &euro;</dd>
+        </div>
+
+        <hr class="my-2 border-cream-200">
+        <p class="text-xs text-navy-300 font-medium mb-1">Frais plateforme (5%)</p>
+        <div class="flex justify-between">
+          <dt class="text-navy-300">Frais HT</dt>
+          <dd class="text-navy-300" id="display-fee-ht">0.00 &euro;</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-navy-300">TVA frais (20%)</dt>
+          <dd class="text-navy-300" id="display-fee-tva">0.00 &euro;</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-navy-300">Total frais TTC</dt>
+          <dd class="text-navy-300" id="display-fee-ttc">0.00 &euro;</dd>
+        </div>
+
+        <hr class="my-2 border-cream-200">
+        <div class="flex justify-between">
+          <dt class="text-navy-300">Valorisable AGEFIPH</dt>
+          <dd class="text-olive font-semibold" id="display-agefiph">0.00 &euro;</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <!-- Editor -->
+  <div class="lg:col-span-2 order-1 lg:order-2">
+    <form id="quote-form" method="POST"
+          action="{% if quote %}{{ url_for('caterer.quote_update', qr_id=qr.id, q_id=quote.id) }}{% else %}{{ url_for('caterer.quote_create', qr_id=qr.id) }}{% endif %}">
+      <input type="hidden" name="details" id="details-field" value="">
+
+      {% set sections = [
+        ('principal', 'Prestations', 'chef-hat'),
+        ('boissons', 'Boissons', 'wine'),
+        ('extras', 'Extras', 'sparkles'),
+      ] %}
+
+      {% for section_id, section_label, section_icon in sections %}
+      <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mb-6" data-section="{{ section_id }}">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display text-lg font-semibold text-navy inline-flex items-center gap-2">
+            <i data-lucide="{{ section_icon }}" class="w-5 h-5 text-terracotta"></i> {{ section_label }}
+          </h2>
+          <span class="text-sm font-medium text-navy-300 section-subtotal" data-section="{{ section_id }}">0.00 &euro; HT</span>
+        </div>
+
+        <div class="space-y-3 lines-container" data-section="{{ section_id }}">
+          <!-- Lines injected by JS -->
+        </div>
+
+        <button type="button" onclick="addLine('{{ section_id }}')"
+                class="mt-3 text-sm text-terracotta hover:text-terracotta-500 font-medium inline-flex items-center gap-1 transition-colors">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i> Ajouter une ligne
+        </button>
+      </div>
+      {% endfor %}
+
+      <!-- Notes & validity -->
+      <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mb-6">
+        <h2 class="font-display text-lg font-semibold text-navy mb-4">Notes et conditions</h2>
+        <div class="space-y-4">
+          <div>
+            <label for="notes" class="block text-sm font-medium text-navy mb-1">Notes</label>
+            <textarea id="notes" name="notes" rows="3" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy text-sm focus:ring-2 focus:ring-terracotta focus:border-terracotta">{{ quote.notes or '' if quote else '' }}</textarea>
+          </div>
+          <div>
+            <label for="valid_until" class="block text-sm font-medium text-navy mb-1">Valide jusqu'au</label>
+            <input type="date" id="valid_until" name="valid_until" value="{{ quote.valid_until.isoformat() if quote and quote.valid_until else '' }}" class="w-48 border border-cream-200 rounded-lg px-3 py-2 text-navy text-sm focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-3">
+        <button type="submit" name="action" value="draft" class="bg-white text-navy border border-cream-200 px-6 py-2.5 rounded-lg font-medium hover:bg-cream-50 transition-colors">
+          Enregistrer brouillon
+        </button>
+        {% if quote and quote.status.value == 'draft' %}
+        <a href="javascript:void(0)" onclick="document.getElementById('send-form').submit()" class="bg-olive text-white px-6 py-2.5 rounded-lg font-medium hover:bg-olive-500 transition-colors inline-flex items-center gap-2">
+          <i data-lucide="send" class="w-4 h-4"></i> Envoyer le devis
+        </a>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if quote and quote.status.value == 'draft' %}
+    <form id="send-form" method="POST" action="{{ url_for('caterer.quote_send', qr_id=qr.id, q_id=quote.id) }}" class="hidden"></form>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  var GUEST_COUNT = {{ qr.guest_count or 0 }};
+  var INITIAL_LINES = {{ (quote.details.lines if quote and quote.details and quote.details.lines else [])|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/quote-editor.js') }}"></script>
+<script>lucide.createIcons();</script>
+{% endblock %}
