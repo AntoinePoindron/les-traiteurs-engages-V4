@@ -1,63 +1,32 @@
 {% macro status_badge(status, type="default") %}
 {% set status_str = status.value if status is not string else status %}
 
-{% set styles = {
-  'draft': 'bg-gray-100 text-gray-600',
-  'pending_review': 'bg-amber-100 text-amber-700',
-  'approved': 'bg-blue-100 text-blue-700',
-  'sent_to_caterers': 'bg-indigo-100 text-indigo-700',
-  'completed': 'bg-olive-50 text-olive-600',
-  'cancelled': 'bg-gray-100 text-gray-500',
-  'quotes_refused': 'bg-coral-red-50 text-coral-red-500',
-  'selected': 'bg-blue-100 text-blue-700',
-  'responded': 'bg-amber-100 text-amber-700',
-  'transmitted_to_client': 'bg-olive-50 text-olive-600',
-  'rejected': 'bg-coral-red-50 text-coral-red-500',
-  'closed': 'bg-gray-100 text-gray-500',
-  'sent': 'bg-blue-100 text-blue-700',
-  'accepted': 'bg-olive-50 text-olive-600',
-  'refused': 'bg-coral-red-50 text-coral-red-500',
-  'expired': 'bg-amber-100 text-amber-700',
-  'confirmed': 'bg-blue-100 text-blue-700',
-  'delivered': 'bg-olive-50 text-olive-600',
-  'invoiced': 'bg-amber-100 text-amber-700',
-  'paid': 'bg-green-100 text-green-700',
-  'disputed': 'bg-coral-red-50 text-coral-red-500',
-  'pending': 'bg-amber-100 text-amber-700',
-  'processing': 'bg-blue-100 text-blue-700',
-  'succeeded': 'bg-green-100 text-green-700',
-  'failed': 'bg-coral-red-50 text-coral-red-500',
+{% set badge_map = {
+  'new': {'bg': '#E3F4FF', 'color': '#00AEFF', 'label': 'Nouvelle'},
+  'pending': {'bg': '#FFF3CD', 'color': '#B45309', 'label': 'En attente'},
+  'sent': {'bg': '#E0F2FE', 'color': '#0284C7', 'label': 'Devis envoy\u00e9'},
+  'devis_envoye': {'bg': '#E0F2FE', 'color': '#0284C7', 'label': 'Devis envoy\u00e9'},
+  'accepted': {'bg': '#D1FAE5', 'color': '#065F46', 'label': 'Commande cr\u00e9\u00e9e'},
+  'refused': {'bg': '#FEE2E2', 'color': '#DC2626', 'label': 'Refus\u00e9'},
+  'expired': {'bg': '#F3F4F6', 'color': '#6B7280', 'label': 'Expir\u00e9'},
+  'confirmed': {'bg': '#EDE9FE', 'color': '#7C3AED', 'label': '\u00c0 venir'},
+  'delivered': {'bg': '#DCFCE7', 'color': '#16A34A', 'label': 'Livr\u00e9e'},
+  'invoiced': {'bg': '#E0F2FE', 'color': '#0284C7', 'label': 'Factur\u00e9e'},
+  'paid': {'bg': '#D1FAE5', 'color': '#065F46', 'label': 'Pay\u00e9e'},
+  'disputed': {'bg': '#FEE2E2', 'color': '#DC2626', 'label': 'Litige'},
+  'submitted': {'bg': '#F0F4F8', 'color': '#1A3A52', 'label': 'Soumise'},
+  'awaiting_quotes': {'bg': '#FFF3CD', 'color': '#B45309', 'label': 'En attente de devis'},
+  'quotes_received': {'bg': '#E3F4FF', 'color': '#0284C7', 'label': 'Devis re\u00e7u(s)'},
+  'quote_accepted': {'bg': '#D1FAE5', 'color': '#065F46', 'label': 'Commande cr\u00e9\u00e9e'},
+  'completed': {'bg': '#D1FAE5', 'color': '#065F46', 'label': 'Termin\u00e9e'},
+  'cancelled': {'bg': '#F3F4F6', 'color': '#6B7280', 'label': 'Annul\u00e9e'},
+  'quotes_refused': {'bg': '#FEE2E2', 'color': '#DC2626', 'label': 'Devis refus\u00e9'},
 } %}
 
-{% set labels = {
-  'draft': 'Brouillon',
-  'pending_review': 'En attente',
-  'approved': 'Approuvee',
-  'sent_to_caterers': 'Envoyee',
-  'completed': 'Terminee',
-  'cancelled': 'Annulee',
-  'quotes_refused': 'Devis refuses',
-  'selected': 'Selectionne',
-  'responded': 'A repondu',
-  'transmitted_to_client': 'Transmis au client',
-  'rejected': 'Rejete',
-  'closed': 'Cloture',
-  'sent': 'Envoye',
-  'accepted': 'Accepte',
-  'refused': 'Refuse',
-  'expired': 'Expire',
-  'confirmed': 'Confirmee',
-  'delivered': 'Livree',
-  'invoiced': 'Facturee',
-  'paid': 'Payee',
-  'disputed': 'Contestee',
-  'pending': 'En attente',
-  'processing': 'En cours',
-  'succeeded': 'Reussi',
-  'failed': 'Echoue',
-} %}
+{% set badge = badge_map.get(status_str, {'bg': '#F3F4F6', 'color': '#6B7280', 'label': status_str}) %}
 
-<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ styles.get(status_str, 'bg-gray-100 text-gray-600') }}">
-  {{ labels.get(status_str, status_str) }}
+<span class="inline-flex w-fit items-center justify-center px-2 py-1 rounded text-xs font-bold whitespace-nowrap"
+  style="background-color: {{ badge.bg }}; color: {{ badge.color }};">
+  {{ badge.label }}
 </span>
 {% endmacro %}

@@ -1,157 +1,202 @@
 {% extends "base.html" %}
 
-{% block title %}Les Traiteurs Engages - Traiteurs inclusifs pour vos evenements{% endblock %}
+{% block title %}Les Traiteurs Engag&#233;s - Traiteurs inclusifs pour vos &#233;v&#233;nements{% endblock %}
 
 {% block public_content %}
-<!-- Navbar -->
-<nav class="bg-white/80 backdrop-blur-sm border-b border-cream-200 sticky top-0 z-20">
-  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+<!-- Fixed header -->
+<header class="fixed top-0 left-0 right-0 z-30 backdrop-blur-md" style="background: rgba(255,255,255,0.95); height: 56px;">
+  <div class="max-w-6xl mx-auto px-4 h-full flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 bg-terracotta rounded-lg flex items-center justify-center">
-        <i data-lucide="chef-hat" class="w-5 h-5 text-white"></i>
-      </div>
-      <span class="font-display text-lg font-semibold text-navy">Les Traiteurs Engages</span>
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-8">
     </div>
     <div class="flex items-center gap-3">
       <a href="{{ url_for('auth.login') }}"
-        class="text-sm font-medium text-navy hover:text-terracotta transition-colors px-3 py-2">
+        class="text-sm font-medium px-4 py-2 rounded-xl transition-colors" style="color: #1A3A52;">
         Connexion
       </a>
       <a href="{{ url_for('auth.signup') }}"
-        class="text-sm font-medium text-white bg-terracotta px-4 py-2 rounded-lg hover:bg-terracotta-500 transition-colors">
-        S'inscrire
+        class="text-sm font-medium text-white px-5 py-2 rounded-xl transition-colors relative overflow-hidden group"
+        style="background-color: #1A3A52;">
+        <span class="relative z-10">S'inscrire</span>
       </a>
     </div>
   </div>
-</nav>
+</header>
 
 <!-- Hero -->
-<section class="py-20 px-4">
-  <div class="max-w-4xl mx-auto text-center">
-    <h1 class="font-display text-4xl sm:text-5xl font-bold text-navy leading-tight mb-6">
-      Traiteurs inclusifs<br>pour vos evenements
-    </h1>
-    <p class="text-lg text-navy-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-      Mettez en relation votre entreprise avec des traiteurs ESAT, EA, EI et ACI.
-      Valorisez votre engagement social tout en offrant des prestations de qualite a vos equipes.
-    </p>
-    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+<section class="pt-32 pb-20 px-4" style="background-color: #FAF7F2;">
+  <div class="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
+    <div class="flex-1 max-w-xl">
+      <h1 class="font-display text-4xl sm:text-5xl font-bold leading-tight mb-6" style="color: #1A3A52;">
+        Des traiteurs<br><em class="italic">engag&#233;s</em> pour vos<br>&#233;v&#233;nements
+      </h1>
+      <p class="text-lg mb-8 leading-relaxed" style="color: #6B7280;">
+        Mettez en relation votre entreprise avec des traiteurs ESAT, EA, EI et ACI.
+        Valorisez votre engagement social tout en offrant des prestations de qualit&#233;.
+      </p>
       <a href="{{ url_for('auth.signup') }}"
-        class="w-full sm:w-auto px-8 py-3 bg-terracotta text-white font-medium rounded-lg hover:bg-terracotta-500 transition-colors shadow-md text-center">
-        Je suis une entreprise
+        class="inline-flex items-center gap-2 text-white px-8 py-3.5 rounded-xl font-medium transition-colors text-base"
+        style="background-color: #1A3A52;"
+        onmouseenter="this.style.backgroundColor='#132B3E';"
+        onmouseleave="this.style.backgroundColor='#1A3A52';">
+        D&#233;couvrir la plateforme
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
       </a>
-      <a href="{{ url_for('auth.signup') }}"
-        class="w-full sm:w-auto px-8 py-3 bg-white text-navy font-medium rounded-lg border-2 border-navy hover:bg-navy hover:text-white transition-colors text-center">
-        Je suis un traiteur
-      </a>
+
+      <!-- Stat counters -->
+      <div class="flex items-center gap-8 mt-10">
+        <div>
+          <p class="font-display text-3xl font-bold" style="color: #1A3A52;">{{ caterer_count or 0 }}</p>
+          <p class="text-sm" style="color: #6B7280;">Traiteurs</p>
+        </div>
+        <div style="width: 1px; height: 40px; background: #E5E7EB;"></div>
+        <div>
+          <p class="font-display text-3xl font-bold" style="color: #1A3A52;">{{ company_count or 0 }}</p>
+          <p class="text-sm" style="color: #6B7280;">Entreprises</p>
+        </div>
+        <div style="width: 1px; height: 40px; background: #E5E7EB;"></div>
+        <div>
+          <p class="font-display text-3xl font-bold" style="color: #1A3A52;">{{ order_count or 0 }}</p>
+          <p class="text-sm" style="color: #6B7280;">Commandes</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right side: illustration placeholder -->
+    <div class="flex-1 relative hidden lg:flex items-center justify-center">
+      <div class="relative w-80 h-80">
+        <!-- Pink geometric shape -->
+        <svg class="absolute -top-4 -right-4 w-72 h-72 opacity-20" viewBox="0 0 200 200">
+          <path d="M100 0 L200 50 L200 150 L100 200 L0 150 L0 50 Z" fill="#FFDDDD"/>
+        </svg>
+        <!-- Placeholder cards -->
+        <div class="absolute top-8 left-4 w-48 h-32 rounded-2xl shadow-lg overflow-hidden" style="background: #F5F1E8;">
+          <div class="p-4">
+            <div class="text-3xl mb-2">&#127858;</div>
+            <div class="h-2 rounded" style="background: #E5E7EB; width: 80%;"></div>
+            <div class="h-2 rounded mt-2" style="background: #E5E7EB; width: 60%;"></div>
+          </div>
+        </div>
+        <div class="absolute bottom-8 right-4 w-48 h-32 rounded-2xl shadow-lg overflow-hidden" style="background: white;">
+          <div class="p-4">
+            <div class="text-3xl mb-2">&#127869;</div>
+            <div class="h-2 rounded" style="background: #E5E7EB; width: 70%;"></div>
+            <div class="h-2 rounded mt-2" style="background: #E5E7EB; width: 50%;"></div>
+          </div>
+        </div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-28 rounded-2xl shadow-lg overflow-hidden" style="background: white;">
+          <div class="p-4">
+            <div class="text-3xl mb-2">&#129367;</div>
+            <div class="h-2 rounded" style="background: #E5E7EB; width: 90%;"></div>
+            <div class="h-2 rounded mt-2" style="background: #E5E7EB; width: 40%;"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- 3 steps -->
-<section class="py-16 px-4 bg-white">
+<!-- Comment &#231;a fonctionne -->
+<section class="py-20 px-4 bg-white">
   <div class="max-w-5xl mx-auto">
-    <h2 class="font-display text-3xl font-bold text-navy text-center mb-4">Comment ca marche ?</h2>
-    <p class="text-navy-300 text-center mb-12 max-w-xl mx-auto">Trois etapes simples pour trouver le traiteur ideal.</p>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <h2 class="font-display text-3xl font-bold text-center mb-4" style="color: #1A3A52;">Comment &#231;a fonctionne</h2>
+    <p class="text-center mb-14 max-w-xl mx-auto" style="color: #6B7280;">Quatre &#233;tapes simples pour trouver le traiteur id&#233;al.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
       <div class="text-center">
-        <div class="w-16 h-16 bg-terracotta/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <span class="font-display text-2xl font-bold text-terracotta">1</span>
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: #F5F1E8;">
+          <span class="text-2xl">&#128221;</span>
         </div>
-        <h3 class="font-display text-lg font-semibold text-navy mb-2">Decrivez votre evenement</h3>
-        <p class="text-sm text-navy-300 leading-relaxed">
-          Type de repas, nombre de convives, regimes alimentaires, services souhaites...
-          Notre formulaire guide vous accompagne.
-        </p>
+        <div class="font-display text-sm font-bold mb-2" style="color: #C4714A;">&#201;tape 1</div>
+        <h3 class="font-display text-base font-semibold mb-2" style="color: #1A3A52;">D&#233;crivez votre besoin</h3>
+        <p class="text-sm leading-relaxed" style="color: #6B7280;">Type de repas, nombre de convives, r&#233;gimes alimentaires, date et lieu.</p>
       </div>
       <div class="text-center">
-        <div class="w-16 h-16 bg-olive/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <span class="font-display text-2xl font-bold text-olive">2</span>
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: #F5F1E8;">
+          <span class="text-2xl">&#128104;&#8205;&#127859;</span>
         </div>
-        <h3 class="font-display text-lg font-semibold text-navy mb-2">Comparez 3 devis</h3>
-        <p class="text-sm text-navy-300 leading-relaxed">
-          Recevez jusqu'a 3 propositions de traiteurs qualifies et proches de votre lieu d'evenement.
-          Comparez les offres en detail.
-        </p>
+        <div class="font-display text-sm font-bold mb-2" style="color: #C4714A;">&#201;tape 2</div>
+        <h3 class="font-display text-base font-semibold mb-2" style="color: #1A3A52;">Recevez des devis</h3>
+        <p class="text-sm leading-relaxed" style="color: #6B7280;">Jusqu'&#224; 3 propositions de traiteurs qualifi&#233;s et proches de votre lieu.</p>
       </div>
       <div class="text-center">
-        <div class="w-16 h-16 bg-navy/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <span class="font-display text-2xl font-bold text-navy">3</span>
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: #F5F1E8;">
+          <span class="text-2xl">&#9989;</span>
         </div>
-        <h3 class="font-display text-lg font-semibold text-navy mb-2">Commandez et payez</h3>
-        <p class="text-sm text-navy-300 leading-relaxed">
-          Acceptez le devis de votre choix, suivez la commande et payez en ligne.
-          Facturation B2B a 30 jours.
-        </p>
+        <div class="font-display text-sm font-bold mb-2" style="color: #C4714A;">&#201;tape 3</div>
+        <h3 class="font-display text-base font-semibold mb-2" style="color: #1A3A52;">Comparez et choisissez</h3>
+        <p class="text-sm leading-relaxed" style="color: #6B7280;">Comparez les offres en d&#233;tail et acceptez le devis de votre choix.</p>
+      </div>
+      <div class="text-center">
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: #F5F1E8;">
+          <span class="text-2xl">&#127881;</span>
+        </div>
+        <div class="font-display text-sm font-bold mb-2" style="color: #C4714A;">&#201;tape 4</div>
+        <h3 class="font-display text-base font-semibold mb-2" style="color: #1A3A52;">Commandez et payez</h3>
+        <p class="text-sm leading-relaxed" style="color: #6B7280;">Suivez la commande et payez en ligne. Facturation B2B &#224; 30 jours.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Stats -->
-<section class="py-16 px-4">
+<!-- Bient&#244;t disponible -->
+<section class="py-20 px-4" style="background-color: #1A3A52;">
   <div class="max-w-5xl mx-auto">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-      <div class="bg-white rounded-xl p-6 text-center shadow-sm border border-cream-200">
-        <p class="font-display text-3xl font-bold text-terracotta">{{ caterer_count or 0 }}</p>
-        <p class="text-sm text-navy-300 mt-1">Traiteurs engages</p>
+    <h2 class="font-display text-3xl font-bold text-white text-center mb-4">Bient&#244;t disponible</h2>
+    <p class="text-center mb-14" style="color: rgba(255,255,255,0.6);">De nouvelles fonctionnalit&#233;s arrivent pour am&#233;liorer votre exp&#233;rience.</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="rounded-xl p-6" style="background: rgba(255,255,255,0.08);">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style="background: rgba(255,255,255,0.12);">
+          <i data-lucide="calendar" class="w-5 h-5 text-white"></i>
+        </div>
+        <h3 class="font-display text-base font-semibold text-white mb-2">Planning int&#233;gr&#233;</h3>
+        <p class="text-sm" style="color: rgba(255,255,255,0.6);">G&#233;rez vos &#233;v&#233;nements et livraisons depuis un calendrier centralis&#233;.</p>
       </div>
-      <div class="bg-white rounded-xl p-6 text-center shadow-sm border border-cream-200">
-        <p class="font-display text-3xl font-bold text-olive">{{ company_count or 0 }}</p>
-        <p class="text-sm text-navy-300 mt-1">Entreprises clientes</p>
+      <div class="rounded-xl p-6" style="background: rgba(255,255,255,0.08);">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style="background: rgba(255,255,255,0.12);">
+          <i data-lucide="star" class="w-5 h-5 text-white"></i>
+        </div>
+        <h3 class="font-display text-base font-semibold text-white mb-2">Avis et notations</h3>
+        <p class="text-sm" style="color: rgba(255,255,255,0.6);">&#201;valuez vos prestations pour aider la communaut&#233; &#224; faire les meilleurs choix.</p>
       </div>
-      <div class="bg-white rounded-xl p-6 text-center shadow-sm border border-cream-200">
-        <p class="font-display text-3xl font-bold text-navy">{{ order_count or 0 }}</p>
-        <p class="text-sm text-navy-300 mt-1">Commandes terminees</p>
-      </div>
-      <div class="bg-white rounded-xl p-6 text-center shadow-sm border border-cream-200">
-        <p class="font-display text-3xl font-bold text-terracotta">4</p>
-        <p class="text-sm text-navy-300 mt-1">Types de structures</p>
+      <div class="rounded-xl p-6" style="background: rgba(255,255,255,0.08);">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style="background: rgba(255,255,255,0.12);">
+          <i data-lucide="repeat" class="w-5 h-5 text-white"></i>
+        </div>
+        <h3 class="font-display text-base font-semibold text-white mb-2">Commandes r&#233;currentes</h3>
+        <p class="text-sm" style="color: rgba(255,255,255,0.6);">Programmez vos commandes habituelles en quelques clics.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Structure types -->
+<!-- Partnership -->
 <section class="py-16 px-4 bg-white">
-  <div class="max-w-5xl mx-auto text-center">
-    <h2 class="font-display text-3xl font-bold text-navy mb-4">Des traiteurs engages dans l'inclusion</h2>
-    <p class="text-navy-300 mb-12 max-w-2xl mx-auto">
-      Notre plateforme regroupe exclusivement des structures de l'insertion par l'activite economique et du secteur adapte.
+  <div class="max-w-3xl mx-auto text-center">
+    <p class="text-sm font-medium uppercase tracking-wider mb-4" style="color: #9CA3AF;">Partenaire</p>
+    <h2 class="font-display text-2xl font-bold mb-4" style="color: #1A3A52;">Un projet port&#233; par la Plateforme de l'inclusion</h2>
+    <p class="text-sm leading-relaxed" style="color: #6B7280;">
+      Les Traiteurs Engag&#233;s s'inscrit dans l'&#233;cosyst&#232;me de la Plateforme de l'inclusion,
+      qui facilite l'acc&#232;s &#224; l'emploi des personnes en situation de fragilit&#233;.
     </p>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div class="bg-purple-50 rounded-xl p-6 border border-purple-100">
-        <span class="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold mb-3">ESAT</span>
-        <p class="text-sm text-navy-300">Etablissement et service d'aide par le travail</p>
-      </div>
-      <div class="bg-teal-50 rounded-xl p-6 border border-teal-100">
-        <span class="inline-block px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-bold mb-3">EA</span>
-        <p class="text-sm text-navy-300">Entreprise adaptee</p>
-      </div>
-      <div class="bg-amber-50 rounded-xl p-6 border border-amber-100">
-        <span class="inline-block px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold mb-3">EI</span>
-        <p class="text-sm text-navy-300">Entreprise d'insertion</p>
-      </div>
-      <div class="bg-indigo-50 rounded-xl p-6 border border-indigo-100">
-        <span class="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold mb-3">ACI</span>
-        <p class="text-sm text-navy-300">Atelier et chantier d'insertion</p>
-      </div>
-    </div>
   </div>
 </section>
 
 <!-- CTA -->
-<section class="py-20 px-4">
+<section class="py-20 px-4" style="background-color: #FFDDDD;">
   <div class="max-w-3xl mx-auto text-center">
-    <h2 class="font-display text-3xl font-bold text-navy mb-4">Pret a vous engager ?</h2>
-    <p class="text-navy-300 mb-8">Rejoignez la plateforme et valorisez votre engagement social.</p>
+    <h2 class="font-display text-3xl font-bold mb-4" style="color: #B70102;">Pr&#234;t &#224; vous engager ?</h2>
+    <p class="mb-8" style="color: #B70102; opacity: 0.7;">Rejoignez la plateforme et valorisez votre engagement social.</p>
     <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
       <a href="{{ url_for('auth.signup') }}"
-        class="w-full sm:w-auto px-8 py-3 bg-terracotta text-white font-medium rounded-lg hover:bg-terracotta-500 transition-colors shadow-md text-center">
+        class="w-full sm:w-auto px-8 py-3.5 text-white font-medium rounded-xl transition-colors text-center"
+        style="background-color: #B70102;"
+        onmouseenter="this.style.backgroundColor='#8B0001';"
+        onmouseleave="this.style.backgroundColor='#B70102';">
         Je suis une entreprise
       </a>
       <a href="{{ url_for('auth.signup') }}"
-        class="w-full sm:w-auto px-8 py-3 bg-white text-navy font-medium rounded-lg border-2 border-navy hover:bg-navy hover:text-white transition-colors text-center">
+        class="w-full sm:w-auto px-8 py-3.5 font-medium rounded-xl transition-colors text-center"
+        style="background-color: white; color: #B70102; border: 2px solid #B70102;">
         Je suis un traiteur
       </a>
     </div>
@@ -159,15 +204,17 @@
 </section>
 
 <!-- Footer -->
-<footer class="bg-navy text-white py-8 px-4">
-  <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-    <div class="flex items-center gap-2">
-      <div class="w-7 h-7 bg-terracotta rounded flex items-center justify-center">
-        <i data-lucide="chef-hat" class="w-4 h-4 text-white"></i>
+<footer class="py-10 px-4" style="background-color: #1A1A1A;">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-8 brightness-0 invert">
       </div>
-      <span class="font-display text-sm font-semibold">Les Traiteurs Engages</span>
+      <p class="text-sm" style="color: rgba(255,255,255,0.5);">Marketplace B2B pour la restauration inclusive</p>
     </div>
-    <p class="text-sm text-navy-200">Marketplace B2B pour la restauration inclusive</p>
+    <div class="mt-6 pt-6" style="border-top: 1px solid rgba(255,255,255,0.1);">
+      <p class="text-xs text-center" style="color: rgba(255,255,255,0.3);">&#169; {{ 2026 }} Les Traiteurs Engag&#233;s. Tous droits r&#233;serv&#233;s.</p>
+    </div>
   </div>
 </footer>
 

@@ -1,28 +1,36 @@
 {% macro confirm_dialog(id, title, message, action_url, action_label="Confirmer", destructive=False) %}
-<dialog id="{{ id }}" class="rounded-xl shadow-2xl p-0 backdrop:bg-black/50 max-w-md w-full">
-  <div class="p-6">
-    <h3 class="font-display text-lg font-semibold text-navy mb-2">{{ title }}</h3>
-    <p class="text-sm text-navy-300 mb-6">{{ message }}</p>
-    <div class="flex items-center justify-end gap-3">
-      <button type="button" onclick="document.getElementById('{{ id }}').close()"
-        class="px-4 py-2 text-sm font-medium text-navy-300 bg-cream-200 rounded-lg hover:bg-cream-300 transition-colors">
+<div id="{{ id }}" class="fixed inset-0 z-50 hidden items-center justify-center" style="background: rgba(0,0,0,0.5);">
+  <div class="bg-white rounded-xl shadow-2xl w-full p-6" style="max-width: 440px;">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-lg font-bold text-dark">{{ title }}</h3>
+      <button type="button" onclick="document.getElementById('{{ id }}').classList.add('hidden');document.getElementById('{{ id }}').classList.remove('flex');"
+        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+        <i data-lucide="x" class="w-4 h-4" style="color: #6B7280;"></i>
+      </button>
+    </div>
+    <p class="text-sm mb-6" style="color: #313131;">{{ message }}</p>
+    <div class="flex items-center gap-3">
+      <button type="button"
+        onclick="document.getElementById('{{ id }}').classList.add('hidden');document.getElementById('{{ id }}').classList.remove('flex');"
+        class="flex-1 py-2.5 rounded-full text-sm font-medium transition-colors" style="border: 1px solid #1A3A52; color: #1A3A52; background: white;">
         Annuler
       </button>
-      <form method="POST" action="{{ action_url }}">
+      <form method="POST" action="{{ action_url }}" class="flex-1">
         <button type="submit"
-          class="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors
-          {% if destructive %}bg-coral-red hover:bg-coral-red-500{% else %}bg-terracotta hover:bg-terracotta-500{% endif %}">
+          class="w-full py-2.5 rounded-full text-sm font-medium text-white transition-colors
+          {% if destructive %}hover:opacity-90{% else %}hover:opacity-90{% endif %}"
+          style="background-color: {% if destructive %}#DC2626{% else %}#1A3A52{% endif %};">
           {{ action_label }}
         </button>
       </form>
     </div>
   </div>
-</dialog>
+</div>
 <script>
   (function() {
-    var dialog = document.getElementById('{{ id }}');
-    dialog.addEventListener('click', function(e) {
-      if (e.target === dialog) dialog.close();
+    var el = document.getElementById('{{ id }}');
+    el.addEventListener('click', function(e) {
+      if (e.target === el) { el.classList.add('hidden'); el.classList.remove('flex'); }
     });
   })();
 </script>

@@ -3,134 +3,141 @@
 {% block title %}Catalogue traiteurs{% endblock %}
 
 {% block content %}
-<div class="mb-8">
-  <h1 class="font-display text-2xl font-semibold text-navy">Catalogue traiteurs</h1>
-  <p class="text-navy-300 mt-1">{{ total }} traiteur{{ 's' if total != 1 }} disponible{{ 's' if total != 1 }}</p>
-</div>
+<main style="background-color: #F5F1E8; min-height: 100vh;">
+  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
-<div class="flex flex-col lg:flex-row gap-6">
-  <!-- Filters -->
-  <form method="get" action="{{ url_for('client.search') }}" class="w-full lg:w-72 flex-shrink-0">
-    <div class="bg-white rounded-xl border border-cream-200 p-5 shadow-sm space-y-5 sticky top-4">
-      <div>
-        <label class="block text-sm font-medium text-navy mb-1">Recherche</label>
-        <input type="text" name="q" value="{{ q }}" placeholder="Nom, specialite..."
-          class="w-full px-3 py-2 border border-cream-300 rounded-lg text-sm focus:outline-none focus:border-terracotta">
-      </div>
+    <h1 class="font-display font-bold text-4xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Catalogue traiteurs</h1>
+    <p class="text-sm mb-6" style="color: #6B7280">{{ total }} traiteur{{ 's' if total != 1 }} disponible{{ 's' if total != 1 }}</p>
 
-      <div>
-        <label class="block text-sm font-medium text-navy mb-2">Type de structure</label>
-        <div class="space-y-1">
-          {% set st_options = [("", "Tous"), ("STPA", "STPA (ESAT + EA)"), ("SIAE", "SIAE (EI + ACI)"), ("ESAT", "ESAT"), ("EA", "EA"), ("EI", "EI"), ("ACI", "ACI")] %}
-          {% for val, label in st_options %}
-          <label class="flex items-center gap-2 text-sm text-navy-300 cursor-pointer">
-            <input type="radio" name="structure_type" value="{{ val }}" {{ 'checked' if structure_type == val }}>
-            {{ label }}
-          </label>
-          {% endfor %}
-        </div>
-      </div>
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Filters sidebar -->
+      <form method="get" action="{{ url_for('client.search') }}" class="w-full lg:w-72 flex-shrink-0">
+        <div class="bg-white rounded-lg p-6 space-y-5 sticky top-4">
+          <div>
+            <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Recherche</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="Nom, specialite..."
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+          </div>
 
-      <div>
-        <label class="block text-sm font-medium text-navy mb-2">Regimes alimentaires</label>
-        <div class="space-y-1">
-          {% for key, label in dietary_flags %}
-          <label class="flex items-center gap-2 text-sm text-navy-300 cursor-pointer">
-            <input type="checkbox" name="dietary" value="{{ key }}" {{ 'checked' if key in dietary }}>
-            {{ label }}
-          </label>
-          {% endfor %}
-        </div>
-      </div>
+          <div>
+            <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Type de structure</label>
+            <div class="space-y-1">
+              {% set st_options = [("", "Tous"), ("STPA", "STPA (ESAT + EA)"), ("SIAE", "SIAE (EI + ACI)"), ("ESAT", "ESAT"), ("EA", "EA"), ("EI", "EI"), ("ACI", "ACI")] %}
+              {% for val, label in st_options %}
+              <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: #313131">
+                <input type="radio" name="structure_type" value="{{ val }}" {{ 'checked' if structure_type == val }} style="accent-color: #1A3A52">
+                {{ label }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
 
-      <div>
-        <label class="block text-sm font-medium text-navy mb-1">Convives (min.)</label>
-        <input type="number" name="capacity" value="{{ capacity or '' }}" min="1" placeholder="Ex: 50"
-          class="w-full px-3 py-2 border border-cream-300 rounded-lg text-sm focus:outline-none focus:border-terracotta">
-      </div>
+          <div>
+            <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Regimes alimentaires</label>
+            <div class="space-y-1">
+              {% for key, label in dietary_flags %}
+              <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: #313131">
+                <input type="checkbox" name="dietary" value="{{ key }}" {{ 'checked' if key in dietary }} style="accent-color: #1A3A52">
+                {{ label }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
 
-      <button type="submit"
-        class="w-full px-4 py-2 bg-terracotta text-white text-sm font-medium rounded-lg hover:bg-terracotta-500 transition-colors">
-        Rechercher
-      </button>
+          <div>
+            <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Convives (min.)</label>
+            <input type="number" name="capacity" value="{{ capacity or '' }}" min="1" placeholder="Ex: 50"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+          </div>
 
-      {% if q or structure_type or dietary or capacity %}
-      <a href="{{ url_for('client.search') }}" class="block text-center text-xs text-navy-300 hover:text-terracotta">
-        Reinitialiser les filtres
-      </a>
-      {% endif %}
-    </div>
-  </form>
+          <button type="submit"
+            class="w-full rounded-full text-sm font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">
+            Rechercher
+          </button>
 
-  <!-- Results -->
-  <div class="flex-1">
-    {% if caterers %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-      {% for c in caterers %}
-      <div class="bg-white rounded-xl border border-cream-200 shadow-sm overflow-hidden hover:border-terracotta-200 transition-colors">
-        <div class="h-40 bg-cream-200 flex items-center justify-center">
-          {% if c.photos and c.photos|length > 0 %}
-          <img src="{{ c.photos[0] }}" alt="{{ c.name }}" class="w-full h-full object-cover">
-          {% else %}
-          <i data-lucide="chef-hat" class="w-12 h-12 text-cream-300"></i>
+          {% if q or structure_type or dietary or capacity %}
+          <a href="{{ url_for('client.search') }}" class="block text-center text-xs font-bold hover:opacity-70 transition-opacity" style="color: #1A3A52">
+            Reinitialiser les filtres
+          </a>
           {% endif %}
         </div>
-        <div class="p-4">
-          <div class="flex items-start justify-between gap-2 mb-2">
-            <h3 class="font-display text-base font-semibold text-navy leading-tight">{{ c.name }}</h3>
-            {% from "components/structure_type_badge.html" import structure_type_badge %}
-            {{ structure_type_badge(c.structure_type) }}
+      </form>
+
+      <!-- Results -->
+      <div class="flex-1">
+        {% if caterers %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {% for c in caterers %}
+          <div class="bg-white rounded-lg overflow-hidden">
+            <div class="h-40 flex items-center justify-center" style="background-color: #F5F1E8">
+              {% if c.photos and c.photos|length > 0 %}
+              <img src="{{ c.photos[0] }}" alt="{{ c.name }}" class="w-full h-full object-cover">
+              {% else %}
+              <i data-lucide="chef-hat" style="width:48px;height:48px;color:#D1D5DB"></i>
+              {% endif %}
+            </div>
+            <div class="p-4">
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="font-display font-bold text-sm leading-tight" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ c.name }}</h3>
+                {% from "components/structure_type_badge.html" import structure_type_badge %}
+                {{ structure_type_badge(c.structure_type) }}
+              </div>
+              <div class="flex items-center gap-1 text-xs mb-3" style="color: #6B7280">
+                <i data-lucide="map-pin" style="width:12px;height:12px"></i> {{ c.city or 'Non renseigne' }}
+                {% if c.capacity_min and c.capacity_max %}
+                &middot; {{ c.capacity_min }}-{{ c.capacity_max }} couverts
+                {% endif %}
+              </div>
+              <div class="flex flex-wrap gap-1 mb-3">
+                {% set diet_icons = [("vegetarian", "V", "bg-green-100 text-green-700"), ("vegan", "Ve", "bg-emerald-100 text-emerald-700"), ("halal", "H", "bg-blue-100 text-blue-700"), ("casher", "K", "bg-purple-100 text-purple-700"), ("gluten_free", "SG", "bg-amber-100 text-amber-700"), ("lactose_free", "SL", "bg-pink-100 text-pink-700")] %}
+                {% for key, abbr, style in diet_icons %}
+                {% if c["dietary_" + key] %}
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold {{ style }}">{{ abbr }}</span>
+                {% endif %}
+                {% endfor %}
+              </div>
+              <a href="{{ url_for('client.caterer_detail', caterer_id=c.id) }}"
+                class="block text-center rounded-full text-xs font-bold px-4 py-2.5" style="background-color: #F5F1E8; color: #1A3A52">
+                Voir le profil
+              </a>
+            </div>
           </div>
-          <p class="text-xs text-navy-300 mb-3">
-            <i data-lucide="map-pin" class="w-3 h-3 inline"></i> {{ c.city or 'Non renseigne' }}
-            {% if c.capacity_min and c.capacity_max %}
-            &middot; {{ c.capacity_min }}-{{ c.capacity_max }} couverts
-            {% endif %}
-          </p>
-          <div class="flex flex-wrap gap-1 mb-3">
-            {% set diet_icons = [("vegetarian", "V", "bg-green-100 text-green-700"), ("vegan", "Ve", "bg-emerald-100 text-emerald-700"), ("halal", "H", "bg-blue-100 text-blue-700"), ("casher", "K", "bg-purple-100 text-purple-700"), ("gluten_free", "SG", "bg-amber-100 text-amber-700"), ("lactose_free", "SL", "bg-pink-100 text-pink-700")] %}
-            {% for key, abbr, style in diet_icons %}
-            {% if c["dietary_" + key] %}
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold {{ style }}">{{ abbr }}</span>
-            {% endif %}
-            {% endfor %}
-          </div>
-          <a href="{{ url_for('client.caterer_detail', caterer_id=c.id) }}"
-            class="block text-center px-4 py-2 bg-cream-200 text-navy text-sm font-medium rounded-lg hover:bg-terracotta hover:text-white transition-colors">
-            Voir le profil
-          </a>
+          {% endfor %}
         </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="flex items-center justify-center gap-2 mt-8">
+          {% if page > 1 %}
+          <a href="{{ url_for('client.search', page=page-1, q=q, structure_type=structure_type, capacity=capacity, service_type=service_type, **{'dietary': dietary}) }}"
+            class="rounded-full text-xs font-bold px-4 py-2.5" style="border: 1px solid #1A3A52; color: #1A3A52">
+            &laquo; Precedent
+          </a>
+          {% endif %}
+          <span class="text-xs" style="color: #6B7280">Page {{ page }} / {{ total_pages }}</span>
+          {% if page < total_pages %}
+          <a href="{{ url_for('client.search', page=page+1, q=q, structure_type=structure_type, capacity=capacity, service_type=service_type, **{'dietary': dietary}) }}"
+            class="rounded-full text-xs font-bold px-4 py-2.5" style="border: 1px solid #1A3A52; color: #1A3A52">
+            Suivant &raquo;
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <!-- Empty state -->
+        <div class="bg-white rounded-lg p-12 text-center">
+          <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4" style="background-color: #F0F4F7">
+            <i data-lucide="search-x" style="width:24px;height:24px;color:#1A3A52"></i>
+          </div>
+          <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Aucun resultat</h3>
+          <p class="text-sm mb-4" style="color: #6B7280">Aucun traiteur ne correspond a vos criteres.</p>
+          <a href="{{ url_for('client.search') }}" class="text-xs font-bold hover:opacity-70 transition-opacity" style="color: #1A3A52">Reinitialiser les filtres</a>
+        </div>
+        {% endif %}
       </div>
-      {% endfor %}
     </div>
 
-    <!-- Pagination -->
-    {% if total_pages > 1 %}
-    <div class="flex items-center justify-center gap-2 mt-8">
-      {% if page > 1 %}
-      <a href="{{ url_for('client.search', page=page-1, q=q, structure_type=structure_type, capacity=capacity, service_type=service_type, **{'dietary': dietary}) }}"
-        class="px-3 py-1 bg-white border border-cream-200 rounded-lg text-sm text-navy hover:border-terracotta transition-colors">
-        &laquo; Precedent
-      </a>
-      {% endif %}
-      <span class="text-sm text-navy-300">Page {{ page }} / {{ total_pages }}</span>
-      {% if page < total_pages %}
-      <a href="{{ url_for('client.search', page=page+1, q=q, structure_type=structure_type, capacity=capacity, service_type=service_type, **{'dietary': dietary}) }}"
-        class="px-3 py-1 bg-white border border-cream-200 rounded-lg text-sm text-navy hover:border-terracotta transition-colors">
-        Suivant &raquo;
-      </a>
-      {% endif %}
-    </div>
-    {% endif %}
-    {% else %}
-    <div class="bg-white rounded-xl border border-cream-200 p-12 text-center shadow-sm">
-      <i data-lucide="search-x" class="w-12 h-12 text-cream-300 mx-auto mb-4"></i>
-      <p class="text-navy-300 mb-2">Aucun traiteur ne correspond a vos criteres.</p>
-      <a href="{{ url_for('client.search') }}" class="text-sm text-terracotta hover:underline">Reinitialiser les filtres</a>
-    </div>
-    {% endif %}
   </div>
-</div>
-
+</main>
 <script>lucide.createIcons();</script>
 {% endblock %}

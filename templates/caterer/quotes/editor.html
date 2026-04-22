@@ -4,84 +4,82 @@
 
 {% block content %}
 <div class="mb-6">
-  <a href="{{ url_for('caterer.request_detail', qr_id=qr.id) }}" class="text-sm text-terracotta hover:underline inline-flex items-center gap-1">
-    <i data-lucide="arrow-left" class="w-4 h-4"></i> Retour a la demande
+  <a href="{{ url_for('caterer.request_detail', qr_id=qr.id) }}" class="inline-flex items-center gap-1 text-xs font-bold" style="color: #1A3A52">
+    <i data-lucide="arrow-left" style="width:14px;height:14px;color:#1A3A52"></i> Retour a la demande
   </a>
 </div>
 
-<h1 class="font-display text-2xl font-semibold text-navy mb-2">
+<h1 class="font-display font-bold text-3xl text-black mb-2" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">
   {% if quote %}Modifier le devis {{ quote.reference }}{% else %}Nouveau devis{% endif %}
 </h1>
-<p class="text-navy-300 mb-8">{{ qr.company.name }} &middot; {{ qr.guest_count or 0 }} convives &middot; {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '' }}</p>
+<p class="text-xs mb-8" style="color: #6B7280">{{ qr.company.name }} &middot; {{ qr.guest_count or 0 }} convives &middot; {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '' }}</p>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-  <!-- Request summary (sidebar) -->
   <div class="lg:col-span-1 space-y-4 order-2 lg:order-1">
-    <div class="bg-white rounded-xl border border-cream-200 p-5 shadow-sm sticky top-6">
-      <h3 class="font-display text-sm font-semibold text-navy mb-3">Resume de la demande</h3>
+    <div class="bg-white rounded-lg p-6 flex flex-col gap-5 sticky top-6">
+      <h3 class="font-display font-bold text-sm" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Resume de la demande</h3>
       <dl class="space-y-2 text-sm">
         <div class="flex justify-between">
-          <dt class="text-navy-300">Type</dt>
-          <dd class="text-navy font-medium">{{ qr.meal_type.value if qr.meal_type else '-' }}</dd>
+          <dt style="color: #6B7280">Type</dt>
+          <dd class="font-bold" style="color: #1A1A1A">{{ qr.meal_type.value if qr.meal_type else '-' }}</dd>
         </div>
         <div class="flex justify-between">
-          <dt class="text-navy-300">Convives</dt>
-          <dd class="text-navy font-medium" id="guest-count-display">{{ qr.guest_count or 0 }}</dd>
+          <dt style="color: #6B7280">Convives</dt>
+          <dd class="font-bold" style="color: #1A1A1A" id="guest-count-display">{{ qr.guest_count or 0 }}</dd>
         </div>
         <div class="flex justify-between">
-          <dt class="text-navy-300">Budget global</dt>
-          <dd class="text-navy font-medium">{{ "%.2f"|format(qr.budget_global or 0) }} &euro;</dd>
+          <dt style="color: #6B7280">Budget global</dt>
+          <dd class="font-bold" style="color: #1A1A1A">{{ "%.2f"|format(qr.budget_global or 0) }} &euro;</dd>
         </div>
         <div class="flex justify-between">
-          <dt class="text-navy-300">Budget/pers</dt>
-          <dd class="text-navy font-medium">{{ "%.2f"|format(qr.budget_per_person or 0) }} &euro;</dd>
+          <dt style="color: #6B7280">Budget/pers</dt>
+          <dd class="font-bold" style="color: #1A1A1A">{{ "%.2f"|format(qr.budget_per_person or 0) }} &euro;</dd>
         </div>
       </dl>
 
-      <hr class="my-4 border-cream-200">
+      <div style="border-top: 1px solid #E5E7EB"></div>
 
-      <h3 class="font-display text-sm font-semibold text-navy mb-3">Totaux du devis</h3>
+      <h3 class="font-display font-bold text-sm" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Totaux du devis</h3>
       <dl class="space-y-2 text-sm" id="totals-panel">
         <div class="flex justify-between">
-          <dt class="text-navy-300">Total HT</dt>
-          <dd class="text-navy font-semibold" id="display-total-ht">0.00 &euro;</dd>
+          <dt style="color: #6B7280">Total HT</dt>
+          <dd class="font-bold" style="color: #1A1A1A" id="display-total-ht">0.00 &euro;</dd>
         </div>
         <div id="tva-breakdown"></div>
-        <div class="flex justify-between border-t border-cream-200 pt-2">
-          <dt class="text-navy font-semibold">Total TTC</dt>
-          <dd class="text-navy font-bold text-lg" id="display-total-ttc">0.00 &euro;</dd>
+        <div class="flex justify-between pt-2" style="border-top: 1px solid #E5E7EB">
+          <dt class="font-bold" style="color: #1A1A1A">Total TTC</dt>
+          <dd class="font-display font-bold text-lg" style="color: #1A1A1A" id="display-total-ttc">0.00 &euro;</dd>
         </div>
         <div class="flex justify-between">
-          <dt class="text-navy-300">Par personne</dt>
-          <dd class="text-navy font-medium" id="display-per-person">0.00 &euro;</dd>
-        </div>
-
-        <hr class="my-2 border-cream-200">
-        <p class="text-xs text-navy-300 font-medium mb-1">Frais plateforme (5%)</p>
-        <div class="flex justify-between">
-          <dt class="text-navy-300">Frais HT</dt>
-          <dd class="text-navy-300" id="display-fee-ht">0.00 &euro;</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-navy-300">TVA frais (20%)</dt>
-          <dd class="text-navy-300" id="display-fee-tva">0.00 &euro;</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-navy-300">Total frais TTC</dt>
-          <dd class="text-navy-300" id="display-fee-ttc">0.00 &euro;</dd>
+          <dt style="color: #6B7280">Par personne</dt>
+          <dd class="font-bold" style="color: #1A1A1A" id="display-per-person">0.00 &euro;</dd>
         </div>
 
-        <hr class="my-2 border-cream-200">
+        <div style="border-top: 1px solid #E5E7EB" class="pt-2"></div>
+        <p class="text-xs font-bold mb-1" style="color: #6B7280">Frais plateforme (5%)</p>
         <div class="flex justify-between">
-          <dt class="text-navy-300">Valorisable AGEFIPH</dt>
-          <dd class="text-olive font-semibold" id="display-agefiph">0.00 &euro;</dd>
+          <dt style="color: #6B7280">Frais HT</dt>
+          <dd style="color: #6B7280" id="display-fee-ht">0.00 &euro;</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: #6B7280">TVA frais (20%)</dt>
+          <dd style="color: #6B7280" id="display-fee-tva">0.00 &euro;</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: #6B7280">Total frais TTC</dt>
+          <dd style="color: #6B7280" id="display-fee-ttc">0.00 &euro;</dd>
+        </div>
+
+        <div style="border-top: 1px solid #E5E7EB" class="pt-2"></div>
+        <div class="flex justify-between">
+          <dt style="color: #6B7280">Valorisable AGEFIPH</dt>
+          <dd class="font-bold" style="color: #22C55E" id="display-agefiph">0.00 &euro;</dd>
         </div>
       </dl>
     </div>
   </div>
 
-  <!-- Editor -->
   <div class="lg:col-span-2 order-1 lg:order-2">
     <form id="quote-form" method="POST"
           action="{% if quote %}{{ url_for('caterer.quote_update', qr_id=qr.id, q_id=quote.id) }}{% else %}{{ url_for('caterer.quote_create', qr_id=qr.id) }}{% endif %}">
@@ -94,48 +92,45 @@
       ] %}
 
       {% for section_id, section_label, section_icon in sections %}
-      <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mb-6" data-section="{{ section_id }}">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-display text-lg font-semibold text-navy inline-flex items-center gap-2">
-            <i data-lucide="{{ section_icon }}" class="w-5 h-5 text-terracotta"></i> {{ section_label }}
+      <div class="bg-white rounded-lg p-6 flex flex-col gap-5 mb-6" data-section="{{ section_id }}">
+        <div class="flex items-center justify-between">
+          <h2 class="font-display font-bold text-xl inline-flex items-center gap-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">
+            <i data-lucide="{{ section_icon }}" style="width:18px;height:18px;color:#1A3A52"></i> {{ section_label }}
           </h2>
-          <span class="text-sm font-medium text-navy-300 section-subtotal" data-section="{{ section_id }}">0.00 &euro; HT</span>
+          <span class="text-sm font-bold section-subtotal" style="color: #6B7280" data-section="{{ section_id }}">0.00 &euro; HT</span>
         </div>
 
         <div class="space-y-3 lines-container" data-section="{{ section_id }}">
-          <!-- Lines injected by JS -->
         </div>
 
         <button type="button" onclick="addLine('{{ section_id }}')"
-                class="mt-3 text-sm text-terracotta hover:text-terracotta-500 font-medium inline-flex items-center gap-1 transition-colors">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i> Ajouter une ligne
+                class="text-sm font-bold inline-flex items-center gap-1 transition-colors" style="color: #1A3A52">
+          <i data-lucide="plus-circle" style="width:16px;height:16px"></i> Ajouter une ligne
         </button>
       </div>
       {% endfor %}
 
-      <!-- Notes & validity -->
-      <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mb-6">
-        <h2 class="font-display text-lg font-semibold text-navy mb-4">Notes et conditions</h2>
+      <div class="bg-white rounded-lg p-6 flex flex-col gap-5 mb-6">
+        <h2 class="font-display font-bold text-xl" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Notes et conditions</h2>
         <div class="space-y-4">
           <div>
-            <label for="notes" class="block text-sm font-medium text-navy mb-1">Notes</label>
-            <textarea id="notes" name="notes" rows="3" class="w-full border border-cream-200 rounded-lg px-3 py-2 text-navy text-sm focus:ring-2 focus:ring-terracotta focus:border-terracotta">{{ quote.notes or '' if quote else '' }}</textarea>
+            <label for="notes" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Notes</label>
+            <textarea id="notes" name="notes" rows="3" class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors bg-white" style="border: 1px solid #E5E7EB" onfocus="this.style.borderColor='#1A3A52'" onblur="this.style.borderColor='#E5E7EB'">{{ quote.notes or '' if quote else '' }}</textarea>
           </div>
           <div>
-            <label for="valid_until" class="block text-sm font-medium text-navy mb-1">Valide jusqu'au</label>
-            <input type="date" id="valid_until" name="valid_until" value="{{ quote.valid_until.isoformat() if quote and quote.valid_until else '' }}" class="w-48 border border-cream-200 rounded-lg px-3 py-2 text-navy text-sm focus:ring-2 focus:ring-terracotta focus:border-terracotta">
+            <label for="valid_until" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Valide jusqu'au</label>
+            <input type="date" id="valid_until" name="valid_until" value="{{ quote.valid_until.isoformat() if quote and quote.valid_until else '' }}" class="w-48 px-3 py-2 rounded-lg text-sm outline-none transition-colors bg-white" style="border: 1px solid #E5E7EB" onfocus="this.style.borderColor='#1A3A52'" onblur="this.style.borderColor='#E5E7EB'">
           </div>
         </div>
       </div>
 
-      <!-- Actions -->
       <div class="flex justify-end gap-3">
-        <button type="submit" name="action" value="draft" class="bg-white text-navy border border-cream-200 px-6 py-2.5 rounded-lg font-medium hover:bg-cream-50 transition-colors">
+        <button type="submit" name="action" value="draft" class="rounded-full text-sm font-bold px-4 py-2.5 transition-colors" style="border: 1px solid #1A3A52; color: #1A3A52" onmouseover="this.style.backgroundColor='#F5F1E8'" onmouseout="this.style.backgroundColor='transparent'">
           Enregistrer brouillon
         </button>
         {% if quote and quote.status.value == 'draft' %}
-        <a href="javascript:void(0)" onclick="document.getElementById('send-form').submit()" class="bg-olive text-white px-6 py-2.5 rounded-lg font-medium hover:bg-olive-500 transition-colors inline-flex items-center gap-2">
-          <i data-lucide="send" class="w-4 h-4"></i> Envoyer le devis
+        <a href="javascript:void(0)" onclick="document.getElementById('send-form').submit()" class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
+          <i data-lucide="send" style="width:16px;height:16px"></i> Envoyer le devis
         </a>
         {% endif %}
       </div>

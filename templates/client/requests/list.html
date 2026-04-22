@@ -4,103 +4,73 @@
 {% block title %}Mes demandes - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h1 class="font-display text-2xl font-semibold text-navy">Mes demandes de devis</h1>
-    <p class="text-navy-300 mt-1">Suivez l'avancement de vos demandes aupres des traiteurs.</p>
-  </div>
-  <a href="{{ url_for('client.requests_new') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-terracotta text-white hover:bg-terracotta-500 transition-colors font-medium shadow-sm">
-    <i data-lucide="plus" class="w-4 h-4"></i>
-    Nouvelle demande
-  </a>
-</div>
+<main style="background-color: #F5F1E8; min-height: 100vh;">
+  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
-<!-- Tabs -->
-<div class="flex gap-1 bg-white rounded-xl border border-cream-200 p-1 mb-6 overflow-x-auto">
-  {% for key, label in tabs.items() %}
-  <a href="{{ url_for('client.requests_list', status=key) }}"
-     class="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors
-     {% if current_tab == key %}bg-navy text-white{% else %}text-navy-300 hover:bg-cream-100 hover:text-navy{% endif %}">
-    {{ label }}
-  </a>
-  {% endfor %}
-</div>
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="font-display font-bold text-4xl" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Mes demandes de devis</h1>
+      <a href="{{ url_for('client.requests_new') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
+        <i data-lucide="plus" style="width:16px;height:16px"></i>
+        Nouvelle demande
+      </a>
+    </div>
 
-{% if requests %}
-<!-- Cards on mobile, table on desktop -->
-<div class="hidden md:block bg-white rounded-xl border border-cream-200 shadow-sm overflow-hidden">
-  <table class="w-full text-sm">
-    <thead>
-      <tr class="border-b border-cream-200 bg-cream-50">
-        <th class="text-left px-4 py-3 text-navy-300 font-medium">Date</th>
-        <th class="text-left px-4 py-3 text-navy-300 font-medium">Type de service</th>
-        <th class="text-left px-4 py-3 text-navy-300 font-medium">Convives</th>
-        <th class="text-left px-4 py-3 text-navy-300 font-medium">Budget</th>
-        <th class="text-left px-4 py-3 text-navy-300 font-medium">Statut</th>
-        <th class="text-right px-4 py-3 text-navy-300 font-medium"></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for qr in requests %}
-      <tr class="border-b border-cream-100 hover:bg-cream-50 transition-colors">
-        <td class="px-4 py-3 text-navy-400">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</td>
-        <td class="px-4 py-3 text-navy font-medium">{{ meal_type_labels.get(qr.meal_type, qr.meal_type or '-') }}</td>
-        <td class="px-4 py-3 text-navy-400">{{ qr.guest_count or '-' }}</td>
-        <td class="px-4 py-3 text-navy-400">
-          {% if qr.budget_global %}{{ "%.0f" | format(qr.budget_global | float) }} EUR{% elif qr.budget_per_person %}{{ "%.0f" | format(qr.budget_per_person | float) }} EUR/pers.{% else %}-{% endif %}
-        </td>
-        <td class="px-4 py-3">{{ status_badge(qr.status) }}</td>
-        <td class="px-4 py-3 text-right">
-          <a href="{{ url_for('client.request_detail', request_id=qr.id) }}" class="inline-flex items-center gap-1 text-terracotta hover:text-terracotta-500 font-medium text-sm">
-            Voir <i data-lucide="chevron-right" class="w-4 h-4"></i>
-          </a>
-        </td>
-      </tr>
+    <!-- Filter tabs -->
+    <div class="bg-white rounded-lg p-6 flex items-center gap-4 mb-6 overflow-x-auto">
+      {% for key, label in tabs.items() %}
+      <a href="{{ url_for('client.requests_list', status=key) }}"
+         class="px-3 py-2 rounded-full text-xs font-bold whitespace-nowrap"
+         style="background-color: {{ '#1A3A52' if current_tab == key else '#F5F1E8' }}; color: {{ '#FFFFFF' if current_tab == key else '#1A3A52' }}">
+        {{ label }}
+      </a>
       {% endfor %}
-    </tbody>
-  </table>
-</div>
+    </div>
 
-<!-- Mobile cards -->
-<div class="md:hidden space-y-3">
-  {% for qr in requests %}
-  <a href="{{ url_for('client.request_detail', request_id=qr.id) }}" class="block bg-white rounded-xl border border-cream-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-    <div class="flex items-center justify-between mb-2">
-      <span class="font-medium text-navy">{{ meal_type_labels.get(qr.meal_type, qr.meal_type or 'Demande') }}</span>
-      {{ status_badge(qr.status) }}
+    {% if requests %}
+    <!-- List items -->
+    <div class="bg-white rounded-lg p-6">
+      <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Demandes</h2>
+      <div>
+        {% for qr in requests %}
+        <a href="{{ url_for('client.request_detail', request_id=qr.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-[#F5F1E8] -mx-2 px-2 rounded-lg transition-colors"
+           style="border-top: 1px solid #F3F4F6">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
+            <i data-lucide="grid-2x2" style="width:16px;height:16px;color:#1A3A52"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ meal_type_labels.get(qr.meal_type, qr.meal_type or 'Demande') }}</p>
+            <div class="flex items-center gap-3 mt-0.5">
+              <span class="text-xs" style="color: #6B7280">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</span>
+              <span class="text-xs" style="color: #6B7280">{{ qr.guest_count or '-' }} pers.</span>
+              {% if qr.budget_global %}
+              <span class="text-xs" style="color: #6B7280">{{ "%.0f" | format(qr.budget_global | float) }} EUR</span>
+              {% elif qr.budget_per_person %}
+              <span class="text-xs" style="color: #6B7280">{{ "%.0f" | format(qr.budget_per_person | float) }} EUR/pers.</span>
+              {% endif %}
+            </div>
+          </div>
+          {{ status_badge(qr.status) }}
+          <i data-lucide="chevron-right" style="width:16px;height:16px;color:#D1D5DB"></i>
+        </a>
+        {% endfor %}
+      </div>
     </div>
-    <div class="flex items-center gap-4 text-sm text-navy-300">
-      <span class="flex items-center gap-1">
-        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-        {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}
-      </span>
-      <span class="flex items-center gap-1">
-        <i data-lucide="users" class="w-3.5 h-3.5"></i>
-        {{ qr.guest_count or '-' }} pers.
-      </span>
-      {% if qr.budget_global %}
-      <span class="flex items-center gap-1">
-        <i data-lucide="banknote" class="w-3.5 h-3.5"></i>
-        {{ "%.0f" | format(qr.budget_global | float) }} EUR
-      </span>
-      {% endif %}
+    {% else %}
+    <!-- Empty state -->
+    <div class="bg-white rounded-lg p-12 text-center">
+      <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4" style="background-color: #F0F4F7">
+        <i data-lucide="file-text" style="width:24px;height:24px;color:#1A3A52"></i>
+      </div>
+      <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Aucune demande</h3>
+      <p class="text-sm mb-6" style="color: #6B7280">Vous n'avez pas encore cree de demande de devis.</p>
+      <a href="{{ url_for('client.requests_new') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
+        <i data-lucide="plus" style="width:16px;height:16px"></i>
+        Creer une demande
+      </a>
     </div>
-  </a>
-  {% endfor %}
-</div>
-{% else %}
-<div class="bg-white rounded-xl border border-cream-200 p-12 text-center shadow-sm">
-  <div class="w-16 h-16 bg-cream-200 rounded-full flex items-center justify-center mx-auto mb-4">
-    <i data-lucide="file-text" class="w-8 h-8 text-navy-200"></i>
+    {% endif %}
+
   </div>
-  <h3 class="font-display text-lg font-semibold text-navy mb-2">Aucune demande</h3>
-  <p class="text-navy-300 mb-6">Vous n'avez pas encore cree de demande de devis.</p>
-  <a href="{{ url_for('client.requests_new') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-terracotta text-white hover:bg-terracotta-500 transition-colors font-medium">
-    <i data-lucide="plus" class="w-4 h-4"></i>
-    Creer une demande
-  </a>
-</div>
-{% endif %}
-
+</main>
 <script>lucide.createIcons();</script>
 {% endblock %}

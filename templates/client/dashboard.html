@@ -4,101 +4,105 @@
 {% block title %}Dashboard - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
-<div class="mb-8">
-  <h1 class="font-display text-2xl font-semibold text-navy">Bienvenue, {{ user.first_name }}</h1>
-  <p class="text-navy-300 mt-1">Espace entreprise{% if user.company %} — {{ user.company.name }}{% endif %}</p>
-</div>
+<main style="background-color: #F5F1E8; min-height: 100vh;">
+  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
-<!-- KPIs -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-  <a href="{{ url_for('client.requests_list') }}" class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-    <div class="flex items-center gap-3 mb-3">
-      <div class="w-10 h-10 bg-terracotta-50 rounded-lg flex items-center justify-center">
-        <i data-lucide="file-text" class="w-5 h-5 text-terracotta"></i>
+    <!-- Greeting -->
+    <div class="flex items-center gap-4 mb-6">
+      <div class="w-14 h-14 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
+        <i data-lucide="building-2" style="width:24px;height:24px;color:#1A3A52"></i>
       </div>
-      <h3 class="font-medium text-navy">Demandes actives</h3>
+      <h1 class="font-display font-bold text-4xl" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">
+        Bonjour, {{ user.first_name }} !
+      </h1>
     </div>
-    <p class="text-3xl font-display font-semibold text-navy">{{ active_requests_count | default(0) }}</p>
-    <p class="text-sm text-navy-300 mt-1">Brouillons, en attente ou envoyees</p>
-  </a>
 
-  <a href="{{ url_for('client.orders_list') }}" class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-    <div class="flex items-center gap-3 mb-3">
-      <div class="w-10 h-10 bg-olive-50 rounded-lg flex items-center justify-center">
-        <i data-lucide="shopping-bag" class="w-5 h-5 text-olive"></i>
-      </div>
-      <h3 class="font-medium text-navy">Commandes recentes</h3>
+    <!-- KPIs -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <a href="{{ url_for('client.requests_list') }}" class="bg-white rounded-lg p-5 flex flex-col gap-3 hover:opacity-90 transition-opacity">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
+          <i data-lucide="file-text" style="width:18px;height:18px;color:#1A3A52"></i>
+        </div>
+        <div>
+          <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ active_requests_count | default(0) }}</p>
+          <p class="text-xs mt-0.5" style="color: #6B7280">Demandes actives</p>
+        </div>
+      </a>
+
+      <a href="{{ url_for('client.orders_list') }}" class="bg-white rounded-lg p-5 flex flex-col gap-3 hover:opacity-90 transition-opacity">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
+          <i data-lucide="shopping-bag" style="width:18px;height:18px;color:#1A3A52"></i>
+        </div>
+        <div>
+          <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ recent_orders | default([]) | length }}</p>
+          <p class="text-xs mt-0.5" style="color: #6B7280">Commandes recentes</p>
+        </div>
+      </a>
+
+      <a href="{{ url_for('client.search') }}" class="bg-white rounded-lg p-5 flex flex-col gap-3 hover:opacity-90 transition-opacity">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
+          <i data-lucide="search" style="width:18px;height:18px;color:#1A3A52"></i>
+        </div>
+        <div>
+          <p class="text-xs mt-0.5" style="color: #6B7280">Decouvrez les traiteurs inclusifs pres de chez vous</p>
+        </div>
+      </a>
     </div>
-    <p class="text-3xl font-display font-semibold text-navy">{{ recent_orders | default([]) | length }}</p>
-    <p class="text-sm text-navy-300 mt-1">Dernieres commandes</p>
-  </a>
 
-  <a href="{{ url_for('client.search') }}" class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-    <div class="flex items-center gap-3 mb-3">
-      <div class="w-10 h-10 bg-navy-50 rounded-lg flex items-center justify-center">
-        <i data-lucide="search" class="w-5 h-5 text-navy"></i>
-      </div>
-      <h3 class="font-medium text-navy">Catalogue</h3>
-    </div>
-    <p class="text-sm text-navy-300 mt-3">Decouvrez les traiteurs inclusifs pres de chez vous.</p>
-  </a>
-</div>
-
-<!-- Budget tracking -->
-{% if budget_data is defined and budget_data %}
-<div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mb-8">
-  <h2 class="font-display text-lg font-semibold text-navy mb-4">Suivi budgetaire par service</h2>
-  <div class="space-y-4">
-    {% for svc in budget_data %}
-    <div>
-      <div class="flex items-center justify-between mb-1">
-        <span class="text-sm font-medium text-navy">{{ svc.name }}</span>
-        <span class="text-sm text-navy-300">
-          {{ "%.0f" | format(svc.spent) }} EUR / {{ "%.0f" | format(svc.budget) }} EUR
-        </span>
-      </div>
-      {% set pct = (svc.spent / svc.budget * 100) if svc.budget > 0 else 0 %}
-      <div class="w-full bg-cream-200 rounded-full h-2.5">
-        <div class="h-2.5 rounded-full transition-all {% if pct > 90 %}bg-coral-red{% elif pct > 70 %}bg-amber-400{% else %}bg-olive{% endif %}"
-             style="width: {{ [pct, 100] | min }}%"></div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- Recent orders -->
-{% if recent_orders is defined and recent_orders %}
-<div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="font-display text-lg font-semibold text-navy">Dernieres commandes</h2>
-    <a href="{{ url_for('client.orders_list') }}" class="text-sm text-terracotta hover:text-terracotta-500 font-medium">Voir tout</a>
-  </div>
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-cream-200">
-          <th class="text-left py-2 text-navy-300 font-medium">Traiteur</th>
-          <th class="text-left py-2 text-navy-300 font-medium">Date livraison</th>
-          <th class="text-left py-2 text-navy-300 font-medium">Montant</th>
-          <th class="text-left py-2 text-navy-300 font-medium">Statut</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for order in recent_orders %}
-        <tr class="border-b border-cream-100 hover:bg-cream-50 cursor-pointer" onclick="window.location='{{ url_for('client.order_detail', order_id=order.id) }}'">
-          <td class="py-3 text-navy font-medium">{{ order.quote.caterer.name }}</td>
-          <td class="py-3 text-navy-400">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</td>
-          <td class="py-3 text-navy-400">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR HT</td>
-          <td class="py-3">{{ status_badge(order.status) }}</td>
-        </tr>
+    <!-- Budget tracking -->
+    {% if budget_data is defined and budget_data %}
+    <div class="bg-white rounded-lg p-6 mb-6">
+      <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Suivi budgetaire par service</h2>
+      <div class="space-y-4">
+        {% for svc in budget_data %}
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-bold" style="color: #1A1A1A">{{ svc.name }}</span>
+            <span class="text-xs" style="color: #6B7280">
+              {{ "%.0f" | format(svc.spent) }} EUR / {{ "%.0f" | format(svc.budget) }} EUR
+            </span>
+          </div>
+          {% set pct = (svc.spent / svc.budget * 100) if svc.budget > 0 else 0 %}
+          <div class="w-full rounded-full h-2.5" style="background-color: #F3F4F6">
+            <div class="h-2.5 rounded-full transition-all {% if pct > 90 %}bg-red-500{% elif pct > 70 %}bg-amber-400{% else %}bg-green-500{% endif %}"
+                 style="width: {{ [pct, 100] | min }}%"></div>
+          </div>
+        </div>
         {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
+      </div>
+    </div>
+    {% endif %}
 
+    <!-- Recent orders -->
+    {% if recent_orders is defined and recent_orders %}
+    <div class="bg-white rounded-lg p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-display font-bold text-xl" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Dernieres commandes</h2>
+        <a href="{{ url_for('client.orders_list') }}" class="text-xs font-bold hover:opacity-70 transition-opacity" style="color: #1A3A52">Voir tout</a>
+      </div>
+      <div>
+        {% for order in recent_orders %}
+        <a href="{{ url_for('client.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-[#F5F1E8] -mx-2 px-2 rounded-lg transition-colors"
+           style="border-top: 1px solid #F3F4F6">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
+            <i data-lucide="shopping-bag" style="width:16px;height:16px;color:#1A3A52"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ order.quote.caterer.name }}</p>
+            <div class="flex items-center gap-3 mt-0.5">
+              <span class="text-xs" style="color: #6B7280">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
+              <span class="text-xs" style="color: #6B7280">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR HT</span>
+            </div>
+          </div>
+          {{ status_badge(order.status) }}
+          <i data-lucide="chevron-right" style="width:16px;height:16px;color:#D1D5DB"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</main>
 <script>lucide.createIcons();</script>
 {% endblock %}

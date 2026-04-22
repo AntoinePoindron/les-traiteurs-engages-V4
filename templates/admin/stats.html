@@ -4,112 +4,113 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="font-display text-2xl font-semibold text-navy">Statistiques</h1>
-  <p class="text-navy-300 mt-1">Vue d'ensemble de la plateforme</p>
+  <h1 class="font-display font-bold text-2xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Statistiques</h1>
+  <p class="text-sm mt-1" style="color: #6B7280">Vue d'ensemble de la plateforme</p>
 </div>
 
-<!-- Conversion funnel -->
-<div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mb-8">
-  <h2 class="font-display text-lg font-semibold text-navy mb-4">Entonnoir de conversion</h2>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    {% set steps = [
-      ("Demandes", funnel.requests, "clipboard-check", "bg-navy-50", "text-navy"),
-      ("Devis envoyes", funnel.quotes_sent, "file-text", "bg-blue-50", "text-blue-600"),
-      ("Devis acceptes", funnel.quotes_accepted, "check-circle", "bg-olive-50", "text-olive"),
-      ("Payes", funnel.orders_paid, "banknote", "bg-green-50", "text-green-600"),
-    ] %}
-    {% for label, value, icon, bg, color in steps %}
-    <div class="text-center">
-      <div class="w-12 h-12 {{ bg }} rounded-xl flex items-center justify-center mx-auto mb-2">
-        <i data-lucide="{{ icon }}" class="w-6 h-6 {{ color }}"></i>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+  {% set steps = [
+    ("Demandes", funnel.requests, "clipboard-check"),
+    ("Devis envoyes", funnel.quotes_sent, "file-text"),
+    ("Devis acceptes", funnel.quotes_accepted, "check-circle"),
+  ] %}
+  {% for label, value, icon in steps %}
+  <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
+      <i data-lucide="{{ icon }}" style="width:18px;height:18px;color:#1A3A52"></i>
+    </div>
+    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ value }}</p>
+    <p class="text-xs" style="color: #6B7280">{{ label }}{% if not loop.first and funnel.requests > 0 %} <span style="color: #1A3A52">({{ "%.1f"|format(value / funnel.requests * 100) }}%)</span>{% endif %}</p>
+  </div>
+  {% endfor %}
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  {% set steps2 = [
+    ("Payes", funnel.orders_paid, "banknote"),
+    ("Taux de conversion", ("%.1f"|format(funnel.orders_paid / funnel.requests * 100) ~ "%") if funnel.requests > 0 else "0%", "trending-up"),
+    ("Demandes/mois", funnel.requests, "calendar"),
+  ] %}
+  {% for label, value, icon in steps2 %}
+  <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
+      <i data-lucide="{{ icon }}" style="width:18px;height:18px;color:#1A3A52"></i>
+    </div>
+    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ value }}</p>
+    <p class="text-xs" style="color: #6B7280">{{ label }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="bg-white rounded-lg p-6 mb-8">
+  <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Revenu mensuel (12 mois)</h2>
+  <canvas id="revenueChart" height="250"></canvas>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+  <div class="bg-white rounded-lg p-6">
+    <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Top 5 traiteurs</h2>
+    {% if top_caterers %}
+    <div>
+      {% for c in top_caterers %}
+      <div class="flex items-center gap-3 py-3.5" style="{% if not loop.first %}border-top: 1px solid #F3F4F6{% endif %}">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+          style="background-color: {% if loop.index == 1 %}#F59E0B{% elif loop.index == 2 %}#9CA3AF{% elif loop.index == 3 %}#CD7F32{% else %}#E5E7EB{% endif %}; {% if loop.index > 3 %}color: #6B7280{% endif %}">
+          {{ loop.index }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-black">{{ c.name }}</p>
+          <p class="text-xs" style="color: #6B7280">{{ c.order_count }} commande{{ 's' if c.order_count != 1 }}</p>
+        </div>
+        <p class="text-sm font-bold" style="color: #1A3A52">{{ "%.2f"|format(c.revenue) }} &euro;</p>
       </div>
-      <p class="text-2xl font-bold text-navy">{{ value }}</p>
-      <p class="text-xs text-navy-300">{{ label }}</p>
-      {% if not loop.first and funnel.requests > 0 %}
-      <p class="text-xs text-terracotta mt-1">{{ "%.1f"|format(value / funnel.requests * 100) }}%</p>
-      {% endif %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm" style="color: #6B7280">Aucune donnee.</p>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-lg p-6">
+    <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Top 5 clients</h2>
+    {% if geo_data %}
+    <div>
+      {% for g in geo_data[:5] %}
+      <div class="flex items-center gap-3 py-3.5" style="{% if not loop.first %}border-top: 1px solid #F3F4F6{% endif %}">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+          style="background-color: {% if loop.index == 1 %}#F59E0B{% elif loop.index == 2 %}#9CA3AF{% elif loop.index == 3 %}#CD7F32{% else %}#E5E7EB{% endif %}; {% if loop.index > 3 %}color: #6B7280{% endif %}">
+          {{ loop.index }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-black">{{ g.city }}</p>
+        </div>
+        <p class="text-sm font-bold" style="color: #1A3A52">{{ g.count }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm" style="color: #6B7280">Aucune donnee.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="bg-white rounded-lg p-6">
+  <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Types de prestations</h2>
+  {% if meal_data %}
+  <div class="space-y-3">
+    {% set max_meal = meal_data[0].count if meal_data else 1 %}
+    {% for m in meal_data %}
+    <div class="flex items-center gap-3">
+      <span class="text-sm text-black w-32 truncate">{{ m.type }}</span>
+      <div class="flex-1 rounded-full h-6 overflow-hidden" style="background-color: #F5F1E8">
+        <div class="h-full rounded-full" style="width: {{ (m.count / max_meal * 100)|int }}%; background-color: #1A3A52"></div>
+      </div>
+      <span class="text-sm font-bold w-8 text-right" style="color: #1A3A52">{{ m.count }}</span>
     </div>
     {% endfor %}
   </div>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-  <!-- Revenue chart -->
-  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
-    <h2 class="font-display text-lg font-semibold text-navy mb-4">Revenu mensuel (12 mois)</h2>
-    <canvas id="revenueChart" height="250"></canvas>
-  </div>
-
-  <!-- Top caterers -->
-  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
-    <h2 class="font-display text-lg font-semibold text-navy mb-4">Top 5 traiteurs</h2>
-    {% if top_caterers %}
-    <table class="w-full text-sm">
-      <thead class="text-navy-300">
-        <tr>
-          <th class="text-left pb-2 font-medium">Traiteur</th>
-          <th class="text-right pb-2 font-medium">Revenu</th>
-          <th class="text-right pb-2 font-medium">Commandes</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-cream-200">
-        {% for c in top_caterers %}
-        <tr>
-          <td class="py-2 font-medium text-navy">{{ c.name }}</td>
-          <td class="py-2 text-right text-terracotta">{{ "%.2f"|format(c.revenue) }} &euro;</td>
-          <td class="py-2 text-right text-navy-300">{{ c.order_count }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p class="text-sm text-navy-300">Aucune donnee.</p>
-    {% endif %}
-  </div>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-  <!-- Geographic distribution -->
-  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
-    <h2 class="font-display text-lg font-semibold text-navy mb-4">Top 10 villes</h2>
-    {% if geo_data %}
-    <div class="space-y-2">
-      {% set max_geo = geo_data[0].count if geo_data else 1 %}
-      {% for g in geo_data %}
-      <div class="flex items-center gap-3">
-        <span class="text-sm text-navy w-32 truncate">{{ g.city }}</span>
-        <div class="flex-1 bg-cream-200 rounded-full h-5 overflow-hidden">
-          <div class="bg-terracotta h-full rounded-full" style="width: {{ (g.count / max_geo * 100)|int }}%"></div>
-        </div>
-        <span class="text-sm font-medium text-navy w-8 text-right">{{ g.count }}</span>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p class="text-sm text-navy-300">Aucune donnee.</p>
-    {% endif %}
-  </div>
-
-  <!-- Service type distribution -->
-  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
-    <h2 class="font-display text-lg font-semibold text-navy mb-4">Types de prestations</h2>
-    {% if meal_data %}
-    <div class="space-y-2">
-      {% set max_meal = meal_data[0].count if meal_data else 1 %}
-      {% for m in meal_data %}
-      <div class="flex items-center gap-3">
-        <span class="text-sm text-navy w-32 truncate">{{ m.type }}</span>
-        <div class="flex-1 bg-cream-200 rounded-full h-5 overflow-hidden">
-          <div class="bg-olive h-full rounded-full" style="width: {{ (m.count / max_meal * 100)|int }}%"></div>
-        </div>
-        <span class="text-sm font-medium text-navy w-8 text-right">{{ m.count }}</span>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p class="text-sm text-navy-300">Aucune donnee.</p>
-    {% endif %}
-  </div>
+  {% else %}
+  <p class="text-sm" style="color: #6B7280">Aucune donnee.</p>
+  {% endif %}
 </div>
 
 <script>lucide.createIcons();</script>
@@ -126,7 +127,7 @@
       datasets: [{
         label: 'Revenu (EUR)',
         data: {{ months|map(attribute='revenue')|list|tojson }},
-        backgroundColor: '#C4714A',
+        backgroundColor: '#1A3A52',
         borderRadius: 6,
       }]
     },

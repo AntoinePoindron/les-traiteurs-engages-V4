@@ -1,14 +1,20 @@
-{% macro structure_type_badge(type) %}
+{% macro structure_type_badge(type, size="md") %}
 {% set type_str = type.value if type is not string else type %}
 
-{% set styles = {
-  'ESAT': 'bg-purple-100 text-purple-700',
-  'EA': 'bg-teal-100 text-teal-700',
-  'EI': 'bg-amber-100 text-amber-700',
-  'ACI': 'bg-indigo-100 text-indigo-700',
+{% set labels = {
+  'ESAT': 'ESAT',
+  'EA': 'Entreprise Adapt\u00e9e',
+  'EI': "Entreprise d'Insertion",
+  'ACI': "Atelier et Chantier d'Insertion",
 } %}
 
-<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ styles.get(type_str, 'bg-gray-100 text-gray-600') }}">
-  {{ type_str }}
+{% if size == 'sm' %}
+<span class="inline-flex items-center font-bold whitespace-nowrap" style="background-color: #DCFCE7; color: #16A34A; padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4;">
+  {{ labels.get(type_str, type_str) }}
 </span>
+{% else %}
+<span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold whitespace-nowrap" style="background-color: #DCFCE7; color: #16A34A;">
+  {{ labels.get(type_str, type_str) }}
+</span>
+{% endif %}
 {% endmacro %}

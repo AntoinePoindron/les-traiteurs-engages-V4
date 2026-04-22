@@ -5,28 +5,31 @@
 
 {% block content %}
 <div class="mb-6">
-  <a href="{{ url_for('caterer.orders_list') }}" class="text-sm text-terracotta hover:underline inline-flex items-center gap-1">
-    <i data-lucide="arrow-left" class="w-4 h-4"></i> Retour aux commandes
+  <a href="{{ url_for('caterer.orders_list') }}" class="inline-flex items-center gap-1 text-xs font-bold" style="color: #1A3A52">
+    <i data-lucide="arrow-left" style="width:14px;height:14px;color:#1A3A52"></i> Retour aux commandes
   </a>
 </div>
 
 <div class="flex items-center justify-between mb-8">
   <div>
-    <h1 class="font-display text-2xl font-semibold text-navy">Commande {{ order.quote.reference }}</h1>
-    <p class="text-navy-300 mt-1">{{ order.quote.quote_request.company.name }} &middot; {{ status_badge(order.status) }}</p>
+    <h1 class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Commande {{ order.quote.reference }}</h1>
+    <div class="flex items-center gap-2 mt-1">
+      <span class="text-xs" style="color: #6B7280">{{ order.quote.quote_request.company.name }}</span>
+      {{ status_badge(order.status) }}
+    </div>
   </div>
   {% if order.status.value == 'confirmed' %}
   <form method="POST" action="{{ url_for('caterer.order_deliver', order_id=order.id) }}">
-    <button type="submit" class="bg-olive text-white px-5 py-2.5 rounded-lg font-medium hover:bg-olive-500 transition-colors inline-flex items-center gap-2">
-      <i data-lucide="check-circle" class="w-4 h-4"></i> Marquer comme livree
+    <button type="submit" class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
+      <i data-lucide="check-circle" style="width:16px;height:16px"></i> Marquer comme livree
     </button>
   </form>
   {% endif %}
 </div>
 
-<!-- Status timeline -->
-<div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm mb-6">
-  <h2 class="font-display text-lg font-semibold text-navy mb-4">Progression</h2>
+<!-- Wizard stepper timeline -->
+<div class="bg-white rounded-lg p-6 mb-6">
+  <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Progression</h2>
   <div class="flex items-center justify-between">
     {% set steps = [
       ('confirmed', 'Confirmee'),
@@ -38,95 +41,90 @@
     {% set current_idx = status_order.get(order.status.value, 0) %}
     {% for step_val, step_label in steps %}
     {% set step_idx = loop.index0 %}
-    <div class="flex-1 text-center">
-      <div class="mx-auto w-10 h-10 rounded-full flex items-center justify-center mb-2
-        {% if step_idx <= current_idx and current_idx >= 0 %}bg-olive text-white{% else %}bg-cream-200 text-navy-300{% endif %}">
+    <div class="flex flex-col items-center flex-1">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+        style="{% if step_idx == current_idx and current_idx >= 0 %}background-color:#E84B3A;color:white{% elif step_idx < current_idx and current_idx >= 0 %}background-color:#1A3A52;color:white{% else %}background-color:white;color:#9CA3AF;border:1px solid #E5E7EB{% endif %}">
         {% if step_idx < current_idx and current_idx >= 0 %}
-        <i data-lucide="check" class="w-5 h-5"></i>
-        {% elif step_idx == current_idx and current_idx >= 0 %}
-        <i data-lucide="circle-dot" class="w-5 h-5"></i>
+        <i data-lucide="check" style="width:16px;height:16px"></i>
         {% else %}
-        <i data-lucide="circle" class="w-5 h-5"></i>
+        {{ loop.index }}
         {% endif %}
       </div>
-      <p class="text-xs font-medium {% if step_idx <= current_idx and current_idx >= 0 %}text-navy{% else %}text-navy-300{% endif %}">{{ step_label }}</p>
+      <p class="text-xs font-bold mt-2" style="color: {% if step_idx <= current_idx and current_idx >= 0 %}#1A1A1A{% else %}#9CA3AF{% endif %}">{{ step_label }}</p>
     </div>
     {% if not loop.last %}
-    <div class="flex-1 h-0.5 mt-[-24px] {% if step_idx < current_idx and current_idx >= 0 %}bg-olive{% else %}bg-cream-200{% endif %}"></div>
+    <div class="flex-1 h-0.5 mb-6" style="background-color: {% if step_idx < current_idx and current_idx >= 0 %}#1A3A52{% else %}#E5E7EB{% endif %}"></div>
     {% endif %}
     {% endfor %}
   </div>
   {% if order.status.value == 'disputed' %}
-  <div class="mt-4 p-3 bg-coral-red-50 rounded-lg text-sm text-coral-red-600">
-    <i data-lucide="alert-triangle" class="w-4 h-4 inline"></i> Cette commande est contestee.
+  <div class="mt-4 p-3 rounded-lg text-sm" style="background-color: #FEF2F2; color: #DC2626">
+    <i data-lucide="alert-triangle" style="width:16px;height:16px" class="inline"></i> Cette commande est contestee.
   </div>
   {% endif %}
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-  <!-- Delivery info -->
-  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
-    <h2 class="font-display text-lg font-semibold text-navy mb-4">Livraison</h2>
+  <div class="bg-white rounded-lg p-6">
+    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Livraison</h2>
     <dl class="space-y-3">
       <div class="flex justify-between">
-        <dt class="text-sm text-navy-300">Date</dt>
-        <dd class="text-sm font-medium text-navy">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</dd>
+        <dt class="text-sm" style="color: #6B7280">Date</dt>
+        <dd class="text-sm font-bold" style="color: #1A1A1A">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</dd>
       </div>
       <div class="flex justify-between">
-        <dt class="text-sm text-navy-300">Adresse</dt>
-        <dd class="text-sm font-medium text-navy text-right">{{ order.delivery_address or '-' }}</dd>
+        <dt class="text-sm" style="color: #6B7280">Adresse</dt>
+        <dd class="text-sm font-bold text-right" style="color: #1A1A1A">{{ order.delivery_address or '-' }}</dd>
       </div>
       {% if order.notes %}
       <div>
-        <dt class="text-sm text-navy-300 mb-1">Notes</dt>
-        <dd class="text-sm text-navy">{{ order.notes }}</dd>
+        <dt class="text-sm mb-1" style="color: #6B7280">Notes</dt>
+        <dd class="text-sm" style="color: #1A1A1A">{{ order.notes }}</dd>
       </div>
       {% endif %}
     </dl>
   </div>
 
-  <!-- Financial summary -->
-  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm">
-    <h2 class="font-display text-lg font-semibold text-navy mb-4">Montants</h2>
+  <div class="bg-white rounded-lg p-6">
+    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Montants</h2>
     <dl class="space-y-3">
       <div class="flex justify-between">
-        <dt class="text-sm text-navy-300">Total HT</dt>
-        <dd class="text-sm font-medium text-navy">{{ "%.2f"|format(order.quote.total_amount_ht or 0) }} &euro;</dd>
+        <dt class="text-sm" style="color: #6B7280">Total HT</dt>
+        <dd class="text-sm font-bold" style="color: #1A1A1A">{{ "%.2f"|format(order.quote.total_amount_ht or 0) }} &euro;</dd>
       </div>
       <div class="flex justify-between">
-        <dt class="text-sm text-navy-300">Par personne</dt>
-        <dd class="text-sm font-medium text-navy">{{ "%.2f"|format(order.quote.amount_per_person or 0) }} &euro;</dd>
+        <dt class="text-sm" style="color: #6B7280">Par personne</dt>
+        <dd class="text-sm font-bold" style="color: #1A1A1A">{{ "%.2f"|format(order.quote.amount_per_person or 0) }} &euro;</dd>
       </div>
       <div class="flex justify-between">
-        <dt class="text-sm text-navy-300">Valorisable AGEFIPH</dt>
-        <dd class="text-sm font-semibold text-olive">{{ "%.2f"|format(order.quote.valorisable_agefiph or 0) }} &euro;</dd>
+        <dt class="text-sm" style="color: #6B7280">Valorisable AGEFIPH</dt>
+        <dd class="text-sm font-bold" style="color: #22C55E">{{ "%.2f"|format(order.quote.valorisable_agefiph or 0) }} &euro;</dd>
       </div>
     </dl>
   </div>
 
-  <!-- Quote detail lines -->
   {% if order.quote.details and order.quote.details.lines %}
-  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm lg:col-span-2">
-    <h2 class="font-display text-lg font-semibold text-navy mb-4">Detail du devis</h2>
+  <div class="bg-white rounded-lg p-6 lg:col-span-2">
+    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Detail du devis</h2>
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-cream-200">
-          <th class="text-left py-2 text-navy-300 font-medium">Description</th>
-          <th class="text-right py-2 text-navy-300 font-medium">Qte</th>
-          <th class="text-right py-2 text-navy-300 font-medium">PU HT</th>
-          <th class="text-right py-2 text-navy-300 font-medium">TVA</th>
-          <th class="text-right py-2 text-navy-300 font-medium">Total HT</th>
+        <tr style="border-bottom: 1px solid #F3F4F6">
+          <th class="text-left py-2 font-bold" style="color: #6B7280">Description</th>
+          <th class="text-right py-2 font-bold" style="color: #6B7280">Qte</th>
+          <th class="text-right py-2 font-bold" style="color: #6B7280">PU HT</th>
+          <th class="text-right py-2 font-bold" style="color: #6B7280">TVA</th>
+          <th class="text-right py-2 font-bold" style="color: #6B7280">Total HT</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-cream-100">
+      <tbody>
         {% for line in order.quote.details.lines %}
-        <tr>
-          <td class="py-2 text-navy">{{ line.description }}</td>
-          <td class="py-2 text-right text-navy">{{ line.quantity }}</td>
-          <td class="py-2 text-right text-navy">{{ "%.2f"|format(line.unit_price_ht) }} &euro;</td>
-          <td class="py-2 text-right text-navy-300">{{ line.tva_rate }}%</td>
-          <td class="py-2 text-right font-medium text-navy">{{ "%.2f"|format(line.quantity * line.unit_price_ht) }} &euro;</td>
+        <tr style="border-bottom: 1px solid #F9FAFB">
+          <td class="py-2" style="color: #1A1A1A">{{ line.description }}</td>
+          <td class="py-2 text-right" style="color: #1A1A1A">{{ line.quantity }}</td>
+          <td class="py-2 text-right" style="color: #1A1A1A">{{ "%.2f"|format(line.unit_price_ht) }} &euro;</td>
+          <td class="py-2 text-right" style="color: #6B7280">{{ line.tva_rate }}%</td>
+          <td class="py-2 text-right font-bold" style="color: #1A1A1A">{{ "%.2f"|format(line.quantity * line.unit_price_ht) }} &euro;</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -134,16 +132,18 @@
   </div>
   {% endif %}
 
-  <!-- Payments -->
   {% if order.payments %}
-  <div class="bg-white rounded-xl border border-cream-200 p-6 shadow-sm lg:col-span-2">
-    <h2 class="font-display text-lg font-semibold text-navy mb-4">Paiements</h2>
-    <div class="space-y-3">
+  <div class="bg-white rounded-lg p-6 lg:col-span-2">
+    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Paiements</h2>
+    <div>
       {% for payment in order.payments %}
-      <div class="flex items-center justify-between p-3 rounded-lg border border-cream-200">
-        <div>
-          <p class="text-sm font-medium text-navy">{{ "%.2f"|format((payment.amount_total_cents or 0) / 100) }} &euro;</p>
-          <p class="text-xs text-navy-300">{{ payment.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+      <div class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg" style="border-top: 1px solid #F3F4F6">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
+          <i data-lucide="banknote" style="width:16px;height:16px;color:#1A3A52"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold" style="color: #1A1A1A">{{ "%.2f"|format((payment.amount_total_cents or 0) / 100) }} &euro;</p>
+          <span class="text-xs" style="color: #6B7280">{{ payment.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
         </div>
         {{ status_badge(payment.status) }}
       </div>
@@ -152,11 +152,10 @@
   </div>
   {% endif %}
 
-  <!-- Stripe invoice link -->
   {% if order.stripe_hosted_invoice_url %}
   <div class="lg:col-span-2">
-    <a href="{{ order.stripe_hosted_invoice_url }}" target="_blank" class="inline-flex items-center gap-2 text-sm text-terracotta hover:underline">
-      <i data-lucide="external-link" class="w-4 h-4"></i> Voir la facture Stripe
+    <a href="{{ order.stripe_hosted_invoice_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs font-bold" style="color: #1A3A52">
+      <i data-lucide="external-link" style="width:14px;height:14px;color:#1A3A52"></i> Voir la facture Stripe
     </a>
   </div>
   {% endif %}

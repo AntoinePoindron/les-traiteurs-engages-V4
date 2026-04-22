@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <g transform="translate(10, 5)">
+    <!-- Fork left -->
+    <g transform="rotate(-20, 15, 25)" stroke="#B70102" stroke-width="2.5" stroke-linecap="round" fill="none">
+      <line x1="15" y1="8" x2="15" y2="45"/>
+      <line x1="9" y1="8" x2="9" y2="20"/>
+      <line x1="15" y1="8" x2="15" y2="20"/>
+      <line x1="21" y1="8" x2="21" y2="20"/>
+      <path d="M9 20 Q9 25 15 25 Q21 25 21 20"/>
+    </g>
+    <!-- Fork right -->
+    <g transform="rotate(20, 30, 25)" stroke="#B70102" stroke-width="2.5" stroke-linecap="round" fill="none">
+      <line x1="30" y1="8" x2="30" y2="45"/>
+      <line x1="24" y1="8" x2="24" y2="20"/>
+      <line x1="30" y1="8" x2="30" y2="20"/>
+      <line x1="36" y1="8" x2="36" y2="20"/>
+      <path d="M24 20 Q24 25 30 25 Q36 25 36 20"/>
+    </g>
+  </g>
+  <text x="60" y="28" font-family="serif" font-weight="700" font-size="14" fill="#1A3A52">Les Traiteurs</text>
+  <text x="60" y="46" font-family="serif" font-weight="700" font-size="14" fill="#1A3A52" font-style="italic">Engag&#233;s</text>
+</svg>

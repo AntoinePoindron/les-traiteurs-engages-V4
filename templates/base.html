@@ -3,277 +3,214 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Les Traiteurs Engages{% endblock %}</title>
+  <title>{% block title %}Les Traiteurs Engag&#233;s{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Marianne:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            cream: {
-              DEFAULT: '#FAF7F2',
-              50: '#FEFDFB',
-              100: '#FAF7F2',
-              200: '#F0E8DA',
-              300: '#E6D9C2',
-            },
-            terracotta: {
-              DEFAULT: '#C4714A',
-              50: '#FCF3EE',
-              100: '#F5DDD0',
-              200: '#E8B89E',
-              300: '#D9946E',
-              400: '#C4714A',
-              500: '#A85D3A',
-              600: '#8C4D30',
-              700: '#6F3D26',
-            },
-            'coral-red': {
-              DEFAULT: '#FF5455',
-              50: '#FFF0F0',
-              100: '#FFD6D6',
-              200: '#FFADAD',
-              300: '#FF8182',
-              400: '#FF5455',
-              500: '#E63B3C',
-              600: '#CC2829',
-            },
-            olive: {
-              DEFAULT: '#6B7C4A',
-              50: '#F4F6EF',
-              100: '#E2E8D4',
-              200: '#C5D1AA',
-              300: '#A3B57B',
-              400: '#6B7C4A',
-              500: '#56653C',
-              600: '#414D2E',
-            },
-            navy: {
-              DEFAULT: '#1A3A52',
-              50: '#EDF2F6',
-              100: '#C8D8E5',
-              200: '#8FAEC8',
-              300: '#5682A4',
-              400: '#2D5B7D',
-              500: '#1A3A52',
-              600: '#132B3E',
-              700: '#0D1D2A',
-            },
+            cream: '#FAF7F2',
+            terracotta: '#C4714A',
+            'dark-terracotta': '#8B4A3D',
+            'coral-red': '#FF5455',
+            navy: '#1A3A52',
+            'navy-light': '#E3F4FF',
+            'blue-badge': '#00AEFF',
+            dark: '#1A1A1A',
+            'gray-light': '#F5F5F5',
+            'gray-medium': '#9CA3AF',
+            olive: '#6B7C4A',
           },
           fontFamily: {
             display: ['Fraunces', 'serif'],
-            body: ['Marianne', 'sans-serif'],
+            body: ['system-ui', 'sans-serif'],
           },
         },
       },
     }
   </script>
   <style>
-    body { font-family: 'Marianne', sans-serif; background-color: #FAF7F2; }
-    h1, h2, h3, h4, h5, h6, .font-display { font-family: 'Fraunces', serif; }
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #FAF7F2; }
-    ::-webkit-scrollbar-thumb { background: #C4714A; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #A85D3A; }
-    * { scrollbar-width: thin; scrollbar-color: #C4714A #FAF7F2; }
-    .sidebar-collapsed { width: 64px; }
-    .sidebar-expanded { width: 256px; }
-    .sidebar-collapsed .nav-label,
-    .sidebar-collapsed .sidebar-logo-text,
-    .sidebar-collapsed .sidebar-user-info { display: none; }
-    .sidebar-collapsed .nav-icon { margin: 0 auto; }
+    html { background-color: #FAF7F2; color: #1A1A1A; }
+    body { font-family: system-ui, sans-serif; }
+    h1, h2, h3, h4, h5, h6, .font-display {
+      font-family: 'Fraunces', serif;
+      font-variation-settings: 'SOFT' 0, 'WONK' 1;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #C4714A40; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #C4714A80; }
+    * { scrollbar-width: thin; scrollbar-color: #C4714A40 transparent; }
+    button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] { cursor: pointer; }
   </style>
   <script src="https://unpkg.com/lucide@latest"></script>
+  {% block head %}{% endblock %}
 </head>
-<body class="bg-cream min-h-screen">
+<body class="min-h-screen" style="background-color: #F5F1E8;">
   {% if g.current_user %}
-  <!-- Mobile hamburger -->
-  <button id="mobile-menu-btn" class="fixed top-4 left-4 z-50 lg:hidden bg-navy text-white p-2 rounded-lg shadow-lg">
-    <i data-lucide="menu" class="w-5 h-5"></i>
-  </button>
+  <!-- Mobile topbar -->
+  <div class="fixed top-0 left-0 right-0 h-14 bg-white z-40 flex items-center px-4 lg:hidden" style="border-bottom: 1px solid #F3F4F6;">
+    <button id="mobile-menu-btn" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+      <i data-lucide="menu" class="w-5 h-5 text-dark"></i>
+    </button>
+    <span class="font-display text-base font-semibold text-dark ml-3">Les Traiteurs Engag&#233;s</span>
+  </div>
 
-  <!-- Sidebar overlay (mobile) -->
-  <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleMobileMenu()"></div>
+  <!-- Mobile overlay -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleMobileMenu()"></div>
 
   <!-- Sidebar -->
-  <aside id="sidebar" class="fixed left-0 top-0 h-full bg-navy text-white z-40 transition-all duration-300 sidebar-expanded flex flex-col -translate-x-full lg:translate-x-0">
+  <aside id="sidebar" class="fixed left-0 top-0 h-full bg-white z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0" style="width: 241px; border-right: 1px solid #F3F4F6;">
     <!-- Logo -->
-    <div class="p-4 border-b border-navy-400 flex items-center gap-3">
-      <div class="w-8 h-8 bg-terracotta rounded-lg flex items-center justify-center flex-shrink-0">
-        <i data-lucide="chef-hat" class="w-5 h-5 text-white"></i>
-      </div>
-      <span class="sidebar-logo-text font-display text-sm font-semibold leading-tight">Les Traiteurs<br>Engages</span>
+    <div class="p-4 flex items-center gap-3">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-10">
     </div>
 
+    <!-- Entity badge -->
+    {% if g.current_user.role in ('client_admin', 'client_user') and g.current_user.company %}
+    <div class="px-4 pb-3">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold" style="background: #F0F4F8; color: #1A3A52;">
+        <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
+        {{ g.current_user.company.name if g.current_user.company else 'Mon entreprise' }}
+      </span>
+    </div>
+    {% elif g.current_user.role == 'caterer' and g.current_user.caterer %}
+    <div class="px-4 pb-3">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold" style="background: #F0F4F8; color: #1A3A52;">
+        <i data-lucide="chef-hat" class="w-3.5 h-3.5"></i>
+        {{ g.current_user.caterer.name if g.current_user.caterer else 'Mon activit&#233;' }}
+      </span>
+    </div>
+    {% endif %}
+
     <!-- Navigation -->
-    <nav class="flex-1 py-4 overflow-y-auto">
-      <ul class="space-y-1 px-2">
+    <nav class="flex-1 overflow-y-auto px-3 py-2">
+      <div class="flex flex-col gap-0.5">
         {% if g.current_user.role in ('client_admin', 'client_user') %}
-        <li>
-          <a href="{{ url_for('client.dashboard') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="layout-dashboard" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('client.requests_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="file-text" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Mes demandes</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('client.orders_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="shopping-bag" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Mes commandes</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('client.search') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="search" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Catalogue</span>
-          </a>
-        </li>
+        <a href="{{ url_for('client.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
+          <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('client.requests_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="requests">
+          <i data-lucide="file-text" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Mes demandes</span>
+        </a>
+        <a href="{{ url_for('client.orders_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="orders">
+          <i data-lucide="shopping-bag" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Mes commandes</span>
+        </a>
+        <a href="{{ url_for('client.search') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="search">
+          <i data-lucide="search" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Catalogue</span>
+        </a>
         {% if g.current_user.role == 'client_admin' %}
-        <li>
-          <a href="{{ url_for('client.team') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="users" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Equipe</span>
-          </a>
-        </li>
+        <a href="{{ url_for('client.team') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="team">
+          <i data-lucide="users" class="w-5 h-5 flex-shrink-0"></i>
+          <span>&#201;quipe</span>
+        </a>
         {% endif %}
-        <li>
-          <a href="{{ url_for('client.messages') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors relative">
-            <i data-lucide="message-circle" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Messages</span>
-            <span class="notification-badge absolute right-2 top-1 bg-coral-red text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden"></span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('client.profile') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="user" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Mon profil</span>
-          </a>
-        </li>
+        <a href="{{ url_for('client.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors relative" data-page="messages">
+          <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Messages</span>
+          <span class="notification-badge absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-coral-red hidden"></span>
+        </a>
+        <a href="{{ url_for('client.profile') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="profile">
+          <i data-lucide="user" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Mon profil</span>
+        </a>
         {% if g.current_user.role == 'client_admin' %}
-        <li>
-          <a href="{{ url_for('client.settings') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="settings" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Parametres</span>
-          </a>
-        </li>
+        <a href="{{ url_for('client.settings') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="settings">
+          <i data-lucide="settings" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Param&#232;tres</span>
+        </a>
         {% endif %}
 
         {% elif g.current_user.role == 'caterer' %}
-        <li>
-          <a href="{{ url_for('caterer.dashboard') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="layout-dashboard" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('caterer.requests_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="file-text" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Demandes</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('caterer.orders_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="shopping-bag" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Mes commandes</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('caterer.profile') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="user" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Mon profil</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('caterer.stripe_status') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="credit-card" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Stripe</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('caterer.messages') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors relative">
-            <i data-lucide="message-circle" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Messages</span>
-            <span class="notification-badge absolute right-2 top-1 bg-coral-red text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden"></span>
-          </a>
-        </li>
+        <a href="{{ url_for('caterer.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
+          <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('caterer.requests_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="requests">
+          <i data-lucide="file-text" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Demandes</span>
+        </a>
+        <a href="{{ url_for('caterer.orders_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="orders">
+          <i data-lucide="shopping-bag" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Mes commandes</span>
+        </a>
+        <a href="{{ url_for('caterer.profile') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="profile">
+          <i data-lucide="user" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Mon profil</span>
+        </a>
+        <a href="{{ url_for('caterer.stripe_status') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="stripe">
+          <i data-lucide="credit-card" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Stripe</span>
+        </a>
+        <a href="{{ url_for('caterer.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors relative" data-page="messages">
+          <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Messages</span>
+          <span class="notification-badge absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-coral-red hidden"></span>
+        </a>
 
         {% elif g.current_user.role == 'super_admin' %}
-        <li>
-          <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="layout-dashboard" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('admin.qualification') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="clipboard-check" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Qualification</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('admin.caterers_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="chef-hat" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Traiteurs</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('admin.companies_list') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="building-2" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Entreprises</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('admin.payments') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="banknote" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Paiements</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('admin.stats') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors">
-            <i data-lucide="bar-chart-3" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Stats</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('admin.messages') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy-400 transition-colors relative">
-            <i data-lucide="message-circle" class="nav-icon w-5 h-5 flex-shrink-0"></i>
-            <span class="nav-label text-sm">Messages</span>
-            <span class="notification-badge absolute right-2 top-1 bg-coral-red text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden"></span>
-          </a>
-        </li>
+        <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
+          <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('admin.qualification') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="qualification">
+          <i data-lucide="clipboard-check" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Qualification</span>
+        </a>
+        <a href="{{ url_for('admin.caterers_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="caterers">
+          <i data-lucide="chef-hat" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Traiteurs</span>
+        </a>
+        <a href="{{ url_for('admin.companies_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="companies">
+          <i data-lucide="building-2" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Entreprises</span>
+        </a>
+        <a href="{{ url_for('admin.payments') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="payments">
+          <i data-lucide="banknote" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Paiements</span>
+        </a>
+        <a href="{{ url_for('admin.stats') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="stats">
+          <i data-lucide="bar-chart-3" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Stats</span>
+        </a>
+        <a href="{{ url_for('admin.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors relative" data-page="messages">
+          <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Messages</span>
+          <span class="notification-badge absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-coral-red hidden"></span>
+        </a>
         {% endif %}
-      </ul>
+      </div>
     </nav>
 
-    <!-- Sidebar toggle -->
-    <button id="sidebar-toggle" class="hidden lg:flex items-center justify-center py-2 border-t border-navy-400 hover:bg-navy-400 transition-colors">
-      <i data-lucide="panel-left-close" class="w-5 h-5" id="toggle-icon"></i>
-    </button>
-
-    <!-- User info -->
-    <div class="p-4 border-t border-navy-400">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 bg-terracotta rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold">
+    <!-- Footer -->
+    <div class="p-3" style="border-top: 1px solid #F3F4F6;">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style="background: #1A3A52;">
           {{ g.current_user.first_name[0] }}{{ g.current_user.last_name[0] }}
         </div>
-        <div class="sidebar-user-info flex-1 min-w-0">
-          <p class="text-sm font-medium truncate">{{ g.current_user.first_name }} {{ g.current_user.last_name }}</p>
-          <a href="{{ url_for('auth.logout') }}" class="text-xs text-cream-200 hover:text-white transition-colors">Deconnexion</a>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-dark truncate">{{ g.current_user.first_name }} {{ g.current_user.last_name }}</p>
         </div>
+        <button class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
+          <i data-lucide="bell" class="w-4.5 h-4.5" style="color: #6B7280;"></i>
+        </button>
+        <a href="{{ url_for('auth.logout') }}" class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors" title="D&#233;connexion">
+          <i data-lucide="log-out" class="w-4.5 h-4.5" style="color: #6B7280;"></i>
+        </a>
       </div>
     </div>
   </aside>
 
   <!-- Main content -->
-  <main id="main-content" class="transition-all duration-300 lg:ml-64 min-h-screen">
+  <main id="main-content" class="min-h-screen transition-all duration-300 pt-14 lg:pt-0" style="margin-left: 0;">
     <div class="p-6 max-w-7xl mx-auto">
       {% include "components/flash_messages.html" %}
       {% block content %}{% endblock %}
@@ -281,7 +218,6 @@
   </main>
 
   {% else %}
-  <!-- No sidebar for unauthenticated users -->
   <main>
     {% include "components/flash_messages.html" %}
     {% block public_content %}{% endblock %}
@@ -291,6 +227,34 @@
   <script>
     lucide.createIcons();
 
+    // Sidebar active state
+    (function() {
+      var links = document.querySelectorAll('.sidebar-link');
+      var currentPath = window.location.pathname;
+      links.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href && (currentPath === href || currentPath.startsWith(href + '/'))) {
+          link.style.backgroundColor = '#1A3A52';
+          link.style.color = '#FFFFFF';
+        } else {
+          link.style.color = '#6B7280';
+          link.addEventListener('mouseenter', function() {
+            if (this.style.backgroundColor !== 'rgb(26, 58, 82)') {
+              this.style.backgroundColor = '#F5F1E8';
+              this.style.color = '#1A3A52';
+            }
+          });
+          link.addEventListener('mouseleave', function() {
+            if (this.style.backgroundColor !== 'rgb(26, 58, 82)') {
+              this.style.backgroundColor = '';
+              this.style.color = '#6B7280';
+            }
+          });
+        }
+      });
+    })();
+
+    // Mobile menu
     function toggleMobileMenu() {
       var sidebar = document.getElementById('sidebar');
       var overlay = document.getElementById('sidebar-overlay');
@@ -301,27 +265,19 @@
     var mobileBtn = document.getElementById('mobile-menu-btn');
     if (mobileBtn) mobileBtn.addEventListener('click', toggleMobileMenu);
 
-    var sidebarToggle = document.getElementById('sidebar-toggle');
-    if (sidebarToggle) {
-      sidebarToggle.addEventListener('click', function() {
-        var sidebar = document.getElementById('sidebar');
-        var main = document.getElementById('main-content');
-        var icon = document.getElementById('toggle-icon');
-        if (sidebar.classList.contains('sidebar-expanded')) {
-          sidebar.classList.remove('sidebar-expanded');
-          sidebar.classList.add('sidebar-collapsed');
-          main.style.marginLeft = '64px';
-          icon.setAttribute('data-lucide', 'panel-left-open');
-        } else {
-          sidebar.classList.remove('sidebar-collapsed');
-          sidebar.classList.add('sidebar-expanded');
-          main.style.marginLeft = '256px';
-          icon.setAttribute('data-lucide', 'panel-left-close');
-        }
-        lucide.createIcons();
-      });
+    // Responsive sidebar margin
+    function updateLayout() {
+      var main = document.getElementById('main-content');
+      if (main && window.innerWidth >= 1024) {
+        main.style.marginLeft = '241px';
+      } else if (main) {
+        main.style.marginLeft = '0';
+      }
     }
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
 
+    // Notifications
     function updateNotificationBadge() {
       fetch('/api/notifications')
         .then(function(r) { return r.json(); })
@@ -329,7 +285,6 @@
           var badges = document.querySelectorAll('.notification-badge');
           badges.forEach(function(badge) {
             if (data.unread_count > 0) {
-              badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
               badge.classList.remove('hidden');
             } else {
               badge.classList.add('hidden');

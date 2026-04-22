@@ -1,196 +1,211 @@
 {% extends "base.html" %}
 {% block title %}Equipe — Les Traiteurs Engages{% endblock %}
 {% block content %}
-<div class="mb-6">
-  <h1 class="font-display text-2xl font-semibold text-navy">Gestion de l'equipe</h1>
-  <p class="text-sm text-navy-300 mt-1">Services, employes et demandes d'adhesion</p>
-</div>
+<main style="background-color: #F5F1E8; min-height: 100vh;">
+  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
-<!-- Demandes en attente -->
-{% if pending_users %}
-<div class="mb-8">
-  <h2 class="font-display text-lg font-semibold text-navy mb-4 flex items-center gap-2">
-    <i data-lucide="user-check" class="w-5 h-5 text-coral-red"></i>
-    Demandes en attente
-  </h2>
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {% for pu in pending_users %}
-    <div class="bg-white rounded-xl border border-coral-red-100 p-4">
-      <div class="flex items-center gap-3 mb-3">
-        <div class="w-10 h-10 bg-coral-red-50 rounded-full flex items-center justify-center">
-          <span class="text-sm font-bold text-coral-red">{{ pu.first_name[0] }}{{ pu.last_name[0] }}</span>
+    <h1 class="font-display font-bold text-4xl mb-6" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Gestion de l'equipe</h1>
+
+    <!-- Demandes en attente -->
+    {% if pending_users %}
+    <div class="mb-8">
+      <div class="bg-white rounded-lg p-6">
+        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">
+          <i data-lucide="user-check" style="width:18px;height:18px;color:#DC2626"></i>
+          Demandes en attente
+        </h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {% for pu in pending_users %}
+          <div class="p-4 rounded-lg" style="border: 1px solid #F3F4F6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
+                <span class="text-xs font-bold" style="color: #1A3A52">{{ pu.first_name[0] }}{{ pu.last_name[0] }}</span>
+              </div>
+              <div>
+                <p class="text-sm font-bold" style="color: #1A1A1A">{{ pu.first_name }} {{ pu.last_name }}</p>
+                <p class="text-xs" style="color: #6B7280">{{ pu.email }}</p>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <form method="POST" action="{{ url_for('client.team_approve', user_id=pu.id) }}" class="flex-1">
+                <button type="submit" class="w-full rounded-full text-xs font-bold py-2.5" style="background-color: #1A3A52; color: #FFFFFF">Approuver</button>
+              </form>
+              <form method="POST" action="{{ url_for('client.team_reject', user_id=pu.id) }}" class="flex-1">
+                <button type="submit" class="w-full rounded-full text-xs font-bold py-2.5" style="background-color: #DC2626; color: #FFFFFF">Rejeter</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
         </div>
-        <div>
-          <p class="font-medium text-navy">{{ pu.first_name }} {{ pu.last_name }}</p>
-          <p class="text-xs text-navy-300">{{ pu.email }}</p>
-        </div>
-      </div>
-      <div class="flex gap-2">
-        <form method="POST" action="{{ url_for('client.team_approve', user_id=pu.id) }}" class="flex-1">
-          <button type="submit" class="w-full bg-olive text-white text-sm py-2 rounded-lg hover:bg-olive-500 transition-colors">Approuver</button>
-        </form>
-        <form method="POST" action="{{ url_for('client.team_reject', user_id=pu.id) }}" class="flex-1">
-          <button type="submit" class="w-full bg-white border border-coral-red text-coral-red text-sm py-2 rounded-lg hover:bg-coral-red-50 transition-colors">Rejeter</button>
-        </form>
       </div>
     </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
+    {% endif %}
 
-<!-- Services -->
-<div class="mb-8">
-  <h2 class="font-display text-lg font-semibold text-navy mb-4 flex items-center gap-2">
-    <i data-lucide="folders" class="w-5 h-5 text-terracotta"></i>
-    Services
-  </h2>
+    <!-- Services -->
+    <div class="mb-6">
+      <div class="bg-white rounded-lg p-6">
+        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">
+          <i data-lucide="folders" style="width:18px;height:18px;color:#1A3A52"></i>
+          Services
+        </h2>
 
-  {% if services %}
-  <div class="space-y-3 mb-4">
-    {% for s in services %}
-    <div class="bg-white rounded-xl border border-cream-200 p-4">
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="font-medium text-navy">{{ s.name }}</h3>
-        <div class="flex items-center gap-2">
-          <button onclick="document.getElementById('edit-service-{{ s.id }}').classList.toggle('hidden')"
-                  class="text-navy-300 hover:text-terracotta transition-colors">
-            <i data-lucide="pencil" class="w-4 h-4"></i>
-          </button>
-          <form method="POST" action="{{ url_for('client.team_service_delete', service_id=s.id) }}" class="inline">
-            <button type="submit" class="text-navy-300 hover:text-coral-red transition-colors"
-                    onclick="return confirm('Supprimer ce service ?')">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
+        {% if services %}
+        <div class="space-y-3 mb-4">
+          {% for s in services %}
+          <div class="p-4 rounded-lg" style="border: 1px solid #F3F4F6">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-bold" style="color: #1A1A1A">{{ s.name }}</h3>
+              <div class="flex items-center gap-2">
+                <button onclick="document.getElementById('edit-service-{{ s.id }}').classList.toggle('hidden')"
+                        class="hover:opacity-70 transition-opacity" style="color: #6B7280">
+                  <i data-lucide="pencil" style="width:16px;height:16px"></i>
+                </button>
+                <form method="POST" action="{{ url_for('client.team_service_delete', service_id=s.id) }}" class="inline">
+                  <button type="submit" class="hover:opacity-70 transition-opacity" style="color: #DC2626"
+                          onclick="return confirm('Supprimer ce service ?')">
+                    <i data-lucide="trash-2" style="width:16px;height:16px"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+            {% if s.description %}<p class="text-xs mb-1" style="color: #6B7280">{{ s.description }}</p>{% endif %}
+            {% if s.annual_budget %}<p class="text-xs font-bold" style="color: #1A3A52">Budget annuel : {{ "%.2f"|format(s.annual_budget) }} EUR</p>{% endif %}
+
+            <form id="edit-service-{{ s.id }}" method="POST" action="{{ url_for('client.team_service_edit', service_id=s.id) }}" class="hidden mt-3 pt-3 space-y-2" style="border-top: 1px solid #F3F4F6">
+              <input type="text" name="name" value="{{ s.name }}" placeholder="Nom"
+                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              <input type="text" name="description" value="{{ s.description or '' }}" placeholder="Description"
+                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              <input type="number" name="annual_budget" value="{{ s.annual_budget or '' }}" placeholder="Budget annuel" step="0.01"
+                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">Enregistrer</button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="p-4 rounded-lg" style="background-color: #F5F1E8">
+          <h3 class="text-sm font-bold mb-3" style="color: #1A1A1A">Ajouter un service</h3>
+          <form method="POST" action="{{ url_for('client.team_service_create') }}" class="space-y-2">
+            <input type="text" name="name" placeholder="Nom du service" required
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            <input type="text" name="description" placeholder="Description (optionnel)"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            <input type="number" name="annual_budget" placeholder="Budget annuel (optionnel)" step="0.01"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
+              <i data-lucide="plus" style="width:16px;height:16px"></i> Ajouter
             </button>
           </form>
         </div>
       </div>
-      {% if s.description %}<p class="text-sm text-navy-300 mb-1">{{ s.description }}</p>{% endif %}
-      {% if s.annual_budget %}<p class="text-sm text-olive">Budget annuel : {{ "%.2f"|format(s.annual_budget) }} EUR</p>{% endif %}
-
-      <form id="edit-service-{{ s.id }}" method="POST" action="{{ url_for('client.team_service_edit', service_id=s.id) }}" class="hidden mt-3 pt-3 border-t border-cream-100 space-y-2">
-        <input type="text" name="name" value="{{ s.name }}" placeholder="Nom" class="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-        <input type="text" name="description" value="{{ s.description or '' }}" placeholder="Description" class="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-        <input type="number" name="annual_budget" value="{{ s.annual_budget or '' }}" placeholder="Budget annuel" step="0.01" class="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-        <button type="submit" class="bg-terracotta text-white text-sm px-4 py-2 rounded-lg hover:bg-terracotta-600 transition-colors">Enregistrer</button>
-      </form>
     </div>
-    {% endfor %}
-  </div>
-  {% endif %}
 
-  <div class="bg-cream-100 rounded-xl p-4">
-    <h3 class="text-sm font-medium text-navy mb-3">Ajouter un service</h3>
-    <form method="POST" action="{{ url_for('client.team_service_create') }}" class="space-y-2">
-      <input type="text" name="name" placeholder="Nom du service" required class="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-      <input type="text" name="description" placeholder="Description (optionnel)" class="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-      <input type="number" name="annual_budget" placeholder="Budget annuel (optionnel)" step="0.01" class="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-      <button type="submit" class="bg-terracotta text-white text-sm px-4 py-2 rounded-lg hover:bg-terracotta-600 transition-colors flex items-center gap-2">
-        <i data-lucide="plus" class="w-4 h-4"></i> Ajouter
-      </button>
-    </form>
-  </div>
-</div>
+    <!-- Employes -->
+    <div class="mb-6">
+      <div class="bg-white rounded-lg p-6">
+        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">
+          <i data-lucide="users" style="width:18px;height:18px;color:#1A3A52"></i>
+          Employes
+        </h2>
 
-<!-- Employes -->
-<div class="mb-8">
-  <h2 class="font-display text-lg font-semibold text-navy mb-4 flex items-center gap-2">
-    <i data-lucide="users" class="w-5 h-5 text-olive"></i>
-    Employes
-  </h2>
-
-  {% if employees %}
-  <div class="bg-white rounded-xl border border-cream-200 overflow-hidden mb-4">
-    <table class="w-full text-sm">
-      <thead class="bg-cream-100">
-        <tr>
-          <th class="text-left px-4 py-3 font-medium text-navy-400">Nom</th>
-          <th class="text-left px-4 py-3 font-medium text-navy-400">Email</th>
-          <th class="text-left px-4 py-3 font-medium text-navy-400">Poste</th>
-          <th class="text-left px-4 py-3 font-medium text-navy-400">Service</th>
-          <th class="text-left px-4 py-3 font-medium text-navy-400">Invitation</th>
-          <th class="text-right px-4 py-3 font-medium text-navy-400">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-cream-100">
-        {% for e in employees %}
-        <tr class="hover:bg-cream-50">
-          <td class="px-4 py-3 font-medium text-navy">{{ e.first_name }} {{ e.last_name }}</td>
-          <td class="px-4 py-3 text-navy-300">{{ e.email }}</td>
-          <td class="px-4 py-3 text-navy-300">{{ e.position or '—' }}</td>
-          <td class="px-4 py-3">
-            {% if e.service %}
-            <span class="bg-olive-50 text-olive text-xs px-2 py-1 rounded-full">{{ e.service.name }}</span>
-            {% else %}
-            <span class="text-navy-200">—</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3">
-            {% if e.invited_at %}
-            <span class="bg-olive-50 text-olive text-xs px-2 py-1 rounded-full">Invitee le {{ e.invited_at.strftime('%d/%m/%Y') }}</span>
-            {% elif e.user_id %}
-            <span class="bg-terracotta-50 text-terracotta text-xs px-2 py-1 rounded-full">Compte lie</span>
-            {% else %}
-            <form method="POST" action="{{ url_for('client.team_employee_invite', employee_id=e.id) }}" class="inline">
-              <button type="submit" class="text-terracotta text-xs hover:underline">Inviter</button>
-            </form>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 text-right">
-            <div class="flex items-center justify-end gap-2">
+        {% if employees %}
+        <div class="mb-4">
+          {% for e in employees %}
+          <div class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg"
+               style="border-top: 1px solid #F3F4F6">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
+              <span class="text-xs font-bold" style="color: #1A3A52">{{ e.first_name[0] }}{{ e.last_name[0] }}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ e.first_name }} {{ e.last_name }}</p>
+              <div class="flex items-center gap-3 mt-0.5">
+                <span class="text-xs" style="color: #6B7280">{{ e.email }}</span>
+                {% if e.position %}
+                <span class="text-xs" style="color: #6B7280">{{ e.position }}</span>
+                {% endif %}
+                {% if e.service %}
+                <span class="text-xs font-bold" style="color: #1A3A52">{{ e.service.name }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              {% if e.invited_at %}
+              <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F5F1E8">
+                <span class="text-xs font-bold whitespace-nowrap" style="color: #313131">Invitee {{ e.invited_at.strftime('%d/%m/%Y') }}</span>
+              </div>
+              {% elif e.user_id %}
+              <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F0F4F7">
+                <span class="text-xs font-bold whitespace-nowrap" style="color: #1A3A52">Compte lie</span>
+              </div>
+              {% else %}
+              <form method="POST" action="{{ url_for('client.team_employee_invite', employee_id=e.id) }}" class="inline">
+                <button type="submit" class="text-xs font-bold hover:opacity-70 transition-opacity" style="color: #1A3A52">Inviter</button>
+              </form>
+              {% endif %}
               <button onclick="document.getElementById('edit-emp-{{ e.id }}').classList.toggle('hidden')"
-                      class="text-navy-300 hover:text-terracotta transition-colors">
-                <i data-lucide="pencil" class="w-4 h-4"></i>
+                      class="hover:opacity-70 transition-opacity" style="color: #6B7280">
+                <i data-lucide="pencil" style="width:16px;height:16px"></i>
               </button>
               <form method="POST" action="{{ url_for('client.team_employee_delete', employee_id=e.id) }}" class="inline">
-                <button type="submit" class="text-navy-300 hover:text-coral-red transition-colors"
+                <button type="submit" class="hover:opacity-70 transition-opacity" style="color: #DC2626"
                         onclick="return confirm('Supprimer cet employe ?')">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  <i data-lucide="trash-2" style="width:16px;height:16px"></i>
                 </button>
               </form>
             </div>
-          </td>
-        </tr>
-        <tr id="edit-emp-{{ e.id }}" class="hidden bg-cream-50">
-          <td colspan="6" class="px-4 py-3">
+          </div>
+          <div id="edit-emp-{{ e.id }}" class="hidden p-4 rounded-lg mb-2" style="background-color: #F5F1E8">
             <form method="POST" action="{{ url_for('client.team_employee_edit', employee_id=e.id) }}" class="flex flex-wrap gap-2 items-end">
-              <input type="text" name="first_name" value="{{ e.first_name }}" placeholder="Prenom" class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-              <input type="text" name="last_name" value="{{ e.last_name }}" placeholder="Nom" class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-              <input type="email" name="email" value="{{ e.email }}" placeholder="Email" class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-              <input type="text" name="position" value="{{ e.position or '' }}" placeholder="Poste" class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-              <select name="service_id" class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
+              <input type="text" name="first_name" value="{{ e.first_name }}" placeholder="Prenom"
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              <input type="text" name="last_name" value="{{ e.last_name }}" placeholder="Nom"
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              <input type="email" name="email" value="{{ e.email }}" placeholder="Email"
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              <input type="text" name="position" value="{{ e.position or '' }}" placeholder="Poste"
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              <select name="service_id"
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
                 <option value="">Aucun service</option>
                 {% for s in services %}
                 <option value="{{ s.id }}" {% if e.service_id == s.id %}selected{% endif %}>{{ s.name }}</option>
                 {% endfor %}
               </select>
-              <button type="submit" class="bg-terracotta text-white text-sm px-4 py-2 rounded-lg hover:bg-terracotta-600 transition-colors">Enregistrer</button>
+              <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">Enregistrer</button>
             </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
 
-  <div class="bg-cream-100 rounded-xl p-4">
-    <h3 class="text-sm font-medium text-navy mb-3">Ajouter un employe</h3>
-    <form method="POST" action="{{ url_for('client.team_employee_create') }}" class="flex flex-wrap gap-2 items-end">
-      <input type="text" name="first_name" placeholder="Prenom" required class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-      <input type="text" name="last_name" placeholder="Nom" required class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-      <input type="email" name="email" placeholder="Email" required class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-      <input type="text" name="position" placeholder="Poste (optionnel)" class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-      <select name="service_id" class="rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-terracotta">
-        <option value="">Aucun service</option>
-        {% for s in services %}
-        <option value="{{ s.id }}">{{ s.name }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="bg-terracotta text-white text-sm px-4 py-2 rounded-lg hover:bg-terracotta-600 transition-colors flex items-center gap-2">
-        <i data-lucide="plus" class="w-4 h-4"></i> Ajouter
-      </button>
-    </form>
+        <div class="p-4 rounded-lg" style="background-color: #F5F1E8">
+          <h3 class="text-sm font-bold mb-3" style="color: #1A1A1A">Ajouter un employe</h3>
+          <form method="POST" action="{{ url_for('client.team_employee_create') }}" class="flex flex-wrap gap-2 items-end">
+            <input type="text" name="first_name" placeholder="Prenom" required
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            <input type="text" name="last_name" placeholder="Nom" required
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            <input type="email" name="email" placeholder="Email" required
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            <input type="text" name="position" placeholder="Poste (optionnel)"
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            <select name="service_id"
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              <option value="">Aucun service</option>
+              {% for s in services %}
+              <option value="{{ s.id }}">{{ s.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
+              <i data-lucide="plus" style="width:16px;height:16px"></i> Ajouter
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
   </div>
-</div>
+</main>
 {% endblock %}

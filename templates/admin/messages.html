@@ -2,55 +2,58 @@
 {% block title %}Messages — Administration{% endblock %}
 {% block content %}
 <div class="mb-6">
-  <h1 class="font-display text-2xl font-semibold text-navy">Tous les messages</h1>
-  <p class="text-sm text-navy-300 mt-1">Vue globale des conversations de la plateforme</p>
+  <h1 class="font-display font-bold text-2xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Tous les messages</h1>
+  <p class="text-sm mt-1" style="color: #6B7280">Vue globale des conversations de la plateforme</p>
 </div>
 
 {% if threads %}
-<div class="bg-white rounded-xl border border-cream-200 overflow-hidden">
+<div class="bg-white rounded-lg overflow-hidden">
   <table class="w-full text-sm">
-    <thead class="bg-cream-100">
-      <tr>
-        <th class="text-left px-4 py-3 font-medium text-navy-400">Expediteur</th>
-        <th class="text-left px-4 py-3 font-medium text-navy-400">Destinataire</th>
-        <th class="text-left px-4 py-3 font-medium text-navy-400">Dernier message</th>
-        <th class="text-right px-4 py-3 font-medium text-navy-400">Messages</th>
-        <th class="text-right px-4 py-3 font-medium text-navy-400">Date</th>
+    <thead>
+      <tr style="border-bottom: 1px solid #F3F4F6">
+        <th class="text-left px-4 py-3 font-medium text-xs uppercase" style="color: #6B7280">Expediteur</th>
+        <th class="text-left px-4 py-3 font-medium text-xs uppercase" style="color: #6B7280">Destinataire</th>
+        <th class="text-left px-4 py-3 font-medium text-xs uppercase" style="color: #6B7280">Dernier message</th>
+        <th class="text-right px-4 py-3 font-medium text-xs uppercase" style="color: #6B7280">Messages</th>
+        <th class="text-right px-4 py-3 font-medium text-xs uppercase" style="color: #6B7280">Date</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-cream-100">
+    <tbody>
       {% for t in threads %}
-      <tr class="hover:bg-cream-50">
+      <tr class="hover:bg-[#F5F1E8]" style="border-top: 1px solid #F3F4F6">
         <td class="px-4 py-3">
           <div class="flex items-center gap-2">
-            <div class="w-7 h-7 bg-terracotta-100 rounded-full flex items-center justify-center">
-              <i data-lucide="user" class="w-3.5 h-3.5 text-terracotta"></i>
+            <div class="w-7 h-7 rounded-full flex items-center justify-center" style="background-color: #F0F4F7">
+              <i data-lucide="user" style="width:14px;height:14px;color:#1A3A52"></i>
             </div>
-            {{ t.sender_name }}
+            <span class="text-sm font-medium text-black">{{ t.sender_name }}</span>
           </div>
         </td>
         <td class="px-4 py-3">
           <div class="flex items-center gap-2">
-            <div class="w-7 h-7 bg-olive-100 rounded-full flex items-center justify-center">
-              <i data-lucide="user" class="w-3.5 h-3.5 text-olive"></i>
+            <div class="w-7 h-7 rounded-full flex items-center justify-center" style="background-color: #F0F4F7">
+              <i data-lucide="user" style="width:14px;height:14px;color:#1A3A52"></i>
             </div>
-            {{ t.recipient_name }}
+            <span class="text-sm font-medium text-black">{{ t.recipient_name }}</span>
           </div>
         </td>
-        <td class="px-4 py-3 text-navy-300 truncate max-w-xs">{{ t.last_message }}</td>
+        <td class="px-4 py-3 truncate max-w-xs text-sm" style="color: #6B7280">{{ t.last_message }}</td>
         <td class="px-4 py-3 text-right">
-          <span class="bg-cream-200 text-navy-400 text-xs px-2 py-1 rounded-full">{{ t.message_count }}</span>
+          <span class="text-xs font-bold px-2 py-1 rounded-full" style="background-color: #F5F1E8; color: #313131">{{ t.message_count }}</span>
         </td>
-        <td class="px-4 py-3 text-right text-navy-200">{{ t.last_at.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td class="px-4 py-3 text-right text-sm" style="color: #6B7280">{{ t.last_at.strftime('%d/%m/%Y %H:%M') }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% else %}
-<div class="bg-white rounded-xl border border-cream-200 p-12 text-center">
-  <i data-lucide="message-circle" class="w-12 h-12 text-cream-300 mx-auto mb-4"></i>
-  <p class="text-navy-300">Aucune conversation sur la plateforme.</p>
+<div class="bg-white rounded-lg p-12 text-center">
+  <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background-color: #F0F4F7">
+    <i data-lucide="message-circle" style="width:32px;height:32px;color:#1A3A52"></i>
+  </div>
+  <p class="text-sm" style="color: #6B7280">Aucune conversation sur la plateforme.</p>
 </div>
 {% endif %}
+<script>lucide.createIcons();</script>
 {% endblock %}

@@ -5,51 +5,37 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="font-display text-2xl font-semibold text-navy">Mes commandes</h1>
-  <p class="text-navy-300 mt-1">Commandes confirmees et passees</p>
+  <h1 class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Mes commandes</h1>
+  <p class="text-xs mt-1" style="color: #6B7280">Commandes confirmees et passees</p>
 </div>
 
 {% if orders %}
-<div class="bg-white rounded-xl border border-cream-200 shadow-sm overflow-hidden">
-  <table class="w-full">
-    <thead>
-      <tr class="border-b border-cream-200 bg-cream-50">
-        <th class="text-left px-5 py-3 text-xs font-medium text-navy-300 uppercase">Client</th>
-        <th class="text-left px-5 py-3 text-xs font-medium text-navy-300 uppercase">Livraison</th>
-        <th class="text-left px-5 py-3 text-xs font-medium text-navy-300 uppercase">Montant HT</th>
-        <th class="text-left px-5 py-3 text-xs font-medium text-navy-300 uppercase">Statut</th>
-        <th class="text-right px-5 py-3 text-xs font-medium text-navy-300 uppercase"></th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-cream-200">
-      {% for order in orders %}
-      <tr class="hover:bg-cream-50 transition-colors">
-        <td class="px-5 py-4">
-          <p class="text-sm font-medium text-navy">{{ order.quote.quote_request.company.name if order.quote and order.quote.quote_request and order.quote.quote_request.company else '-' }}</p>
-          <p class="text-xs text-navy-300">{{ order.quote.reference if order.quote else '' }}</p>
-        </td>
-        <td class="px-5 py-4">
-          <p class="text-sm text-navy">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</p>
-          <p class="text-xs text-navy-300">{{ order.delivery_address or '' }}</p>
-        </td>
-        <td class="px-5 py-4">
-          <p class="text-sm font-medium text-navy">{{ "%.2f"|format(order.quote.total_amount_ht or 0) }} &euro;</p>
-        </td>
-        <td class="px-5 py-4">
-          {{ status_badge(order.status) }}
-        </td>
-        <td class="px-5 py-4 text-right">
-          <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}" class="text-sm text-terracotta hover:underline">Detail</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="bg-white rounded-lg p-6">
+  <div>
+    {% for order in orders %}
+    <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg transition-colors hover:bg-[#F5F1E8]" style="border-top: 1px solid #F3F4F6">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
+        <i data-lucide="shopping-bag" style="width:16px;height:16px;color:#1A3A52"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ order.quote.quote_request.company.name if order.quote and order.quote.quote_request and order.quote.quote_request.company else '-' }}</p>
+        <div class="flex items-center gap-3 mt-0.5">
+          <span class="text-xs" style="color: #6B7280">{{ order.quote.reference if order.quote else '' }}</span>
+          <span class="text-xs" style="color: #6B7280">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
+          <span class="text-xs" style="color: #6B7280">{{ order.delivery_address or '' }}</span>
+        </div>
+      </div>
+      <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">{{ "%.2f"|format(order.quote.total_amount_ht or 0) }} &euro; HT</span>
+      {{ status_badge(order.status) }}
+      <i data-lucide="chevron-right" style="width:16px;height:16px;color:#D1D5DB"></i>
+    </a>
+    {% endfor %}
+  </div>
 </div>
 {% else %}
-<div class="bg-white rounded-xl border border-cream-200 p-12 text-center shadow-sm">
-  <i data-lucide="shopping-bag" class="w-12 h-12 text-cream-300 mx-auto mb-4"></i>
-  <p class="text-navy-300">Aucune commande pour le moment.</p>
+<div class="bg-white rounded-lg p-12 text-center">
+  <i data-lucide="shopping-bag" style="width:48px;height:48px;color:#D1D5DB" class="mx-auto mb-4"></i>
+  <p class="text-sm" style="color: #6B7280">Aucune commande pour le moment.</p>
 </div>
 {% endif %}
 

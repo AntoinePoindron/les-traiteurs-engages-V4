@@ -1,155 +1,174 @@
 {% extends "base.html" %}
 
-{% block title %}Inscription - Les Traiteurs Engages{% endblock %}
+{% block title %}Inscription - Les Traiteurs Engag&#233;s{% endblock %}
 
 {% block public_content %}
-<div class="min-h-screen bg-cream flex items-center justify-center px-4 py-12">
-  <div class="w-full max-w-2xl">
+<div class="min-h-screen flex items-center justify-center p-4" style="background-color: #FAF7F2;">
+  <div class="w-full" style="max-width: 28rem;">
     <!-- Logo -->
     <div class="text-center mb-8">
-      <div class="w-14 h-14 bg-terracotta rounded-xl flex items-center justify-center mx-auto mb-4">
-        <i data-lucide="chef-hat" class="w-8 h-8 text-white"></i>
-      </div>
-      <h1 class="font-display text-2xl font-semibold text-navy">Creer votre compte</h1>
-      <p class="text-sm text-navy-300 mt-1">Rejoignez Les Traiteurs Engages</p>
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-12 mx-auto mb-6">
     </div>
 
     <!-- Flash messages -->
     {% include "components/flash_messages.html" %}
 
-    <!-- Role selection -->
-    <div class="bg-white rounded-2xl shadow-sm border border-cream-200 p-8">
-      <p class="text-sm font-medium text-navy mb-4">Vous etes :</p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8" id="role-cards">
-        <button type="button" onclick="selectRole('client')"
-          id="role-card-client"
-          class="role-card flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-cream-200 hover:border-terracotta transition-colors cursor-pointer">
-          <div class="w-12 h-12 bg-navy-50 rounded-lg flex items-center justify-center">
-            <i data-lucide="building-2" class="w-6 h-6 text-navy"></i>
-          </div>
-          <div class="text-center">
-            <p class="font-medium text-navy">Une entreprise</p>
-            <p class="text-xs text-navy-300 mt-1">Je cherche un traiteur pour mes evenements</p>
-          </div>
+    <!-- Signup card -->
+    <div class="bg-white rounded-2xl p-8 shadow-sm" style="border: 1px solid #E5E7EB;">
+      <h1 class="font-display text-2xl font-semibold text-dark mb-1">Cr&#233;er votre compte</h1>
+      <p class="text-sm mb-6" style="color: #9CA3AF;">Rejoignez Les Traiteurs Engag&#233;s</p>
+
+      {% if error %}
+      <div class="text-sm px-4 py-3 rounded-xl mb-4" style="color: #FF5455; background: #FFE8E8;">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <!-- Role toggle tabs -->
+      <div class="flex rounded-xl p-1 mb-6" style="background: #F5F1E8;">
+        <button type="button" id="tab-client" onclick="selectRole('client')"
+          class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors">
+          <i data-lucide="building-2" class="w-4 h-4"></i>
+          Entreprise
         </button>
-        <button type="button" onclick="selectRole('caterer')"
-          id="role-card-caterer"
-          class="role-card flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-cream-200 hover:border-terracotta transition-colors cursor-pointer">
-          <div class="w-12 h-12 bg-olive-50 rounded-lg flex items-center justify-center">
-            <i data-lucide="chef-hat" class="w-6 h-6 text-olive"></i>
-          </div>
-          <div class="text-center">
-            <p class="font-medium text-navy">Un traiteur</p>
-            <p class="text-xs text-navy-300 mt-1">ESAT, EA, EI ou ACI — je propose mes services</p>
-          </div>
+        <button type="button" id="tab-caterer" onclick="selectRole('caterer')"
+          class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors">
+          <i data-lucide="chef-hat" class="w-4 h-4"></i>
+          Traiteur
         </button>
       </div>
 
       <!-- Signup form -->
-      <form method="POST" action="{{ url_for('auth.signup') }}" class="space-y-5" id="signup-form" style="display:none;">
+      <form method="POST" action="{{ url_for('auth.signup') }}" class="space-y-4" id="signup-form" style="display:none;">
         <input type="hidden" name="role" id="role-input" value="">
 
-        <!-- Common fields -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <label for="first_name" class="block text-sm font-medium text-navy mb-1.5">Prenom</label>
+            <label for="first_name" class="block text-sm font-medium text-dark mb-1.5">Pr&#233;nom</label>
             <input type="text" id="first_name" name="first_name" required
-              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+              class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+              style="border: 1px solid #E5E7EB;"
+              onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+              onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';">
           </div>
           <div>
-            <label for="last_name" class="block text-sm font-medium text-navy mb-1.5">Nom</label>
+            <label for="last_name" class="block text-sm font-medium text-dark mb-1.5">Nom</label>
             <input type="text" id="last_name" name="last_name" required
-              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+              class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+              style="border: 1px solid #E5E7EB;"
+              onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+              onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';">
           </div>
         </div>
         <div>
-          <label for="email" class="block text-sm font-medium text-navy mb-1.5">Adresse email</label>
+          <label for="email" class="block text-sm font-medium text-dark mb-1.5">Adresse email</label>
           <input type="email" id="email" name="email" required autocomplete="email"
-            class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-            focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors"
+            class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+            style="border: 1px solid #E5E7EB;"
+            onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+            onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';"
             placeholder="vous@entreprise.fr">
         </div>
         <div>
-          <label for="password" class="block text-sm font-medium text-navy mb-1.5">Mot de passe</label>
-          <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password"
-            class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-            focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors"
-            placeholder="Minimum 8 caracteres">
+          <label for="password" class="block text-sm font-medium text-dark mb-1.5">Mot de passe</label>
+          <div class="relative">
+            <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password"
+              class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors pr-10"
+              style="border: 1px solid #E5E7EB;"
+              onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+              onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';"
+              placeholder="Minimum 8 caract&#232;res">
+            <button type="button" onclick="togglePassword('password', this)" class="absolute right-3 top-1/2 -translate-y-1/2" style="color: #9CA3AF;">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
         </div>
         <div>
-          <label for="siret" class="block text-sm font-medium text-navy mb-1.5">SIRET</label>
+          <label for="siret" class="block text-sm font-medium text-dark mb-1.5">SIRET</label>
           <input type="text" id="siret" name="siret" required pattern="\d{14}" maxlength="14"
-            class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-            focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors"
+            class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+            style="border: 1px solid #E5E7EB;"
+            onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+            onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';"
             placeholder="14 chiffres">
         </div>
 
         <!-- Client-specific fields -->
         <div id="client-fields" style="display:none;">
-          <div>
-            <label for="company_name" class="block text-sm font-medium text-navy mb-1.5">Nom de l'entreprise</label>
-            <input type="text" id="company_name" name="company_name"
-              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
-          </div>
+          <label for="company_name" class="block text-sm font-medium text-dark mb-1.5">Nom de l'entreprise</label>
+          <input type="text" id="company_name" name="company_name"
+            class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+            style="border: 1px solid #E5E7EB;"
+            onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+            onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';">
         </div>
 
         <!-- Caterer-specific fields -->
-        <div id="caterer-fields" class="space-y-5" style="display:none;">
+        <div id="caterer-fields" class="space-y-4" style="display:none;">
           <div>
-            <label for="structure_type" class="block text-sm font-medium text-navy mb-1.5">Type de structure</label>
+            <label for="structure_type" class="block text-sm font-medium text-dark mb-1.5">Type de structure</label>
             <select id="structure_type" name="structure_type"
-              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
-              <option value="">Selectionnez</option>
-              <option value="ESAT">ESAT - Etablissement et service d'aide par le travail</option>
-              <option value="EA">EA - Entreprise adaptee</option>
+              class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+              style="border: 1px solid #E5E7EB;"
+              onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+              onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';">
+              <option value="">S&#233;lectionnez</option>
+              <option value="ESAT">ESAT - &#201;tablissement et service d'aide par le travail</option>
+              <option value="EA">EA - Entreprise adapt&#233;e</option>
               <option value="EI">EI - Entreprise d'insertion</option>
               <option value="ACI">ACI - Atelier et chantier d'insertion</option>
             </select>
           </div>
           <div>
-            <label for="caterer_name" class="block text-sm font-medium text-navy mb-1.5">Nom du traiteur</label>
+            <label for="caterer_name" class="block text-sm font-medium text-dark mb-1.5">Nom du traiteur</label>
             <input type="text" id="caterer_name" name="caterer_name"
-              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+              class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+              style="border: 1px solid #E5E7EB;"
+              onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+              onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';">
           </div>
           <div>
-            <label for="address" class="block text-sm font-medium text-navy mb-1.5">Adresse</label>
+            <label for="address" class="block text-sm font-medium text-dark mb-1.5">Adresse</label>
             <input type="text" id="address" name="address"
-              class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-              focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+              class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+              style="border: 1px solid #E5E7EB;"
+              onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+              onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';">
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-3">
             <div>
-              <label for="city" class="block text-sm font-medium text-navy mb-1.5">Ville</label>
+              <label for="city" class="block text-sm font-medium text-dark mb-1.5">Ville</label>
               <input type="text" id="city" name="city"
-                class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-                focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+                class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+                style="border: 1px solid #E5E7EB;"
+                onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+                onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';">
             </div>
             <div>
-              <label for="zip_code" class="block text-sm font-medium text-navy mb-1.5">Code postal</label>
+              <label for="zip_code" class="block text-sm font-medium text-dark mb-1.5">Code postal</label>
               <input type="text" id="zip_code" name="zip_code" pattern="\d{5}" maxlength="5"
-                class="w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-cream-50 text-navy
-                focus:outline-none focus:ring-2 focus:ring-terracotta focus:border-terracotta transition-colors">
+                class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
+                style="border: 1px solid #E5E7EB;"
+                onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
+                onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';">
             </div>
           </div>
         </div>
 
         <button type="submit"
-          class="w-full py-2.5 px-4 bg-terracotta text-white font-medium rounded-lg
-          hover:bg-terracotta-500 active:bg-terracotta-600 transition-colors shadow-sm">
-          Creer mon compte
+          class="w-full py-3 rounded-xl font-medium text-white transition-colors"
+          style="background-color: #C4714A;"
+          onmouseenter="this.style.backgroundColor='#8B4A3D';"
+          onmouseleave="this.style.backgroundColor='#C4714A';">
+          Cr&#233;er mon compte
         </button>
       </form>
     </div>
 
     <!-- Login link -->
-    <p class="text-center text-sm text-navy-300 mt-6">
-      Deja un compte ?
-      <a href="{{ url_for('auth.login') }}" class="text-terracotta font-medium hover:text-terracotta-500 transition-colors">
+    <p class="text-center text-sm mt-6" style="color: #9CA3AF;">
+      D&#233;j&#224; un compte ?
+      <a href="{{ url_for('auth.login') }}" class="font-medium transition-colors" style="color: #C4714A;">
         Se connecter
       </a>
     </p>
@@ -165,18 +184,46 @@
     document.getElementById('client-fields').style.display = role === 'client' ? 'block' : 'none';
     document.getElementById('caterer-fields').style.display = role === 'caterer' ? 'block' : 'none';
 
-    document.querySelectorAll('.role-card').forEach(function(card) {
-      card.classList.remove('border-terracotta', 'bg-terracotta/5');
-      card.classList.add('border-cream-200');
-    });
-    var selected = document.getElementById('role-card-' + role);
-    selected.classList.remove('border-cream-200');
-    selected.classList.add('border-terracotta', 'bg-terracotta/5');
+    var tabClient = document.getElementById('tab-client');
+    var tabCaterer = document.getElementById('tab-caterer');
+
+    if (role === 'client') {
+      tabClient.style.backgroundColor = 'white';
+      tabClient.style.color = '#1A1A1A';
+      tabClient.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+      tabCaterer.style.backgroundColor = 'transparent';
+      tabCaterer.style.color = '#6B7280';
+      tabCaterer.style.boxShadow = 'none';
+    } else {
+      tabCaterer.style.backgroundColor = 'white';
+      tabCaterer.style.color = '#1A1A1A';
+      tabCaterer.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+      tabClient.style.backgroundColor = 'transparent';
+      tabClient.style.color = '#6B7280';
+      tabClient.style.boxShadow = 'none';
+    }
 
     var clientInputs = document.querySelectorAll('#client-fields input');
     var catererInputs = document.querySelectorAll('#caterer-fields input, #caterer-fields select');
     clientInputs.forEach(function(el) { el.required = (role === 'client'); });
     catererInputs.forEach(function(el) { el.required = (role === 'caterer'); });
   }
+
+  function togglePassword(inputId, btn) {
+    var input = document.getElementById(inputId);
+    var icon = btn.querySelector('[data-lucide]');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.setAttribute('data-lucide', 'eye-off');
+    } else {
+      input.type = 'password';
+      icon.setAttribute('data-lucide', 'eye');
+    }
+    lucide.createIcons();
+  }
+
+  // Initialize tabs to neutral state
+  document.getElementById('tab-client').style.color = '#6B7280';
+  document.getElementById('tab-caterer').style.color = '#6B7280';
 </script>
 {% endblock %}
