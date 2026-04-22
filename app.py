@@ -2,7 +2,7 @@ from flask import Flask, g, jsonify, redirect, render_template, request, session
 from sqlalchemy import func, select, text
 
 import config
-from database import ScopedSession, get_session
+from database import ScopedSession, get_db
 from models import Caterer, Company, Order, OrderStatus, User
 
 
@@ -39,10 +39,10 @@ def create_app():
             return
         user_id = session.get("user_id")
         if user_id:
-            with get_session() as db:
-                g.current_user = db.execute(
-                    select(User).where(User.id == user_id)
-                ).scalar_one_or_none()
+            db = get_db()
+            g.current_user = db.execute(
+                select(User).where(User.id == user_id)
+            ).scalar_one_or_none()
 
     @app.teardown_appcontext
     def remove_session(exc=None):
@@ -51,8 +51,8 @@ def create_app():
     @app.route("/health")
     def health():
         try:
-            with get_session() as db:
-                db.execute(text("SELECT 1"))
+            db = get_db()
+            db.execute(text("SELECT 1"))
             return jsonify({"status": "ok", "database": "connected"})
         except Exception:
             return jsonify({"status": "degraded", "database": "disconnected"}), 503
@@ -69,14 +69,14 @@ def create_app():
             }
             endpoint = role_dashboards.get(user.role, "client.dashboard")
             return redirect(url_for(endpoint))
-        with get_session() as db:
-            caterer_count = db.scalar(
-                select(func.count(Caterer.id)).where(Caterer.is_validated.is_(True))
-            ) or 0
-            company_count = db.scalar(select(func.count(Company.id))) or 0
-            order_count = db.scalar(
-                select(func.count(Order.id)).where(Order.status == OrderStatus.paid)
-            ) or 0
+        db = get_db()
+        caterer_count = db.scalar(
+            select(func.count(Caterer.id)).where(Caterer.is_validated.is_(True))
+        ) or 0
+        company_count = db.scalar(select(func.count(Company.id))) or 0
+        order_count = db.scalar(
+            select(func.count(Order.id)).where(Order.status == OrderStatus.paid)
+        ) or 0
         return render_template(
             "landing.html",
             caterer_count=caterer_count,

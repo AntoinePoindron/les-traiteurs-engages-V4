@@ -6,7 +6,7 @@ from sqlalchemy import or_, select
 
 import config
 from blueprints.middleware import login_required
-from database import get_session
+from database import get_db
 from models import Caterer, Message, Notification, Order, OrderStatus, Payment, PaymentStatus, User
 from services.notifications import create_notification, get_unread_count, mark_as_read
 from services.stripe_service import verify_webhook_signature
@@ -32,35 +32,38 @@ def stripe_webhook():
 
     if event_type == "invoice.paid":
         stripe_invoice_id = data_object.get("id")
-        with get_session() as db:
-            payment = db.scalar(
-                select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
-            )
-            if payment:
-                payment.status = PaymentStatus.succeeded
-                payment.stripe_charge_id = data_object.get("charge")
-                order = db.scalar(select(Order).where(Order.id == payment.order_id))
-                if order:
-                    order.status = OrderStatus.paid
+        db = get_db()
+        payment = db.scalar(
+            select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
+        )
+        if payment:
+            payment.status = PaymentStatus.succeeded
+            payment.stripe_charge_id = data_object.get("charge")
+            order = db.scalar(select(Order).where(Order.id == payment.order_id))
+            if order:
+                order.status = OrderStatus.paid
+        db.commit()
 
     elif event_type == "invoice.payment_failed":
         stripe_invoice_id = data_object.get("id")
-        with get_session() as db:
-            payment = db.scalar(
-                select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
-            )
-            if payment:
-                payment.status = PaymentStatus.failed
+        db = get_db()
+        payment = db.scalar(
+            select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
+        )
+        if payment:
+            payment.status = PaymentStatus.failed
+        db.commit()
 
     elif event_type == "account.updated":
         account_id = data_object.get("id")
-        with get_session() as db:
-            caterer = db.scalar(
-                select(Caterer).where(Caterer.stripe_account_id == account_id)
-            )
-            if caterer:
-                caterer.stripe_charges_enabled = data_object.get("charges_enabled", False)
-                caterer.stripe_payouts_enabled = data_object.get("payouts_enabled", False)
+        db = get_db()
+        caterer = db.scalar(
+            select(Caterer).where(Caterer.stripe_account_id == account_id)
+        )
+        if caterer:
+            caterer.stripe_charges_enabled = data_object.get("charges_enabled", False)
+            caterer.stripe_payouts_enabled = data_object.get("payouts_enabled", False)
+        db.commit()
 
     return jsonify({"status": "ok"}), 200
 
@@ -69,38 +72,39 @@ def stripe_webhook():
 @login_required
 def get_messages(thread_id):
     user = g.current_user
-    with get_session() as db:
-        is_admin = user.role == "super_admin"
-        stmt = (
-            select(Message)
-            .where(Message.thread_id == thread_id)
-            .order_by(Message.created_at.asc())
+    db = get_db()
+    is_admin = user.role == "super_admin"
+    stmt = (
+        select(Message)
+        .where(Message.thread_id == thread_id)
+        .order_by(Message.created_at.asc())
+    )
+    if not is_admin:
+        stmt = stmt.where(
+            or_(Message.sender_id == user.id, Message.recipient_id == user.id)
         )
-        if not is_admin:
-            stmt = stmt.where(
-                or_(Message.sender_id == user.id, Message.recipient_id == user.id)
-            )
-        messages = db.scalars(stmt).all()
+    messages = db.scalars(stmt).all()
 
-        db.execute(
-            Message.__table__.update()
-            .where(Message.thread_id == thread_id, Message.recipient_id == user.id, Message.is_read.is_(False))
-            .values(is_read=True)
-        )
+    db.execute(
+        Message.__table__.update()
+        .where(Message.thread_id == thread_id, Message.recipient_id == user.id, Message.is_read.is_(False))
+        .values(is_read=True)
+    )
+    db.commit()
 
-        result = []
-        for msg in messages:
-            sender = db.get(User, msg.sender_id)
-            result.append({
-                "id": str(msg.id),
-                "thread_id": str(msg.thread_id),
-                "sender_id": str(msg.sender_id),
-                "recipient_id": str(msg.recipient_id),
-                "sender_name": f"{sender.first_name} {sender.last_name}" if sender else "Inconnu",
-                "body": msg.body,
-                "is_read": msg.is_read,
-                "created_at": msg.created_at.isoformat(),
-            })
+    result = []
+    for msg in messages:
+        sender = db.get(User, msg.sender_id)
+        result.append({
+            "id": str(msg.id),
+            "thread_id": str(msg.thread_id),
+            "sender_id": str(msg.sender_id),
+            "recipient_id": str(msg.recipient_id),
+            "sender_name": f"{sender.first_name} {sender.last_name}" if sender else "Inconnu",
+            "body": msg.body,
+            "is_read": msg.is_read,
+            "created_at": msg.created_at.isoformat(),
+        })
     return jsonify({"messages": result})
 
 
@@ -120,27 +124,28 @@ def send_message():
     pair = sorted([str(user.id), str(recipient_id)])
     thread_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{pair[0]}:{pair[1]}")
 
-    with get_session() as db:
-        msg = Message(
-            thread_id=thread_id,
-            sender_id=user.id,
-            recipient_id=recipient_id,
-            order_id=order_id,
-            quote_request_id=quote_request_id,
-            body=body,
-        )
-        db.add(msg)
-        db.flush()
+    db = get_db()
+    msg = Message(
+        thread_id=thread_id,
+        sender_id=user.id,
+        recipient_id=recipient_id,
+        order_id=order_id,
+        quote_request_id=quote_request_id,
+        body=body,
+    )
+    db.add(msg)
+    db.flush()
 
-        create_notification(
-            db,
-            user_id=recipient_id,
-            type="new_message",
-            title="Nouveau message",
-            body=f"{user.first_name} {user.last_name} vous a envoye un message.",
-            related_entity_type="message",
-            related_entity_id=msg.id,
-        )
+    create_notification(
+        db,
+        user_id=recipient_id,
+        type="new_message",
+        title="Nouveau message",
+        body=f"{user.first_name} {user.last_name} vous a envoye un message.",
+        related_entity_type="message",
+        related_entity_id=msg.id,
+    )
+    db.commit()
 
     return jsonify({"status": "ok", "thread_id": str(thread_id)}), 201
 
@@ -149,21 +154,21 @@ def send_message():
 @login_required
 def get_notifications():
     user = g.current_user
-    with get_session() as db:
-        count = get_unread_count(db, user.id)
-        notifications = db.scalars(
-            select(Notification)
-            .where(Notification.user_id == user.id, Notification.is_read.is_(False))
-            .order_by(Notification.created_at.desc())
-            .limit(20)
-        ).all()
-        result = [{
-            "id": str(n.id),
-            "type": n.type,
-            "title": n.title,
-            "body": n.body,
-            "created_at": n.created_at.isoformat(),
-        } for n in notifications]
+    db = get_db()
+    count = get_unread_count(db, user.id)
+    notifications = db.scalars(
+        select(Notification)
+        .where(Notification.user_id == user.id, Notification.is_read.is_(False))
+        .order_by(Notification.created_at.desc())
+        .limit(20)
+    ).all()
+    result = [{
+        "id": str(n.id),
+        "type": n.type,
+        "title": n.title,
+        "body": n.body,
+        "created_at": n.created_at.isoformat(),
+    } for n in notifications]
     return jsonify({"unread_count": count, "notifications": result})
 
 
@@ -171,9 +176,10 @@ def get_notifications():
 @login_required
 def notification_read(notification_id):
     user = g.current_user
-    with get_session() as db:
-        notification = db.get(Notification, notification_id)
-        if not notification or notification.user_id != user.id:
-            return jsonify({"error": "Non trouve."}), 404
-        mark_as_read(db, notification_id)
+    db = get_db()
+    notification = db.get(Notification, notification_id)
+    if not notification or notification.user_id != user.id:
+        return jsonify({"error": "Non trouve."}), 404
+    mark_as_read(db, notification_id)
+    db.commit()
     return jsonify({"status": "ok"})

@@ -12,7 +12,7 @@ def create_default_admin():
             print(f"Super admin already exists: {existing.email}")
             return
 
-        password_hash = bcrypt.hashpw(b"admin", bcrypt.gensalt()).decode()
+        password_hash = bcrypt.hashpw(b"password123", bcrypt.gensalt()).decode()
         admin = User(
             email="admin@traiteurs-engages.fr",
             password_hash=password_hash,

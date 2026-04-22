@@ -7,7 +7,6 @@ import time
 import httpx
 
 import config
-from database import get_session
 from models import (
     Caterer,
     CommissionInvoice,

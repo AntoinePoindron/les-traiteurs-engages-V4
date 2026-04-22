@@ -6,7 +6,7 @@ from flask import Blueprint, abort, flash, g, redirect, render_template, request
 from sqlalchemy import func, or_, select
 
 from blueprints.middleware import login_required, role_required
-from database import get_session
+from database import get_db
 from models import (
     Message,
     Order,
@@ -39,28 +39,28 @@ caterer_bp = Blueprint("caterer", __name__, url_prefix="/caterer")
 @role_required("caterer")
 def dashboard():
     caterer = g.current_user.caterer
-    with get_session() as db:
-        pending_count = db.scalar(
-            select(func.count(QuoteRequestCaterer.id))
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-            .where(QuoteRequestCaterer.status == QRCStatus.selected)
-        )
-        upcoming_deliveries = db.scalars(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Order.status == OrderStatus.confirmed)
-            .where(Order.delivery_date >= date.today())
-            .order_by(Order.delivery_date)
-            .limit(5)
-        ).all()
-        total_revenue = db.scalar(
-            select(func.sum(Payment.amount_to_caterer_cents))
-            .join(Order, Payment.order_id == Order.id)
-            .join(Quote, Order.quote_id == Quote.id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Payment.status == PaymentStatus.succeeded)
-        ) or 0
+    db = get_db()
+    pending_count = db.scalar(
+        select(func.count(QuoteRequestCaterer.id))
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+        .where(QuoteRequestCaterer.status == QRCStatus.selected)
+    )
+    upcoming_deliveries = db.scalars(
+        select(Order)
+        .join(Quote, Order.quote_id == Quote.id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(Order.status == OrderStatus.confirmed)
+        .where(Order.delivery_date >= date.today())
+        .order_by(Order.delivery_date)
+        .limit(5)
+    ).all()
+    total_revenue = db.scalar(
+        select(func.sum(Payment.amount_to_caterer_cents))
+        .join(Order, Payment.order_id == Order.id)
+        .join(Quote, Order.quote_id == Quote.id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(Payment.status == PaymentStatus.succeeded)
+    ) or 0
     return render_template(
         "caterer/dashboard.html",
         user=g.current_user,
@@ -82,37 +82,38 @@ def profile():
 @role_required("caterer")
 def profile_save():
     caterer = g.current_user.caterer
-    with get_session() as db:
-        db.add(caterer)
-        caterer.name = request.form.get("name", caterer.name)
-        caterer.description = request.form.get("description", caterer.description)
-        caterer.address = request.form.get("address", caterer.address)
-        caterer.city = request.form.get("city", caterer.city)
-        caterer.zip_code = request.form.get("zip_code", caterer.zip_code)
-        caterer.capacity_min = int(request.form["capacity_min"]) if request.form.get("capacity_min") else caterer.capacity_min
-        caterer.capacity_max = int(request.form["capacity_max"]) if request.form.get("capacity_max") else caterer.capacity_max
-        caterer.delivery_radius_km = int(request.form["delivery_radius_km"]) if request.form.get("delivery_radius_km") else caterer.delivery_radius_km
-        caterer.dietary_vegetarian = "dietary_vegetarian" in request.form
-        caterer.dietary_vegan = "dietary_vegan" in request.form
-        caterer.dietary_halal = "dietary_halal" in request.form
-        caterer.dietary_casher = "dietary_casher" in request.form
-        caterer.dietary_gluten_free = "dietary_gluten_free" in request.form
-        caterer.dietary_lactose_free = "dietary_lactose_free" in request.form
-        photos = list(caterer.photos or [])
-        for file in request.files.getlist("photos"):
-            url = save_upload(file, subfolder="caterers")
-            if url:
-                photos.append(url)
-        caterer.photos = photos
+    db = get_db()
+    db.add(caterer)
+    caterer.name = request.form.get("name", caterer.name)
+    caterer.description = request.form.get("description", caterer.description)
+    caterer.address = request.form.get("address", caterer.address)
+    caterer.city = request.form.get("city", caterer.city)
+    caterer.zip_code = request.form.get("zip_code", caterer.zip_code)
+    caterer.capacity_min = int(request.form["capacity_min"]) if request.form.get("capacity_min") else caterer.capacity_min
+    caterer.capacity_max = int(request.form["capacity_max"]) if request.form.get("capacity_max") else caterer.capacity_max
+    caterer.delivery_radius_km = int(request.form["delivery_radius_km"]) if request.form.get("delivery_radius_km") else caterer.delivery_radius_km
+    caterer.dietary_vegetarian = "dietary_vegetarian" in request.form
+    caterer.dietary_vegan = "dietary_vegan" in request.form
+    caterer.dietary_halal = "dietary_halal" in request.form
+    caterer.dietary_casher = "dietary_casher" in request.form
+    caterer.dietary_gluten_free = "dietary_gluten_free" in request.form
+    caterer.dietary_lactose_free = "dietary_lactose_free" in request.form
+    photos = list(caterer.photos or [])
+    for file in request.files.getlist("photos"):
+        url = save_upload(file, subfolder="caterers")
+        if url:
+            photos.append(url)
+    caterer.photos = photos
 
-        specialties_raw = request.form.get("specialties", "")
-        caterer.specialties = [s.strip() for s in specialties_raw.split(",") if s.strip()] if specialties_raw else caterer.specialties
-        service_config_raw = request.form.get("service_config", "")
-        if service_config_raw:
-            try:
-                caterer.service_config = json.loads(service_config_raw)
-            except json.JSONDecodeError:
-                pass
+    specialties_raw = request.form.get("specialties", "")
+    caterer.specialties = [s.strip() for s in specialties_raw.split(",") if s.strip()] if specialties_raw else caterer.specialties
+    service_config_raw = request.form.get("service_config", "")
+    if service_config_raw:
+        try:
+            caterer.service_config = json.loads(service_config_raw)
+        except json.JSONDecodeError:
+            pass
+    db.commit()
     flash("Profil mis a jour.", "success")
     return redirect(url_for("caterer.profile"))
 
@@ -123,17 +124,17 @@ def profile_save():
 def requests_list():
     caterer = g.current_user.caterer
     status_filter = request.args.get("status")
-    with get_session() as db:
-        stmt = (
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
-        if status_filter:
-            stmt = stmt.where(QuoteRequestCaterer.status == status_filter)
-        qrcs = db.scalars(stmt.order_by(QuoteRequestCaterer.id.desc())).all()
-        for qrc in qrcs:
-            _ = qrc.quote_request
-            _ = qrc.quote_request.company
+    db = get_db()
+    stmt = (
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+    )
+    if status_filter:
+        stmt = stmt.where(QuoteRequestCaterer.status == status_filter)
+    qrcs = db.scalars(stmt.order_by(QuoteRequestCaterer.id.desc())).all()
+    for qrc in qrcs:
+        _ = qrc.quote_request
+        _ = qrc.quote_request.company
     return render_template(
         "caterer/requests/list.html",
         user=g.current_user,
@@ -147,21 +148,21 @@ def requests_list():
 @role_required("caterer")
 def request_detail(qr_id):
     caterer = g.current_user.caterer
-    with get_session() as db:
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
-        if not qrc:
-            abort(404)
-        qr = qrc.quote_request
-        _ = qr.company
-        existing_quote = db.scalar(
-            select(Quote)
-            .where(Quote.quote_request_id == qr_id)
-            .where(Quote.caterer_id == caterer.id)
-        )
+    db = get_db()
+    qrc = db.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+    )
+    if not qrc:
+        abort(404)
+    qr = qrc.quote_request
+    _ = qr.company
+    existing_quote = db.scalar(
+        select(Quote)
+        .where(Quote.quote_request_id == qr_id)
+        .where(Quote.caterer_id == caterer.id)
+    )
     return render_template(
         "caterer/requests/detail.html",
         user=g.current_user,
@@ -176,16 +177,16 @@ def request_detail(qr_id):
 @role_required("caterer")
 def quote_new(qr_id):
     caterer = g.current_user.caterer
-    with get_session() as db:
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
-        if not qrc:
-            abort(404)
-        qr = qrc.quote_request
-        _ = qr.company
+    db = get_db()
+    qrc = db.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+    )
+    if not qrc:
+        abort(404)
+    qr = qrc.quote_request
+    _ = qr.company
     return render_template(
         "caterer/quotes/editor.html",
         user=g.current_user,
@@ -200,32 +201,33 @@ def quote_new(qr_id):
 @role_required("caterer")
 def quote_create(qr_id):
     caterer = g.current_user.caterer
-    with get_session() as db:
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
-        if not qrc:
-            abort(404)
-        qr = qrc.quote_request
-        details = json.loads(request.form.get("details", "[]"))
-        totals = calculate_quote_totals(details, qr.guest_count)
-        reference = generate_quote_reference(db, caterer)
-        valid_until_str = request.form.get("valid_until", "")
-        quote = Quote(
-            quote_request_id=qr_id,
-            caterer_id=caterer.id,
-            reference=reference,
-            details={"lines": details, "totals": totals},
-            total_amount_ht=totals["total_ht"],
-            amount_per_person=totals["amount_per_person"],
-            valorisable_agefiph=totals["valorisable_agefiph"],
-            notes=request.form.get("notes", ""),
-            valid_until=date.fromisoformat(valid_until_str) if valid_until_str else None,
-            status=QuoteStatus.draft,
-        )
-        db.add(quote)
+    db = get_db()
+    qrc = db.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+    )
+    if not qrc:
+        abort(404)
+    qr = qrc.quote_request
+    details = json.loads(request.form.get("details", "[]"))
+    totals = calculate_quote_totals(details, qr.guest_count)
+    reference = generate_quote_reference(db, caterer)
+    valid_until_str = request.form.get("valid_until", "")
+    quote = Quote(
+        quote_request_id=qr_id,
+        caterer_id=caterer.id,
+        reference=reference,
+        details={"lines": details, "totals": totals},
+        total_amount_ht=totals["total_ht"],
+        amount_per_person=totals["amount_per_person"],
+        valorisable_agefiph=totals["valorisable_agefiph"],
+        notes=request.form.get("notes", ""),
+        valid_until=date.fromisoformat(valid_until_str) if valid_until_str else None,
+        status=QuoteStatus.draft,
+    )
+    db.add(quote)
+    db.commit()
     flash("Devis enregistre en brouillon.", "success")
     return redirect(url_for("caterer.request_detail", qr_id=qr_id))
 
@@ -235,22 +237,22 @@ def quote_create(qr_id):
 @role_required("caterer")
 def quote_edit(qr_id, q_id):
     caterer = g.current_user.caterer
-    with get_session() as db:
-        quote = db.scalar(
-            select(Quote)
-            .where(Quote.id == q_id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Quote.quote_request_id == qr_id)
-        )
-        if not quote:
-            abort(404)
-        qr = quote.quote_request
-        _ = qr.company
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
+    db = get_db()
+    quote = db.scalar(
+        select(Quote)
+        .where(Quote.id == q_id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(Quote.quote_request_id == qr_id)
+    )
+    if not quote:
+        abort(404)
+    qr = quote.quote_request
+    _ = qr.company
+    qrc = db.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+    )
     return render_template(
         "caterer/quotes/editor.html",
         user=g.current_user,
@@ -265,25 +267,26 @@ def quote_edit(qr_id, q_id):
 @role_required("caterer")
 def quote_update(qr_id, q_id):
     caterer = g.current_user.caterer
-    with get_session() as db:
-        quote = db.scalar(
-            select(Quote)
-            .where(Quote.id == q_id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Quote.quote_request_id == qr_id)
-        )
-        if not quote:
-            abort(404)
-        qr = quote.quote_request
-        details = json.loads(request.form.get("details", "[]"))
-        totals = calculate_quote_totals(details, qr.guest_count)
-        quote.details = {"lines": details, "totals": totals}
-        quote.total_amount_ht = totals["total_ht"]
-        quote.amount_per_person = totals["amount_per_person"]
-        quote.valorisable_agefiph = totals["valorisable_agefiph"]
-        quote.notes = request.form.get("notes", "")
-        valid_until_str = request.form.get("valid_until", "")
-        quote.valid_until = date.fromisoformat(valid_until_str) if valid_until_str else quote.valid_until
+    db = get_db()
+    quote = db.scalar(
+        select(Quote)
+        .where(Quote.id == q_id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(Quote.quote_request_id == qr_id)
+    )
+    if not quote:
+        abort(404)
+    qr = quote.quote_request
+    details = json.loads(request.form.get("details", "[]"))
+    totals = calculate_quote_totals(details, qr.guest_count)
+    quote.details = {"lines": details, "totals": totals}
+    quote.total_amount_ht = totals["total_ht"]
+    quote.amount_per_person = totals["amount_per_person"]
+    quote.valorisable_agefiph = totals["valorisable_agefiph"]
+    quote.notes = request.form.get("notes", "")
+    valid_until_str = request.form.get("valid_until", "")
+    quote.valid_until = date.fromisoformat(valid_until_str) if valid_until_str else quote.valid_until
+    db.commit()
     flash("Devis mis a jour.", "success")
     return redirect(url_for("caterer.request_detail", qr_id=qr_id))
 
@@ -293,48 +296,49 @@ def quote_update(qr_id, q_id):
 @role_required("caterer")
 def quote_send(qr_id, q_id):
     caterer = g.current_user.caterer
-    with get_session() as db:
-        quote = db.scalar(
-            select(Quote)
-            .where(Quote.id == q_id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Quote.quote_request_id == qr_id)
-            .where(Quote.status == QuoteStatus.draft)
-        )
-        if not quote:
-            abort(404)
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
-        if not qrc:
-            abort(404)
+    db = get_db()
+    quote = db.scalar(
+        select(Quote)
+        .where(Quote.id == q_id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(Quote.quote_request_id == qr_id)
+        .where(Quote.status == QuoteStatus.draft)
+    )
+    if not quote:
+        abort(404)
+    qrc = db.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+    )
+    if not qrc:
+        abort(404)
 
-        quote.status = QuoteStatus.sent
-        qrc.status = QRCStatus.responded
-        qrc.responded_at = datetime.utcnow()
+    quote.status = QuoteStatus.sent
+    qrc.status = QRCStatus.responded
+    qrc.responded_at = datetime.utcnow()
 
-        transmitted_count = db.scalar(
-            select(func.count(QuoteRequestCaterer.id))
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.status == QRCStatus.transmitted_to_client)
-        )
+    transmitted_count = db.scalar(
+        select(func.count(QuoteRequestCaterer.id))
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+        .where(QuoteRequestCaterer.status == QRCStatus.transmitted_to_client)
+    )
 
-        if transmitted_count < 3:
-            qrc.status = QRCStatus.transmitted_to_client
-            qrc.response_rank = transmitted_count + 1
+    if transmitted_count < 3:
+        qrc.status = QRCStatus.transmitted_to_client
+        qrc.response_rank = transmitted_count + 1
 
-            # If this brings the count to 3, lock out remaining selected QRCs
-            if transmitted_count + 1 == 3:
-                remaining = db.scalars(
-                    select(QuoteRequestCaterer)
-                    .where(QuoteRequestCaterer.quote_request_id == qr_id)
-                    .where(QuoteRequestCaterer.status == QRCStatus.selected)
-                    .where(QuoteRequestCaterer.caterer_id != caterer.id)
-                ).all()
-                for r in remaining:
-                    r.status = QRCStatus.closed
+        if transmitted_count + 1 == 3:
+            remaining = db.scalars(
+                select(QuoteRequestCaterer)
+                .where(QuoteRequestCaterer.quote_request_id == qr_id)
+                .where(QuoteRequestCaterer.status == QRCStatus.selected)
+                .where(QuoteRequestCaterer.caterer_id != caterer.id)
+            ).all()
+            for r in remaining:
+                r.status = QRCStatus.closed
+
+    db.commit()
 
     flash("Devis envoye au client.", "success")
     return redirect(url_for("caterer.request_detail", qr_id=qr_id))
@@ -345,16 +349,16 @@ def quote_send(qr_id, q_id):
 @role_required("caterer")
 def orders_list():
     caterer = g.current_user.caterer
-    with get_session() as db:
-        orders = db.scalars(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .where(Quote.caterer_id == caterer.id)
-            .order_by(Order.created_at.desc())
-        ).all()
-        for o in orders:
-            _ = o.quote
-            _ = o.quote.quote_request
+    db = get_db()
+    orders = db.scalars(
+        select(Order)
+        .join(Quote, Order.quote_id == Quote.id)
+        .where(Quote.caterer_id == caterer.id)
+        .order_by(Order.created_at.desc())
+    ).all()
+    for o in orders:
+        _ = o.quote
+        _ = o.quote.quote_request
     return render_template("caterer/orders/list.html", user=g.current_user, orders=orders)
 
 
@@ -363,19 +367,19 @@ def orders_list():
 @role_required("caterer")
 def order_detail(order_id):
     caterer = g.current_user.caterer
-    with get_session() as db:
-        order = db.scalar(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .where(Order.id == order_id)
-            .where(Quote.caterer_id == caterer.id)
-        )
-        if not order:
-            abort(404)
-        _ = order.quote
-        _ = order.quote.quote_request
-        _ = order.quote.quote_request.company
-        _ = order.payments
+    db = get_db()
+    order = db.scalar(
+        select(Order)
+        .join(Quote, Order.quote_id == Quote.id)
+        .where(Order.id == order_id)
+        .where(Quote.caterer_id == caterer.id)
+    )
+    if not order:
+        abort(404)
+    _ = order.quote
+    _ = order.quote.quote_request
+    _ = order.quote.quote_request.company
+    _ = order.payments
     return render_template("caterer/orders/detail.html", user=g.current_user, order=order)
 
 
@@ -384,26 +388,27 @@ def order_detail(order_id):
 @role_required("caterer")
 def order_deliver(order_id):
     caterer = g.current_user.caterer
-    with get_session() as db:
-        order = db.scalar(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .where(Order.id == order_id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Order.status == OrderStatus.confirmed)
-        )
-        if not order:
-            abort(404)
-        order.status = OrderStatus.delivered
-        if caterer.stripe_account_id and caterer.stripe_charges_enabled:
-            try:
-                create_invoice_for_order(db, order)
-                flash("Commande livree et facture Stripe generee.", "success")
-            except Exception:
-                logger.exception("Stripe invoice creation failed for order %s", order_id)
-                flash("Commande marquee comme livree. Erreur lors de la generation de la facture Stripe.", "warning")
-        else:
-            flash("Commande marquee comme livree.", "success")
+    db = get_db()
+    order = db.scalar(
+        select(Order)
+        .join(Quote, Order.quote_id == Quote.id)
+        .where(Order.id == order_id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(Order.status == OrderStatus.confirmed)
+    )
+    if not order:
+        abort(404)
+    order.status = OrderStatus.delivered
+    if caterer.stripe_account_id and caterer.stripe_charges_enabled:
+        try:
+            create_invoice_for_order(db, order)
+            flash("Commande livree et facture Stripe generee.", "success")
+        except Exception:
+            logger.exception("Stripe invoice creation failed for order %s", order_id)
+            flash("Commande marquee comme livree. Erreur lors de la generation de la facture Stripe.", "warning")
+    else:
+        flash("Commande marquee comme livree.", "success")
+    db.commit()
     return redirect(url_for("caterer.order_detail", order_id=order_id))
 
 
@@ -415,10 +420,11 @@ def stripe_status():
     if caterer.stripe_account_id:
         try:
             status = get_account(caterer.stripe_account_id)
-            with get_session() as db:
-                db.add(caterer)
-                caterer.stripe_charges_enabled = status["charges_enabled"]
-                caterer.stripe_payouts_enabled = status["payouts_enabled"]
+            db = get_db()
+            db.add(caterer)
+            caterer.stripe_charges_enabled = status["charges_enabled"]
+            caterer.stripe_payouts_enabled = status["payouts_enabled"]
+            db.commit()
         except Exception:
             logger.exception("Failed to fetch Stripe account status")
     return render_template("caterer/stripe.html", user=g.current_user, caterer=caterer)
@@ -429,14 +435,15 @@ def stripe_status():
 @role_required("caterer")
 def stripe_onboard():
     caterer = g.current_user.caterer
-    with get_session() as db:
-        db.add(caterer)
-        if not caterer.stripe_account_id:
-            result = create_connect_account(caterer)
-            caterer.stripe_account_id = result["id"]
-        refresh_url = url_for("caterer.stripe_status", _external=True)
-        return_url = url_for("caterer.stripe_complete", _external=True)
-        link_url = create_account_link(caterer.stripe_account_id, refresh_url, return_url)
+    db = get_db()
+    db.add(caterer)
+    if not caterer.stripe_account_id:
+        result = create_connect_account(caterer)
+        caterer.stripe_account_id = result["id"]
+    refresh_url = url_for("caterer.stripe_status", _external=True)
+    return_url = url_for("caterer.stripe_complete", _external=True)
+    link_url = create_account_link(caterer.stripe_account_id, refresh_url, return_url)
+    db.commit()
     return redirect(link_url)
 
 
@@ -448,15 +455,16 @@ def stripe_complete():
     if caterer.stripe_account_id:
         try:
             status = get_account(caterer.stripe_account_id)
-            with get_session() as db:
-                db.add(caterer)
-                caterer.stripe_charges_enabled = status["charges_enabled"]
-                caterer.stripe_payouts_enabled = status["payouts_enabled"]
-                if status["charges_enabled"] and status["payouts_enabled"]:
-                    caterer.stripe_onboarded_at = datetime.utcnow()
-                    flash("Compte Stripe connecte avec succes.", "success")
-                else:
-                    flash("Verification en cours. Certaines fonctionnalites ne sont pas encore actives.", "warning")
+            db = get_db()
+            db.add(caterer)
+            caterer.stripe_charges_enabled = status["charges_enabled"]
+            caterer.stripe_payouts_enabled = status["payouts_enabled"]
+            if status["charges_enabled"] and status["payouts_enabled"]:
+                caterer.stripe_onboarded_at = datetime.utcnow()
+                flash("Compte Stripe connecte avec succes.", "success")
+            else:
+                flash("Verification en cours. Certaines fonctionnalites ne sont pas encore actives.", "warning")
+            db.commit()
         except Exception:
             logger.exception("Failed to verify Stripe account on completion")
             flash("Erreur lors de la verification du compte Stripe.", "error")
@@ -468,8 +476,8 @@ def stripe_complete():
 @role_required("caterer")
 def messages():
     user = g.current_user
-    with get_session() as db:
-        threads = _get_caterer_threads(db, user.id)
+    db = get_db()
+    threads = _get_caterer_threads(db, user.id)
     return render_template("caterer/messages/list.html", user=user, threads=threads)
 
 
@@ -478,17 +486,17 @@ def messages():
 @role_required("caterer")
 def message_thread(thread_id):
     user = g.current_user
-    with get_session() as db:
-        first_msg = db.scalar(
-            select(Message).where(
-                Message.thread_id == thread_id,
-                or_(Message.sender_id == user.id, Message.recipient_id == user.id),
-            )
+    db = get_db()
+    first_msg = db.scalar(
+        select(Message).where(
+            Message.thread_id == thread_id,
+            or_(Message.sender_id == user.id, Message.recipient_id == user.id),
         )
-        if not first_msg:
-            abort(404)
-        other_id = first_msg.recipient_id if first_msg.sender_id == user.id else first_msg.sender_id
-        other_user = db.get(User, other_id)
+    )
+    if not first_msg:
+        abort(404)
+    other_id = first_msg.recipient_id if first_msg.sender_id == user.id else first_msg.sender_id
+    other_user = db.get(User, other_id)
     return render_template(
         "caterer/messages/thread.html",
         user=user,
