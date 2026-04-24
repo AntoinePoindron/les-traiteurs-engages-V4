@@ -94,6 +94,15 @@ class MealType(str, Enum):
     autre = "autre"
 
 
+MEAL_TYPE_LABELS: dict[MealType, str] = {
+    MealType.petit_dejeuner: "Petit-déjeuner",
+    MealType.dejeuner: "Déjeuner",
+    MealType.diner: "Dîner",
+    MealType.cocktail: "Cocktail",
+    MealType.autre: "Autre",
+}
+
+
 class PaymentStatus(str, Enum):
     pending = "pending"
     processing = "processing"
@@ -302,7 +311,6 @@ class Quote(Base):
     total_amount_ht: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     amount_per_person: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     valorisable_agefiph: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
-    details: Mapped[dict | None] = mapped_column(JSON)
     notes: Mapped[str | None] = mapped_column(Text)
     valid_until: Mapped[datetime.date | None] = mapped_column(Date)
     status: Mapped[QuoteStatus] = mapped_column(String(20), default=QuoteStatus.draft)
@@ -322,7 +330,7 @@ class QuoteLine(Base):
     __tablename__ = "quote_lines"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    quote_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quotes.id", ondelete="CASCADE"))
+    quote_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quotes.id", ondelete="CASCADE"), index=True)
     position: Mapped[int] = mapped_column(Integer, default=0)
     section: Mapped[str] = mapped_column(String(50), default="principal")
     description: Mapped[str | None] = mapped_column(Text)
