@@ -51,6 +51,27 @@ DIETARY_FLAGS = [
     ("lactose_free", "Sans lactose"),
 ]
 
+
+def _own_service_id(db, user, raw):
+    """Return the parsed UUID iff it names a CompanyService owned by `user`.
+
+    Closes an IDOR-style FK reference: WTForms only validates UUID syntax,
+    not that the row exists in the user's scope. Without this, a client
+    could attach a quote_request or employee to another company's service.
+    """
+    if not raw:
+        return None
+    try:
+        candidate = uuid.UUID(raw)
+    except (ValueError, TypeError):
+        return None
+    return db.scalar(
+        select(CompanyService.id).where(
+            CompanyService.id == candidate,
+            CompanyService.company_id == user.company_id,
+        )
+    )
+
 client_bp = Blueprint("client", __name__, url_prefix="/client")
 
 MEAL_TYPE_LABELS = {
@@ -198,17 +219,12 @@ def requests_new_post():
         ).scalars().all()
         return render_template("client/requests/new.html", user=user, services=services), 400
 
-    service_id = None
-    if form.company_service_id.data:
-        try:
-            service_id = uuid.UUID(form.company_service_id.data)
-        except ValueError:
-            service_id = None
+    db = get_db()
+    service_id = _own_service_id(db, user, form.company_service_id.data)
 
     is_compare = form.is_compare_mode.data
     status = QuoteRequestStatus.pending_review if is_compare else QuoteRequestStatus.sent_to_caterers
 
-    db = get_db()
     qr = QuoteRequest(
         company_id=user.company_id,
         user_id=user.id,
@@ -470,14 +486,7 @@ def request_edit_post(request_id):
             services=services,
         ), 400
 
-    service_id = None
-    if form.company_service_id.data:
-        try:
-            service_id = uuid.UUID(form.company_service_id.data)
-        except ValueError:
-            service_id = None
-
-    qr.company_service_id = service_id
+    qr.company_service_id = _own_service_id(db, user, form.company_service_id.data)
     qr.service_type = form.service_type.data or None
     qr.meal_type = form.meal_type.data or None
     qr.event_date = form.event_date.data
@@ -758,12 +767,6 @@ def team_employee_create():
     if not form.validate_on_submit():
         flash("Prenom, nom et email sont obligatoires.", "error")
         return redirect(url_for("client.team"))
-    service_id = None
-    if form.service_id.data:
-        try:
-            service_id = uuid.UUID(form.service_id.data)
-        except ValueError:
-            service_id = None
     db = get_db()
     employee = CompanyEmployee(
         company_id=user.company_id,
@@ -771,7 +774,7 @@ def team_employee_create():
         last_name=form.last_name.data.strip(),
         email=form.email.data.strip().lower(),
         position=(form.position.data or "").strip() or None,
-        service_id=service_id,
+        service_id=_own_service_id(db, user, form.service_id.data),
     )
     db.add(employee)
     db.commit()
@@ -797,17 +800,11 @@ def team_employee_edit(employee_id):
     if not form.validate_on_submit():
         flash("Prenom, nom et email sont obligatoires.", "error")
         return redirect(url_for("client.team"))
-    service_id = None
-    if form.service_id.data:
-        try:
-            service_id = uuid.UUID(form.service_id.data)
-        except ValueError:
-            service_id = None
     employee.first_name = form.first_name.data.strip()
     employee.last_name = form.last_name.data.strip()
     employee.email = form.email.data.strip().lower()
     employee.position = (form.position.data or "").strip() or None
-    employee.service_id = service_id
+    employee.service_id = _own_service_id(db, user, form.service_id.data)
     db.commit()
     flash("Employe mis a jour.", "success")
     return redirect(url_for("client.team"))
