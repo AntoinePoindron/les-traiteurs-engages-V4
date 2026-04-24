@@ -18,7 +18,7 @@
   <div class="flex gap-3">
     {% if existing_quote %}
       {% if existing_quote.status == QuoteStatus.draft %}
-      <a href="{{ url_for('caterer.quote_edit', qr_id=qr.id, q_id=existing_quote.id) }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="border: 1px solid #1A3A52; color: #1A3A52" onmouseover="this.style.backgroundColor='#F5F1E8'" onmouseout="this.style.backgroundColor='transparent'">
+      <a href="{{ url_for('caterer.quote_edit', qr_id=qr.id, q_id=existing_quote.id) }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 btn-ghost-navy">
         <i data-lucide="pencil" style="width:16px;height:16px"></i> Modifier le devis
       </a>
       <form method="POST" action="{{ url_for('caterer.quote_send', qr_id=qr.id, q_id=existing_quote.id) }}" class="inline">
@@ -198,5 +198,4 @@
 </div>
 {% endif %}
 
-<script>lucide.createIcons();</script>
 {% endblock %}

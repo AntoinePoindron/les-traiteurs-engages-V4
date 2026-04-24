@@ -35,10 +35,7 @@
         Valorisez votre engagement social tout en offrant des prestations de qualit&#233;.
       </p>
       <a href="{{ url_for('auth.signup') }}"
-        class="inline-flex items-center gap-2 text-white px-8 py-3.5 rounded-xl font-medium transition-colors text-base"
-        style="background-color: #1A3A52;"
-        onmouseenter="this.style.backgroundColor='#132B3E';"
-        onmouseleave="this.style.backgroundColor='#1A3A52';">
+        class="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-medium text-base btn-navy">
         D&#233;couvrir la plateforme
         <i data-lucide="arrow-right" class="w-4 h-4"></i>
       </a>
@@ -188,10 +185,7 @@
     <p class="mb-8" style="color: #B70102; opacity: 0.7;">Rejoignez la plateforme et valorisez votre engagement social.</p>
     <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
       <a href="{{ url_for('auth.signup') }}"
-        class="w-full sm:w-auto px-8 py-3.5 text-white font-medium rounded-xl transition-colors text-center"
-        style="background-color: #B70102;"
-        onmouseenter="this.style.backgroundColor='#8B0001';"
-        onmouseleave="this.style.backgroundColor='#B70102';">
+        class="w-full sm:w-auto px-8 py-3.5 font-medium rounded-xl text-center btn-red">
         Je suis une entreprise
       </a>
       <a href="{{ url_for('auth.signup') }}"
@@ -218,5 +212,4 @@
   </div>
 </footer>
 
-<script>lucide.createIcons();</script>
 {% endblock %}

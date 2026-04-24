@@ -43,7 +43,9 @@
 
 <div class="bg-white rounded-lg p-6 mb-8">
   <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Revenu mensuel (12 mois)</h2>
-  <canvas id="revenueChart" height="250"></canvas>
+  <canvas id="revenueChart" height="250"
+    data-labels='{{ months|map(attribute="label")|list|tojson }}'
+    data-revenue='{{ months|map(attribute="revenue")|list|tojson }}'></canvas>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -112,35 +114,9 @@
   <p class="text-sm" style="color: #6B7280">Aucune donnee.</p>
   {% endif %}
 </div>
-
-<script>lucide.createIcons();</script>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script>
-  var ctx = document.getElementById('revenueChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: {{ months|map(attribute='label')|list|tojson }},
-      datasets: [{
-        label: 'Revenu (EUR)',
-        data: {{ months|map(attribute='revenue')|list|tojson }},
-        backgroundColor: '#1A3A52',
-        borderRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { callback: function(v) { return v + ' \u20ac'; } }
-        }
-      }
-    }
-  });
-</script>
+<script src="{{ url_for('static', filename='js/stats.js') }}" defer></script>
 {% endblock %}

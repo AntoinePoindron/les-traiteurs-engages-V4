@@ -16,7 +16,7 @@
       {% endif %}
       <span>{{ message }}</span>
     </div>
-    <button onclick="this.parentElement.remove()" class="ml-4 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+    <button type="button" data-action="dismiss-parent" class="ml-4 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
       <i data-lucide="x" class="w-4 h-4"></i>
     </button>
   </div>

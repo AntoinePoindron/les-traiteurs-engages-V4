@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/tailwind.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
   <style>
     html { background-color: #FAF7F2; color: #1A1A1A; }
     body { font-family: system-ui, sans-serif; }
@@ -37,7 +38,7 @@
   </div>
 
   <!-- Mobile overlay -->
-  <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleMobileMenu()"></div>
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" data-action="toggle-mobile-menu"></div>
 
   <!-- Sidebar -->
   <aside id="sidebar" class="fixed left-0 top-0 h-full bg-white z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0" style="width: 241px; border-right: 1px solid #F3F4F6;">
@@ -200,78 +201,7 @@
   </main>
   {% endif %}
 
-  <script>
-    lucide.createIcons();
-
-    // Sidebar active state
-    (function() {
-      var links = document.querySelectorAll('.sidebar-link');
-      var currentPath = window.location.pathname;
-      links.forEach(function(link) {
-        var href = link.getAttribute('href');
-        if (href && (currentPath === href || currentPath.startsWith(href + '/'))) {
-          link.style.backgroundColor = '#1A3A52';
-          link.style.color = '#FFFFFF';
-        } else {
-          link.style.color = '#6B7280';
-          link.addEventListener('mouseenter', function() {
-            if (this.style.backgroundColor !== 'rgb(26, 58, 82)') {
-              this.style.backgroundColor = '#F5F1E8';
-              this.style.color = '#1A3A52';
-            }
-          });
-          link.addEventListener('mouseleave', function() {
-            if (this.style.backgroundColor !== 'rgb(26, 58, 82)') {
-              this.style.backgroundColor = '';
-              this.style.color = '#6B7280';
-            }
-          });
-        }
-      });
-    })();
-
-    // Mobile menu
-    function toggleMobileMenu() {
-      var sidebar = document.getElementById('sidebar');
-      var overlay = document.getElementById('sidebar-overlay');
-      sidebar.classList.toggle('-translate-x-full');
-      overlay.classList.toggle('hidden');
-    }
-
-    var mobileBtn = document.getElementById('mobile-menu-btn');
-    if (mobileBtn) mobileBtn.addEventListener('click', toggleMobileMenu);
-
-    // Responsive sidebar margin
-    function updateLayout() {
-      var main = document.getElementById('main-content');
-      if (main && window.innerWidth >= 1024) {
-        main.style.marginLeft = '241px';
-      } else if (main) {
-        main.style.marginLeft = '0';
-      }
-    }
-    updateLayout();
-    window.addEventListener('resize', updateLayout);
-
-    // Notifications
-    function updateNotificationBadge() {
-      fetch('/api/notifications')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          var badges = document.querySelectorAll('.notification-badge');
-          badges.forEach(function(badge) {
-            if (data.unread_count > 0) {
-              badge.classList.remove('hidden');
-            } else {
-              badge.classList.add('hidden');
-            }
-          });
-        })
-        .catch(function() {});
-    }
-    updateNotificationBadge();
-    setInterval(updateNotificationBadge, 30000);
-  </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

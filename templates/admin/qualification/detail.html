@@ -176,7 +176,7 @@
           </button>
         </form>
         {% endif %}
-        <button type="button" onclick="document.getElementById('reject-dialog').showModal()"
+        <button type="button" data-action="dialog-open" data-target="reject-dialog"
           class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-bold" style="background-color: #DC2626">
           <i data-lucide="x" style="width:16px;height:16px"></i>
           Rejeter
@@ -184,17 +184,17 @@
       </div>
     </div>
 
-    <dialog id="reject-dialog" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full">
+    <dialog id="reject-dialog" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
       <div class="p-6">
         <h3 class="font-display font-bold text-lg text-black mb-2" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Rejeter la demande</h3>
         <p class="text-sm mb-4" style="color: #6B7280">Indiquez la raison du rejet. Le client sera notifie.</p>
         <form method="POST" action="{{ url_for('admin.qualification_reject', request_id=qr.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <textarea name="rejection_reason" rows="3" required
-            class="w-full rounded-lg px-3 py-2.5 text-sm text-black focus:outline-none mb-4" style="border: 1px solid #E5E7EB" onfocus="this.style.borderColor='#1A3A52'" onblur="this.style.borderColor='#E5E7EB'"
+            class="w-full rounded-lg px-3 py-2.5 text-sm text-black mb-4 input-soft"
             placeholder="Raison du rejet..."></textarea>
           <div class="flex items-center justify-end gap-3">
-            <button type="button" onclick="document.getElementById('reject-dialog').close()"
+            <button type="button" data-action="dialog-close" data-target="reject-dialog"
               class="px-4 py-2 text-sm font-bold rounded-full" style="border: 1px solid #1A3A52; color: #1A3A52">
               Annuler
             </button>
@@ -205,16 +205,7 @@
         </form>
       </div>
     </dialog>
-    <script>
-      (function() {
-        var dialog = document.getElementById('reject-dialog');
-        dialog.addEventListener('click', function(e) {
-          if (e.target === dialog) dialog.close();
-        });
-      })();
-    </script>
     {% endif %}
   </div>
 </div>
-<script>lucide.createIcons();</script>
 {% endblock %}

@@ -232,12 +232,12 @@
 
           {% if quote.status == QuoteStatus.sent %}
           <div class="flex items-center gap-3 pt-3" style="border-top: 1px solid #F3F4F6">
-            <button type="button" onclick="document.getElementById('accept-dialog-{{ quote.id }}').showModal()"
+            <button type="button" data-action="dialog-open" data-target="accept-dialog-{{ quote.id }}"
               class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
               <i data-lucide="check" style="width:16px;height:16px"></i>
               Accepter
             </button>
-            <button type="button" onclick="document.getElementById('refuse-dialog-{{ quote.id }}').showModal()"
+            <button type="button" data-action="dialog-open" data-target="refuse-dialog-{{ quote.id }}"
               class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #DC2626; color: #FFFFFF">
               <i data-lucide="x" style="width:16px;height:16px"></i>
               Refuser
@@ -245,7 +245,7 @@
           </div>
 
           <!-- Accept dialog -->
-          <dialog id="accept-dialog-{{ quote.id }}" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full">
+          <dialog id="accept-dialog-{{ quote.id }}" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
             <div class="p-6">
               <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Accepter ce devis ?</h3>
               <p class="text-sm mb-6" style="color: #6B7280">
@@ -254,7 +254,7 @@
                 Les autres devis seront automatiquement refuses et une commande sera creee.
               </p>
               <div class="flex items-center justify-end gap-3">
-                <button type="button" onclick="document.getElementById('accept-dialog-{{ quote.id }}').close()"
+                <button type="button" data-action="dialog-close" data-target="accept-dialog-{{ quote.id }}"
                   class="rounded-full text-xs font-bold px-4 py-2.5" style="border: 1px solid #1A3A52; color: #1A3A52">
                   Annuler
                 </button>
@@ -270,7 +270,7 @@
           </dialog>
 
           <!-- Refuse dialog -->
-          <dialog id="refuse-dialog-{{ quote.id }}" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full">
+          <dialog id="refuse-dialog-{{ quote.id }}" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
             <div class="p-6">
               <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Refuser ce devis ?</h3>
               <p class="text-sm mb-4" style="color: #6B7280">
@@ -282,7 +282,7 @@
                 <textarea name="refusal_reason" rows="3" required placeholder="Raison du refus..."
                   class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors resize-none mb-4" style="border-color: #E5E7EB"></textarea>
                 <div class="flex items-center justify-end gap-3">
-                  <button type="button" onclick="document.getElementById('refuse-dialog-{{ quote.id }}').close()"
+                  <button type="button" data-action="dialog-close" data-target="refuse-dialog-{{ quote.id }}"
                     class="rounded-full text-xs font-bold px-4 py-2.5" style="border: 1px solid #1A3A52; color: #1A3A52">
                     Annuler
                   </button>
@@ -293,15 +293,6 @@
               </form>
             </div>
           </dialog>
-
-          <script>
-            (function() {
-              ['accept-dialog-{{ quote.id }}', 'refuse-dialog-{{ quote.id }}'].forEach(function(id) {
-                var d = document.getElementById(id);
-                d.addEventListener('click', function(e) { if (e.target === d) d.close(); });
-              });
-            })();
-          </script>
           {% endif %}
 
           {% if quote.status == QuoteStatus.refused and quote.refusal_reason %}
@@ -327,5 +318,4 @@
 
   </div>
 </main>
-<script>lucide.createIcons();</script>
 {% endblock %}

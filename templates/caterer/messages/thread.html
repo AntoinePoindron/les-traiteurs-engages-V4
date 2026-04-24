@@ -24,9 +24,7 @@
   <form id="message-form" class="p-4 flex gap-3" style="border-top: 1px solid #F3F4F6">
     <input type="hidden" name="recipient_id" value="{{ other_user.id }}">
     <input type="text" name="body" placeholder="Votre message..."
-           class="flex-1 px-3 py-2.5 rounded-lg text-sm outline-none transition-colors bg-white"
-           style="border: 1px solid #E5E7EB"
-           onfocus="this.style.borderColor='#1A3A52'" onblur="this.style.borderColor='#E5E7EB'"
+           class="flex-1 px-3 py-2.5 rounded-lg text-sm input-soft"
            autocomplete="off">
     <button type="submit"
             class="rounded-full text-white text-sm font-bold px-4 py-2.5 flex items-center gap-2 transition-colors" style="background-color: #1A3A52">

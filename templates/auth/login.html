@@ -29,31 +29,22 @@
         <div>
           <label for="email" class="block text-sm font-medium text-dark mb-1.5">Adresse email</label>
           <input type="email" id="email" name="email" required autocomplete="email"
-            class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors"
-            style="border: 1px solid #E5E7EB;"
-            onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
-            onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';"
+            class="w-full px-4 py-2.5 rounded-xl text-dark text-sm input-coral"
             placeholder="vous@entreprise.fr">
         </div>
         <div>
           <label for="password" class="block text-sm font-medium text-dark mb-1.5">Mot de passe</label>
           <div class="relative">
             <input type="password" id="password" name="password" required autocomplete="current-password"
-              class="w-full px-4 py-2.5 rounded-xl bg-white text-dark text-sm transition-colors pr-10"
-              style="border: 1px solid #E5E7EB;"
-              onfocus="this.style.borderColor='#C4714A';this.style.boxShadow='0 0 0 3px rgba(196,113,74,0.3)';this.style.outline='none';"
-              onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none';"
+              class="w-full px-4 py-2.5 rounded-xl text-dark text-sm pr-10 input-coral"
               placeholder="Votre mot de passe">
-            <button type="button" onclick="togglePassword('password', this)" class="absolute right-3 top-1/2 -translate-y-1/2" style="color: #9CA3AF;">
+            <button type="button" data-action="toggle-password" data-target="password" class="absolute right-3 top-1/2 -translate-y-1/2" style="color: #9CA3AF;">
               <i data-lucide="eye" class="w-4 h-4"></i>
             </button>
           </div>
         </div>
         <button type="submit"
-          class="w-full py-3 rounded-xl font-medium text-white transition-colors"
-          style="background-color: #C4714A;"
-          onmouseenter="this.style.backgroundColor='#8B4A3D';"
-          onmouseleave="this.style.backgroundColor='#C4714A';">
+          class="w-full py-3 rounded-xl font-medium btn-coral">
           Se connecter
         </button>
       </form>
@@ -69,19 +60,8 @@
   </div>
 </div>
 
-<script>
-  lucide.createIcons();
-  function togglePassword(inputId, btn) {
-    var input = document.getElementById(inputId);
-    var icon = btn.querySelector('[data-lucide]');
-    if (input.type === 'password') {
-      input.type = 'text';
-      icon.setAttribute('data-lucide', 'eye-off');
-    } else {
-      input.type = 'password';
-      icon.setAttribute('data-lucide', 'eye');
-    }
-    lucide.createIcons();
-  }
-</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/login.js') }}" defer></script>
 {% endblock %}

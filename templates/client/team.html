@@ -58,14 +58,14 @@
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-bold" style="color: #1A1A1A">{{ s.name }}</h3>
               <div class="flex items-center gap-2">
-                <button onclick="document.getElementById('edit-service-{{ s.id }}').classList.toggle('hidden')"
+                <button type="button" data-action="toggle-hidden" data-target="edit-service-{{ s.id }}"
                         class="hover:opacity-70 transition-opacity" style="color: #6B7280">
                   <i data-lucide="pencil" style="width:16px;height:16px"></i>
                 </button>
                 <form method="POST" action="{{ url_for('client.team_service_delete', service_id=s.id) }}" class="inline">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="hover:opacity-70 transition-opacity" style="color: #DC2626"
-                          onclick="return confirm('Supprimer ce service ?')">
+                          data-action="confirm-submit" data-confirm="Supprimer ce service ?">
                     <i data-lucide="trash-2" style="width:16px;height:16px"></i>
                   </button>
                 </form>
@@ -150,14 +150,14 @@
                 <button type="submit" class="text-xs font-bold hover:opacity-70 transition-opacity" style="color: #1A3A52">Inviter</button>
               </form>
               {% endif %}
-              <button onclick="document.getElementById('edit-emp-{{ e.id }}').classList.toggle('hidden')"
+              <button type="button" data-action="toggle-hidden" data-target="edit-emp-{{ e.id }}"
                       class="hover:opacity-70 transition-opacity" style="color: #6B7280">
                 <i data-lucide="pencil" style="width:16px;height:16px"></i>
               </button>
               <form method="POST" action="{{ url_for('client.team_employee_delete', employee_id=e.id) }}" class="inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="hover:opacity-70 transition-opacity" style="color: #DC2626"
-                        onclick="return confirm('Supprimer cet employe ?')">
+                        data-action="confirm-submit" data-confirm="Supprimer cet employe ?">
                   <i data-lucide="trash-2" style="width:16px;height:16px"></i>
                 </button>
               </form>
