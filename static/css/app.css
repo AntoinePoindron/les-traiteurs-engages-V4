@@ -1,0 +1,95 @@
+/* Brand palette */
+:root {
+  --c-navy: #1A3A52;
+  --c-navy-soft: #F0F4F8;
+  --c-cream: #F5F1E8;
+  --c-coral: #C4714A;
+  --c-coral-strong: #E84B3A;
+  --c-text: #1A1A1A;
+  --c-mute: #6B7280;
+  --c-mute-soft: #9CA3AF;
+  --c-border: #E5E7EB;
+  --c-border-soft: #F3F4F6;
+  --c-success: #22C55E;
+  --c-danger: #DC2626;
+}
+
+/* Inputs — base + :focus, replacing inline onfocus/onblur handlers */
+.input-soft {
+  border: 1px solid var(--c-border);
+  background: #FFFFFF;
+  outline: none;
+  transition: border-color .15s;
+}
+.input-soft:focus {
+  border-color: var(--c-navy);
+}
+
+/* Ghost button (transparent → cream on hover), replacing onmouseover/onmouseout */
+.btn-ghost-navy {
+  border: 1px solid var(--c-navy);
+  color: var(--c-navy);
+  background: transparent;
+  transition: background-color .15s;
+}
+.btn-ghost-navy:hover {
+  background: var(--c-cream);
+}
+
+/* Sidebar nav links, replacing the JS active-state walker in app.js */
+.sidebar-link {
+  color: var(--c-mute);
+  background: transparent;
+  transition: background-color .15s, color .15s;
+}
+.sidebar-link:hover {
+  background: var(--c-cream);
+  color: var(--c-navy);
+}
+.sidebar-link.active,
+.sidebar-link.active:hover {
+  background: var(--c-navy);
+  color: #FFFFFF;
+}
+
+/* Auth inputs — coral focus ring */
+.input-coral {
+  border: 1px solid var(--c-border);
+  background: #FFFFFF;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input-coral:focus {
+  border-color: var(--c-coral);
+  box-shadow: 0 0 0 3px rgba(196, 113, 74, 0.3);
+}
+
+/* Solid coral submit button */
+.btn-coral {
+  background: var(--c-coral);
+  color: #FFFFFF;
+  transition: background-color .15s;
+}
+.btn-coral:hover {
+  background: #8B4A3D;
+}
+
+/* Solid navy CTA */
+.btn-navy {
+  background: var(--c-navy);
+  color: #FFFFFF;
+  transition: background-color .15s;
+}
+.btn-navy:hover {
+  background: #132B3E;
+}
+
+/* Solid red CTA (landing) */
+.btn-red {
+  background: #B70102;
+  color: #FFFFFF;
+  transition: background-color .15s;
+}
+.btn-red:hover {
+  background: #8B0001;
+}
