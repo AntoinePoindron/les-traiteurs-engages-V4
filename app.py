@@ -17,9 +17,9 @@ from models import (
 configure_logging()
 
 
-CSP_REPORT_ONLY = (
+CSP = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+    "script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' https://fonts.gstatic.com; "
     "img-src 'self' data:; "
@@ -98,9 +98,7 @@ def create_app():
         response.headers["Permissions-Policy"] = (
             "geolocation=(), microphone=(), camera=(), payment=()"
         )
-        # CSP starts in Report-Only mode — collect violations before enforcing.
-        # Switch the header name to "Content-Security-Policy" to enforce.
-        response.headers["Content-Security-Policy-Report-Only"] = CSP_REPORT_ONLY
+        response.headers["Content-Security-Policy"] = CSP
         if settings.secure_cookies:
             response.headers["Strict-Transport-Security"] = (
                 "max-age=31536000; includeSubDomains"
