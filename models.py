@@ -313,6 +313,33 @@ class Quote(Base):
     quote_request: Mapped[QuoteRequest] = relationship(back_populates="quotes")
     caterer: Mapped[Caterer] = relationship(back_populates="quotes")
     order: Mapped["Order | None"] = relationship(back_populates="quote")
+    lines: Mapped[list["QuoteLine"]] = relationship(
+        back_populates="quote", cascade="all, delete-orphan", order_by="QuoteLine.position"
+    )
+
+
+class QuoteLine(Base):
+    __tablename__ = "quote_lines"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    quote_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quotes.id", ondelete="CASCADE"))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    section: Mapped[str] = mapped_column(String(50), default="principal")
+    description: Mapped[str | None] = mapped_column(Text)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(12, 3), default=Decimal("0"))
+    unit_price_ht: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
+    tva_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("10"))
+
+    quote: Mapped[Quote] = relationship(back_populates="lines")
+
+    def as_dict(self) -> dict:
+        return {
+            "section": self.section,
+            "description": self.description or "",
+            "quantity": float(self.quantity),
+            "unit_price_ht": float(self.unit_price_ht),
+            "tva_rate": float(self.tva_rate),
+        }
 
 
 class Order(Base):
