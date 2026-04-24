@@ -21,6 +21,13 @@ api_bp = Blueprint("api", __name__, url_prefix="/api")
 @csrf.exempt
 @limiter.exempt  # Stripe retries legitimately and sends bursts
 def stripe_webhook():
+    # Fail closed when the shared secret is missing. HMAC with an empty key
+    # is trivially computable by anyone, so accepting such signatures would
+    # let any caller forge events. Audit finding #1 (2026-04-24).
+    if not config.STRIPE_WEBHOOK_SECRET:
+        logger.error("STRIPE_WEBHOOK_SECRET is not configured; refusing webhook")
+        return jsonify({"error": "webhook not configured"}), 503
+
     payload = request.get_data()
     sig_header = request.headers.get("Stripe-Signature", "")
 
