@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from decimal import Decimal
 from enum import Enum
 
 from sqlalchemy import (
@@ -11,12 +12,17 @@ from sqlalchemy import (
     Integer,
     JSON,
     Numeric,
+    Sequence,
     String,
     Text,
     Uuid,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+# Strictly sequential, no gaps, no duplicates — required by French
+# tax law for commission invoice numbering. Postgres SEQUENCE owns it.
+commission_invoice_seq = Sequence("commission_invoice_number_seq", start=1)
 
 
 class Base(DeclarativeBase):
@@ -110,7 +116,7 @@ class Company(Base):
     city: Mapped[str | None] = mapped_column(String(255))
     zip_code: Mapped[str | None] = mapped_column(String(10))
     oeth_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
-    budget_annual: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    budget_annual: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     logo_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -138,7 +144,7 @@ class Caterer(Base):
     capacity_min: Mapped[int | None] = mapped_column(Integer)
     capacity_max: Mapped[int | None] = mapped_column(Integer)
     is_validated: Mapped[bool] = mapped_column(Boolean, default=False)
-    commission_rate: Mapped[float] = mapped_column(Numeric(5, 4), default=0.05)
+    commission_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=Decimal("0.05"))
     logo_url: Mapped[str | None] = mapped_column(String(500))
     delivery_radius_km: Mapped[int | None] = mapped_column(Integer)
     dietary_vegetarian: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -195,7 +201,7 @@ class CompanyService(Base):
     company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"))
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
-    annual_budget: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    annual_budget: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
 
     company: Mapped[Company] = relationship(back_populates="services")
     employees: Mapped[list["CompanyEmployee"]] = relationship(back_populates="service")
@@ -237,8 +243,8 @@ class QuoteRequest(Base):
     event_zip_code: Mapped[str | None] = mapped_column(String(10))
     event_latitude: Mapped[float | None] = mapped_column(Float)
     event_longitude: Mapped[float | None] = mapped_column(Float)
-    budget_global: Mapped[float | None] = mapped_column(Numeric(12, 2))
-    budget_per_person: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    budget_global: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    budget_per_person: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     dietary_vegetarian: Mapped[bool] = mapped_column(Boolean, default=False)
     dietary_vegan: Mapped[bool] = mapped_column(Boolean, default=False)
     dietary_halal: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -293,9 +299,9 @@ class Quote(Base):
     quote_request_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quote_requests.id"))
     caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"))
     reference: Mapped[str] = mapped_column(String(50), unique=True)
-    total_amount_ht: Mapped[float | None] = mapped_column(Numeric(12, 2))
-    amount_per_person: Mapped[float | None] = mapped_column(Numeric(10, 2))
-    valorisable_agefiph: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    total_amount_ht: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    amount_per_person: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    valorisable_agefiph: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     details: Mapped[dict | None] = mapped_column(JSON)
     notes: Mapped[str | None] = mapped_column(Text)
     valid_until: Mapped[datetime.date | None] = mapped_column(Date)
@@ -339,10 +345,10 @@ class Invoice(Base):
     order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"))
     caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"))
     reference: Mapped[str | None] = mapped_column(String(50))
-    amount_ht: Mapped[float] = mapped_column(Numeric(12, 2))
-    tva_rate: Mapped[float] = mapped_column(Numeric(5, 4))
-    amount_ttc: Mapped[float] = mapped_column(Numeric(12, 2))
-    valorisable_agefiph: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    amount_ht: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    tva_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
+    amount_ttc: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    valorisable_agefiph: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     esat_mention: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -354,12 +360,16 @@ class CommissionInvoice(Base):
     __tablename__ = "commission_invoices"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    invoice_number: Mapped[int] = mapped_column(Integer)
+    # Numbered by Postgres sequence — strictly monotonic, unique, no gaps.
+    # French fiscal compliance: callers do NOT pass invoice_number explicitly.
+    invoice_number: Mapped[int] = mapped_column(
+        Integer, commission_invoice_seq, server_default=commission_invoice_seq.next_value(), unique=True
+    )
     order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"))
     party: Mapped[str] = mapped_column(String(20))
-    amount_ht: Mapped[float] = mapped_column(Numeric(12, 2))
-    tva_rate: Mapped[float] = mapped_column(Numeric(5, 4), default=0.20)
-    amount_ttc: Mapped[float] = mapped_column(Numeric(12, 2))
+    amount_ht: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    tva_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=Decimal("0.20"))
+    amount_ttc: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
 
     order: Mapped[Order] = relationship(back_populates="commission_invoices")
