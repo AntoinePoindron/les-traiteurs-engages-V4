@@ -1,15 +1,13 @@
 from datetime import timedelta
 
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
-from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import func, select, text
 
 import config
 from config import settings
 from database import ScopedSession, get_db
+from extensions import csrf
 from models import Caterer, Company, Order, OrderStatus, User
-
-csrf = CSRFProtect()
 
 
 CSP_REPORT_ONLY = (
