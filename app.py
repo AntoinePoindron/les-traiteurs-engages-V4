@@ -14,6 +14,11 @@ from models import (
     QRCStatus, QuoteRequestStatus, QuoteStatus, User, UserRole,
 )
 
+# A non-active membership status should not authorize action. Only users
+# approved by a client_admin (or users whose role does not use the
+# membership flow) are loaded as the current user. Audit finding #4.
+_BLOCKED_MEMBERSHIP_STATUSES = {MembershipStatus.pending, MembershipStatus.rejected}
+
 configure_logging()
 
 
@@ -82,9 +87,16 @@ def create_app():
         user_id = session.get("user_id")
         if user_id:
             db = get_db()
-            g.current_user = db.execute(
+            user = db.execute(
                 select(User).where(User.id == user_id)
             ).scalar_one_or_none()
+            # Refuse to authenticate users whose membership isn't active:
+            # signup-against-existing-SIRET creates pending users with a live
+            # session, and nothing else gates on membership_status before
+            # role-protected routes are hit.
+            if user and user.membership_status in _BLOCKED_MEMBERSHIP_STATUSES:
+                user = None
+            g.current_user = user
 
     @app.teardown_appcontext
     def remove_session(exc=None):
