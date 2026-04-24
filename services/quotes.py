@@ -3,9 +3,33 @@ from decimal import Decimal
 
 from sqlalchemy import extract, func, select
 
-from models import Quote
+from models import Quote, QuoteLine
 
 CENT = Decimal("0.01")
+
+
+def lines_from_dicts(line_dicts: list[dict]) -> list[QuoteLine]:
+    return [
+        QuoteLine(
+            position=i,
+            section=str(d.get("section") or "principal")[:50],
+            description=d.get("description") or None,
+            quantity=Decimal(str(d.get("quantity", 0))),
+            unit_price_ht=Decimal(str(d.get("unit_price_ht", 0))),
+            tva_rate=Decimal(str(d.get("tva_rate", 10))),
+        )
+        for i, d in enumerate(line_dicts)
+    ]
+
+
+def line_to_dict(line: QuoteLine) -> dict:
+    return {
+        "section": line.section,
+        "description": line.description or "",
+        "quantity": float(line.quantity),
+        "unit_price_ht": float(line.unit_price_ht),
+        "tva_rate": float(line.tva_rate),
+    }
 
 
 def generate_quote_reference(session, caterer):

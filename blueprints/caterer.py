@@ -21,7 +21,9 @@ from models import (
     QuoteStatus,
     User,
 )
-from services.quotes import calculate_quote_totals, generate_quote_reference, totals_for_json
+from services.quotes import (
+    calculate_quote_totals, generate_quote_reference, lines_from_dicts, totals_for_json,
+)
 from services.uploads import save_upload
 from services.stripe_service import (
     create_account_link,
@@ -206,6 +208,7 @@ def quote_new(qr_id):
         qr=qr,
         qrc=qrc,
         quote=None,
+        initial_lines=[],
     )
 
 
@@ -232,24 +235,26 @@ def quote_create(qr_id):
             qr=qr,
             qrc=qrc,
             quote=None,
+            initial_lines=[],
         ), 400
     try:
-        details = json.loads(form.details.data or "[]")
+        line_dicts = json.loads(form.details.data or "[]")
     except json.JSONDecodeError:
-        details = []
-    totals = calculate_quote_totals(details, qr.guest_count)
+        line_dicts = []
+    totals = calculate_quote_totals(line_dicts, qr.guest_count)
     reference = generate_quote_reference(db, caterer)
     quote = Quote(
         quote_request_id=qr_id,
         caterer_id=caterer.id,
         reference=reference,
-        details={"lines": details, "totals": totals_for_json(totals)},
+        details={"totals": totals_for_json(totals)},
         total_amount_ht=totals["total_ht"],
         amount_per_person=totals["amount_per_person"],
         valorisable_agefiph=totals["valorisable_agefiph"],
         notes=form.notes.data or "",
         valid_until=form.valid_until.data,
         status=QuoteStatus.draft,
+        lines=lines_from_dicts(line_dicts),
     )
     db.add(quote)
     db.commit()
@@ -284,6 +289,7 @@ def quote_edit(qr_id, q_id):
         qr=qr,
         qrc=qrc,
         quote=quote,
+        initial_lines=[ln.as_dict() for ln in quote.lines],
     )
 
 
@@ -316,13 +322,15 @@ def quote_update(qr_id, q_id):
             qr=qr,
             qrc=qrc,
             quote=quote,
+            initial_lines=[ln.as_dict() for ln in quote.lines],
         ), 400
     try:
-        details = json.loads(form.details.data or "[]")
+        line_dicts = json.loads(form.details.data or "[]")
     except json.JSONDecodeError:
-        details = []
-    totals = calculate_quote_totals(details, qr.guest_count)
-    quote.details = {"lines": details, "totals": totals_for_json(totals)}
+        line_dicts = []
+    totals = calculate_quote_totals(line_dicts, qr.guest_count)
+    quote.lines = lines_from_dicts(line_dicts)
+    quote.details = {"totals": totals_for_json(totals)}
     quote.total_amount_ht = totals["total_ht"]
     quote.amount_per_person = totals["amount_per_person"]
     quote.valorisable_agefiph = totals["valorisable_agefiph"]

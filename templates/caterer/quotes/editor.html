@@ -147,7 +147,7 @@
 
 <script>
   var GUEST_COUNT = {{ qr.guest_count or 0 }};
-  var INITIAL_LINES = {{ (quote.details.lines if quote and quote.details and quote.details.lines else [])|tojson }};
+  var INITIAL_LINES = {{ initial_lines | tojson }};
 </script>
 <script src="{{ url_for('static', filename='js/quote-editor.js') }}"></script>
 <script>lucide.createIcons();</script>

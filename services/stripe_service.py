@@ -119,20 +119,22 @@ def _create_or_get_tax_rate(percentage: Decimal, description: str) -> str:
 
 
 def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
-    """Generate and send a Stripe invoice for a delivered order.
-
-    Recomputes totals in Decimal from the persisted line items rather than
-    reading the JSON-serialised (lossy float) cache in `quote.details.totals`.
-    """
+    """Generate and send a Stripe invoice for a delivered order."""
     quote = order.quote
     caterer = quote.caterer
     client_user = order.client_admin
-    details = quote.details or {}
-    lines = details.get("lines", [])
 
-    # Authoritative Decimal recomputation — the JSON `details.totals` is for
-    # display, never for downstream finance.
-    totals = calculate_quote_totals(lines, quote.quote_request.guest_count)
+    line_dicts = [
+        {
+            "section": ln.section,
+            "description": ln.description or "",
+            "quantity": float(ln.quantity),
+            "unit_price_ht": float(ln.unit_price_ht),
+            "tva_rate": float(ln.tva_rate),
+        }
+        for ln in quote.lines
+    ]
+    totals = calculate_quote_totals(line_dicts, quote.quote_request.guest_count)
 
     customer_id = get_or_create_customer(session, client_user)
 
@@ -160,15 +162,13 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
     )
 
     tva_grouped: dict[str, dict] = {}
-    for line in lines:
-        tva_rate = str(line.get("tva_rate", 10))
+    for ln in quote.lines:
+        tva_rate = str(ln.tva_rate)
         if tva_rate not in tva_grouped:
             tva_grouped[tva_rate] = {"amount_ht": Decimal("0"), "descriptions": []}
-        qty = Decimal(str(line.get("quantity", 0)))
-        unit_price = Decimal(str(line.get("unit_price_ht", 0)))
-        line_ht = qty * unit_price
+        line_ht = ln.quantity * ln.unit_price_ht
         tva_grouped[tva_rate]["amount_ht"] += line_ht
-        tva_grouped[tva_rate]["descriptions"].append(line.get("description", ""))
+        tva_grouped[tva_rate]["descriptions"].append(ln.description or "")
 
     for tva_rate_str, group in tva_grouped.items():
         tva_pct = Decimal(tva_rate_str)
