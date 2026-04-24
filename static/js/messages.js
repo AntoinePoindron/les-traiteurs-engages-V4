@@ -63,9 +63,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var qrId = form.querySelector('[name="quote_request_id"]');
     if (qrId && qrId.value) payload.quote_request_id = qrId.value;
 
+    var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     fetch('/api/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
       body: JSON.stringify(payload),
     })
       .then(function (r) { return r.json(); })
