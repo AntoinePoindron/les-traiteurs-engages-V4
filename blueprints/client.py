@@ -18,6 +18,7 @@ from forms.client import (
 )
 from services.uploads import save_upload
 from models import (
+    MEAL_TYPE_LABELS,
     Caterer,
     CatererStructureType,
     Company,
@@ -73,14 +74,6 @@ def _own_service_id(db, user, raw):
     )
 
 client_bp = Blueprint("client", __name__, url_prefix="/client")
-
-MEAL_TYPE_LABELS = {
-    "petit_dejeuner": "Petit-dejeuner",
-    "dejeuner": "Dejeuner",
-    "diner": "Diner",
-    "cocktail": "Cocktail",
-    "autre": "Autre",
-}
 
 STATUS_TABS = {
     "all": "Toutes",

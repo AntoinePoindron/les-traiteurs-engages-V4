@@ -26,8 +26,9 @@ from wtforms.validators import (
     Optional,
 )
 
-MEAL_TYPES = [("petit_dejeuner", "Petit-déjeuner"), ("dejeuner", "Déjeuner"),
-              ("diner", "Dîner"), ("cocktail", "Cocktail"), ("autre", "Autre")]
+from models import MEAL_TYPE_LABELS
+
+MEAL_TYPES = [(m.value, label) for m, label in MEAL_TYPE_LABELS.items()]
 
 
 class QuoteRequestForm(FlaskForm):
