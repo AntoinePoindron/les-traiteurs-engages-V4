@@ -332,14 +332,24 @@ def accept_quote(request_id):
     if not qr:
         abort(404)
 
+    # Only the caterer's own `sent` quotes can be accepted. Without this
+    # filter a client (or a pre-fix-#4 pending user) could "accept" a
+    # draft, refused, or long-expired quote — creating an Order the
+    # caterer never committed to. Audit finding #5 (2026-04-24).
     accepted_quote = db.execute(
         select(Quote).where(
             Quote.id == quote_uuid,
             Quote.quote_request_id == request_id,
+            Quote.status == QuoteStatus.sent,
         )
     ).scalar_one_or_none()
     if not accepted_quote:
-        abort(404)
+        flash("Ce devis n'est plus disponible.", "error")
+        return redirect(url_for("client.request_detail", request_id=request_id))
+
+    if accepted_quote.valid_until and accepted_quote.valid_until < datetime.date.today():
+        flash("Ce devis a expire.", "error")
+        return redirect(url_for("client.request_detail", request_id=request_id))
 
     accepted_quote.status = QuoteStatus.accepted
 
