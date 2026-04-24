@@ -3,10 +3,16 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 from sqlalchemy import select
 
 from database import get_db
+from extensions import limiter
 from models import Caterer, Company, CompanyEmployee, CompanyService, MembershipStatus, User, UserRole
 from services.slugs import generate_invoice_prefix
 
 auth_bp = Blueprint("auth", __name__)
+
+# Rate limits applied to the GETs too so an attacker can't bypass by only POSTing.
+# Values chosen for legitimate humans: 10 login attempts / min, 5 signups / hour.
+LOGIN_LIMIT = "10 per minute"
+SIGNUP_LIMIT = "5 per hour"
 
 ROLE_DASHBOARDS = {
     UserRole.client_admin: "client.dashboard",
@@ -17,6 +23,7 @@ ROLE_DASHBOARDS = {
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit(LOGIN_LIMIT, methods=["POST"])
 def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
@@ -45,6 +52,7 @@ def login():
 
 
 @auth_bp.route("/signup", methods=["GET", "POST"])
+@limiter.limit(SIGNUP_LIMIT, methods=["POST"])
 def signup():
     if request.method == "POST":
         role = request.form.get("role", "")

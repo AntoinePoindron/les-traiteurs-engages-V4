@@ -6,7 +6,7 @@ from sqlalchemy import func, select, text
 import config
 from config import settings
 from database import ScopedSession, get_db
-from extensions import csrf
+from extensions import csrf, limiter
 from logging_config import configure_logging, install_request_id_hooks
 from models import Caterer, Company, Order, OrderStatus, User
 
@@ -39,6 +39,7 @@ def create_app():
     )
 
     csrf.init_app(app)
+    limiter.init_app(app)
     install_request_id_hooks(app)
 
     from blueprints.admin import admin_bp

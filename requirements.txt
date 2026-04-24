@@ -12,6 +12,7 @@ flask-wtf>=1.2
 email-validator>=2.0
 stripe>=10.0
 python-json-logger>=2.0
+flask-limiter>=3.5
 
 # --- dev / test ---
 pytest>=8.0

@@ -56,7 +56,14 @@ def app(_required_env):
 
     from app import create_app
     flask_app = create_app()
-    flask_app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    flask_app.config.update(
+        TESTING=True,
+        WTF_CSRF_ENABLED=False,
+    )
+    # Kill the rate limiter for tests — otherwise the 10/min login limit
+    # collides with the 23 parametrised logins this suite performs.
+    from extensions import limiter
+    limiter.enabled = False
 
     with flask_app.app_context():
         _seed_users()

@@ -5,7 +5,7 @@ from flask import Blueprint, abort, g, jsonify, request
 from sqlalchemy import or_, select
 
 import config
-from extensions import csrf
+from extensions import csrf, limiter
 from blueprints.middleware import login_required
 from database import get_db
 from models import Caterer, Message, Notification, Order, OrderStatus, Payment, PaymentStatus, User
@@ -19,6 +19,7 @@ api_bp = Blueprint("api", __name__, url_prefix="/api")
 
 @api_bp.route("/webhooks/stripe", methods=["POST"])
 @csrf.exempt
+@limiter.exempt  # Stripe retries legitimately and sends bursts
 def stripe_webhook():
     payload = request.get_data()
     sig_header = request.headers.get("Stripe-Signature", "")
@@ -112,6 +113,7 @@ def get_messages(thread_id):
 
 @api_bp.route("/messages", methods=["POST"])
 @login_required
+@limiter.limit("60 per minute")
 def send_message():
     user = g.current_user
     data = request.get_json() or {}

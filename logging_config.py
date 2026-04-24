@@ -68,7 +68,10 @@ def install_request_id_hooks(app):
 
     @app.after_request
     def _log_request(response):
-        # Single structured line per request — cheaper than access-log + app-log dedup.
+        # CSRFProtect can short-circuit before our before_request fires, so
+        # g.request_id may be missing. Synthesise one so the log line still
+        # carries a correlation id.
+        rid = g.get("request_id") or _request_id.get() or "-"
         logger.info(
             "request",
             extra={
@@ -78,5 +81,5 @@ def install_request_id_hooks(app):
                 "user_id": str(g.get("current_user").id) if g.get("current_user") else None,
             },
         )
-        response.headers.setdefault("X-Request-Id", g.request_id)
+        response.headers.setdefault("X-Request-Id", rid)
         return response
