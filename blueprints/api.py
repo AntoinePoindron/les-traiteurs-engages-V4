@@ -138,6 +138,16 @@ def send_message():
         except (ValueError, TypeError):
             quote_request_id = None
 
+    # DESIGN: thread_id is deterministic per pair of users.
+    # Any two users share exactly one thread, for life — messages about order
+    # #42 and order #87 pile up together. `Message.order_id` and
+    # `Message.quote_request_id` still scope individual messages, but the
+    # thread itself is one continuous conversation between the pair.
+    #
+    # Consequences: no archival, no per-context threads, no group chats.
+    # If the product ever needs any of those, generate a fresh random
+    # thread_id per conversation and attach it to the spawning context
+    # (order, quote_request) instead of hashing the user pair here.
     pair = sorted([str(user.id), str(recipient_id)])
     thread_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{pair[0]}:{pair[1]}")
 
