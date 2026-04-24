@@ -439,6 +439,23 @@ class Notification(Base):
     user: Mapped[User] = relationship(back_populates="notifications")
 
 
+class StripeEvent(Base):
+    """Deduplication table for Stripe webhook events.
+
+    Primary key is Stripe's `event.id` (a string like `evt_...`). Inserting
+    it inside the webhook handler gives us atomic deduplication: a UNIQUE
+    violation means "already processed this event, ignore it". Closes audit
+    finding #3 (2026-04-24): events can be replayed within the 300s signature
+    tolerance window, and Stripe itself re-delivers on network failures.
+    """
+
+    __tablename__ = "stripe_events"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(100))
+    received_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 class Message(Base):
     __tablename__ = "messages"
 

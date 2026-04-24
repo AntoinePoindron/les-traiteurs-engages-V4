@@ -3,18 +3,27 @@ import uuid
 
 from flask import Blueprint, abort, g, jsonify, request
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 
 import config
 from extensions import csrf, limiter
 from blueprints.middleware import login_required
 from database import get_db
-from models import Caterer, Message, Notification, Order, OrderStatus, Payment, PaymentStatus, User
+from models import (
+    Caterer, Message, Notification, Order, OrderStatus, Payment,
+    PaymentStatus, StripeEvent, User,
+)
 from services.notifications import create_notification, get_unread_count, mark_as_read
 from services.stripe_service import verify_webhook_signature
 
 logger = logging.getLogger(__name__)
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
+
+# Terminal payment states that a subsequent webhook must NEVER downgrade.
+# Stripe delivers events out of order and retries on failure, so a stale
+# `invoice.payment_failed` can arrive after `invoice.paid`.
+_TERMINAL_PAID_STATES = {PaymentStatus.succeeded, PaymentStatus.refunded}
 
 
 @api_bp.route("/webhooks/stripe", methods=["POST"])
@@ -40,6 +49,7 @@ def stripe_webhook():
     # `event` is a stripe.Event (not a plain dict and not a subclass of dict
     # in current SDKs) — use subscript access + getattr-style helpers instead
     # of `.get(...)`. Audit finding #2 (2026-04-24).
+    event_id = event["id"]
     event_type = event["type"]
     data_object = event["data"]["object"]
 
@@ -50,9 +60,20 @@ def stripe_webhook():
         except (KeyError, TypeError):
             return default
 
+    # Atomic dedup: insert the event.id inside its own transaction. A UNIQUE
+    # violation means we've seen this event before (Stripe retry, out-of-order
+    # redelivery, or signature-window replay attack). Audit finding #3.
+    db = get_db()
+    try:
+        db.add(StripeEvent(id=event_id, event_type=event_type))
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        logger.info("Ignoring duplicate Stripe event %s (%s)", event_id, event_type)
+        return jsonify({"status": "duplicate"}), 200
+
     if event_type == "invoice.paid":
         stripe_invoice_id = _field(data_object, "id")
-        db = get_db()
         payment = db.scalar(
             select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
         )
@@ -66,17 +87,20 @@ def stripe_webhook():
 
     elif event_type == "invoice.payment_failed":
         stripe_invoice_id = _field(data_object, "id")
-        db = get_db()
         payment = db.scalar(
             select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
         )
-        if payment:
+        if payment and payment.status not in _TERMINAL_PAID_STATES:
             payment.status = PaymentStatus.failed
+        elif payment:
+            logger.warning(
+                "Ignoring stale invoice.payment_failed for payment %s (current status: %s)",
+                payment.id, payment.status,
+            )
         db.commit()
 
     elif event_type == "account.updated":
         account_id = _field(data_object, "id")
-        db = get_db()
         caterer = db.scalar(
             select(Caterer).where(Caterer.stripe_account_id == account_id)
         )

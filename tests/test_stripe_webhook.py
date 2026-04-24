@@ -219,3 +219,111 @@ def test_signed_invoice_paid_marks_payment_succeeded(client, monkeypatch):
     assert payment.status == PaymentStatus.succeeded, payment.status
     assert payment.stripe_charge_id == charge_id
     assert order.status == OrderStatus.paid, order.status
+
+
+# ---------------------------------------------------------------------------
+# #3 — event.id idempotency + no-downgrade of succeeded payments
+# ---------------------------------------------------------------------------
+
+
+def test_payment_failed_after_paid_does_not_downgrade(client, monkeypatch):
+    """A stale invoice.payment_failed must never flip a succeeded payment
+    back to failed. Stripe sends events out of order; we must not trust
+    ordering. Audit finding #3."""
+    import config
+
+    monkeypatch.setattr(config, "STRIPE_WEBHOOK_SECRET", TEST_SECRET)
+
+    invoice_id = f"in_test_{uuid.uuid4().hex[:16]}"
+    order_id, payment_id = _seed_order_with_payment(invoice_id)
+
+    paid_payload = _event("invoice.paid", {"id": invoice_id, "charge": "ch_ok"})
+    resp = client.post(
+        "/api/webhooks/stripe",
+        data=paid_payload,
+        headers={
+            "Content-Type": "application/json",
+            "Stripe-Signature": _sign(paid_payload, TEST_SECRET),
+        },
+    )
+    assert resp.status_code == 200
+
+    failed_payload = _event("invoice.payment_failed", {"id": invoice_id})
+    resp = client.post(
+        "/api/webhooks/stripe",
+        data=failed_payload,
+        headers={
+            "Content-Type": "application/json",
+            "Stripe-Signature": _sign(failed_payload, TEST_SECRET),
+        },
+    )
+    # Handler must still 200 (so Stripe stops retrying) but NOT downgrade.
+    assert resp.status_code == 200
+
+    from models import PaymentStatus
+
+    payment = _load_payment(payment_id)
+    assert payment.status == PaymentStatus.succeeded, (
+        f"stale payment_failed wrongly downgraded to {payment.status}"
+    )
+
+
+def test_duplicate_event_id_is_idempotent(client, monkeypatch):
+    """Replaying the exact same event.id a second time must be a no-op.
+
+    Reproduces the attack where an attacker captures a signed body+sig and
+    replays it within the 300s tolerance window — or Stripe re-delivers the
+    same event. Audit finding #3."""
+    import config
+
+    monkeypatch.setattr(config, "STRIPE_WEBHOOK_SECRET", TEST_SECRET)
+
+    invoice_id = f"in_test_{uuid.uuid4().hex[:16]}"
+    _order_id, payment_id = _seed_order_with_payment(invoice_id)
+
+    event_id = f"evt_dup_{uuid.uuid4().hex[:16]}"
+    payload = _event(
+        "invoice.paid",
+        {"id": invoice_id, "charge": "ch_first"},
+        event_id=event_id,
+    )
+    header = _sign(payload, TEST_SECRET)
+
+    r1 = client.post(
+        "/api/webhooks/stripe", data=payload,
+        headers={"Content-Type": "application/json", "Stripe-Signature": header},
+    )
+    assert r1.status_code == 200
+
+    from models import PaymentStatus
+
+    first = _load_payment(payment_id)
+    assert first.status == PaymentStatus.succeeded
+    assert first.stripe_charge_id == "ch_first"
+
+    # Now flip status manually in the DB. If the replay were NOT idempotent,
+    # processing the same event again would overwrite our change.
+    from database import session_factory
+    from models import Payment, PaymentStatus as PS
+
+    s = session_factory()
+    try:
+        p = s.get(Payment, payment_id)
+        p.status = PS.refunded
+        p.stripe_charge_id = "ch_ADMIN_MANUAL"
+        s.commit()
+    finally:
+        s.close()
+
+    # Replay the exact same signed event.
+    r2 = client.post(
+        "/api/webhooks/stripe", data=payload,
+        headers={"Content-Type": "application/json", "Stripe-Signature": header},
+    )
+    assert r2.status_code == 200
+
+    replayed = _load_payment(payment_id)
+    assert replayed.status == PS.refunded, (
+        "duplicate event was processed again — not idempotent"
+    )
+    assert replayed.stripe_charge_id == "ch_ADMIN_MANUAL"
