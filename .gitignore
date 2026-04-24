@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+*.egg-info/
+
+# Environments / secrets
+.env
+.env.*
+.deploy.env
+*.pem
+*.key
+
+# SQLite local
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artefacts
+dist/
+build/
+
+# Audit / scan outputs
+/tmp/zap*
+/tmp/trivy*
+/tmp/codeql*
+/tmp/bandit*
+/tmp/semgrep*
+/tmp/ruff*
+*.sarif
+
+# Local notes
+.claude/
