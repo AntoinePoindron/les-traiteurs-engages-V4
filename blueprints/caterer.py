@@ -241,6 +241,18 @@ def quote_create(qr_id):
         line_dicts = json.loads(form.details.data or "[]")
     except json.JSONDecodeError:
         line_dicts = []
+    try:
+        lines = lines_from_dicts(line_dicts)
+    except ValueError as exc:
+        flash(f"Devis invalide : {exc}", "error")
+        return render_template(
+            "caterer/quotes/editor.html",
+            user=g.current_user,
+            qr=qr,
+            qrc=qrc,
+            quote=None,
+            initial_lines=line_dicts,
+        ), 400
     totals = calculate_quote_totals(line_dicts, qr.guest_count)
     reference = generate_quote_reference(db, caterer)
     quote = Quote(
@@ -254,7 +266,7 @@ def quote_create(qr_id):
         notes=form.notes.data or "",
         valid_until=form.valid_until.data,
         status=QuoteStatus.draft,
-        lines=lines_from_dicts(line_dicts),
+        lines=lines,
     )
     db.add(quote)
     db.commit()
@@ -328,8 +340,20 @@ def quote_update(qr_id, q_id):
         line_dicts = json.loads(form.details.data or "[]")
     except json.JSONDecodeError:
         line_dicts = []
+    try:
+        new_lines = lines_from_dicts(line_dicts)
+    except ValueError as exc:
+        flash(f"Devis invalide : {exc}", "error")
+        return render_template(
+            "caterer/quotes/editor.html",
+            user=g.current_user,
+            qr=qr,
+            qrc=qrc,
+            quote=quote,
+            initial_lines=line_dicts,
+        ), 400
     totals = calculate_quote_totals(line_dicts, qr.guest_count)
-    quote.lines = lines_from_dicts(line_dicts)
+    quote.lines = new_lines
     quote.details = {"totals": totals_for_json(totals)}
     quote.total_amount_ht = totals["total_ht"]
     quote.amount_per_person = totals["amount_per_person"]
