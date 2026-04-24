@@ -1,5 +1,5 @@
 import datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from sqlalchemy import extract, func, select
 
@@ -7,19 +7,59 @@ from models import Quote, QuoteLine
 
 CENT = Decimal("0.01")
 
+# Legal FR VAT rates. Anything else is either a typo or an attempt to
+# corrupt the ledger. Audit finding #10 (2026-04-24).
+LEGAL_TVA_RATES: frozenset[Decimal] = frozenset(
+    {Decimal("0"), Decimal("2.1"), Decimal("5.5"), Decimal("10"), Decimal("20")}
+)
+# Plausible caps — enough for the largest real caterer quotes, small
+# enough to catch malicious input before it reaches Stripe.
+MAX_QUANTITY = Decimal("10000")
+MAX_UNIT_PRICE_HT = Decimal("100000")
+
+
+def _parse_finite_decimal(raw, field: str) -> Decimal:
+    """Convert raw input to a finite Decimal or raise ValueError."""
+    try:
+        value = Decimal(str(raw))
+    except (InvalidOperation, TypeError) as exc:
+        raise ValueError(f"{field}: not a number ({raw!r})") from exc
+    if not value.is_finite():
+        raise ValueError(f"{field}: must be finite, got {value}")
+    return value
+
 
 def lines_from_dicts(line_dicts: list[dict]) -> list[QuoteLine]:
-    return [
-        QuoteLine(
+    """Parse + validate quote line dicts into QuoteLine rows.
+
+    Raises ValueError on any out-of-range or non-numeric input. Callers
+    in `blueprints/caterer.py` catch this and surface a form error rather
+    than silently writing bad data into the DB or the Stripe invoice.
+    """
+    result: list[QuoteLine] = []
+    for i, d in enumerate(line_dicts):
+        quantity = _parse_finite_decimal(d.get("quantity", 0), f"line {i} quantity")
+        unit_price_ht = _parse_finite_decimal(
+            d.get("unit_price_ht", 0), f"line {i} unit_price_ht"
+        )
+        tva_rate = _parse_finite_decimal(d.get("tva_rate", 10), f"line {i} tva_rate")
+
+        if quantity < 0 or quantity > MAX_QUANTITY:
+            raise ValueError(f"line {i}: quantity out of range ({quantity})")
+        if unit_price_ht < 0 or unit_price_ht > MAX_UNIT_PRICE_HT:
+            raise ValueError(f"line {i}: unit_price_ht out of range ({unit_price_ht})")
+        if tva_rate not in LEGAL_TVA_RATES:
+            raise ValueError(f"line {i}: tva_rate {tva_rate} not in {sorted(LEGAL_TVA_RATES)}")
+
+        result.append(QuoteLine(
             position=i,
             section=str(d.get("section") or "principal")[:50],
             description=d.get("description") or None,
-            quantity=Decimal(str(d.get("quantity", 0))),
-            unit_price_ht=Decimal(str(d.get("unit_price_ht", 0))),
-            tva_rate=Decimal(str(d.get("tva_rate", 10))),
-        )
-        for i, d in enumerate(line_dicts)
-    ]
+            quantity=quantity,
+            unit_price_ht=unit_price_ht,
+            tva_rate=tva_rate,
+        ))
+    return result
 
 
 def line_to_dict(line: QuoteLine) -> dict:

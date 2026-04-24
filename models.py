@@ -418,7 +418,11 @@ class Payment(Base):
     caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"))
     stripe_checkout_session_id: Mapped[str | None] = mapped_column(String(255))
     stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
-    stripe_invoice_id: Mapped[str | None] = mapped_column(String(255))
+    # UNIQUE: a single Stripe invoice maps to exactly one Payment row.
+    # Without this, a race on POST /caterer/orders/<id>/deliver can create
+    # duplicate Payment rows pointing at the same invoice, of which the
+    # webhook updates only one. Audit finding #6 (2026-04-24).
+    stripe_invoice_id: Mapped[str | None] = mapped_column(String(255), unique=True)
     stripe_charge_id: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[PaymentStatus] = mapped_column(String(20), default=PaymentStatus.pending)
     amount_total_cents: Mapped[int | None] = mapped_column(Integer)
@@ -445,6 +449,23 @@ class Notification(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
 
     user: Mapped[User] = relationship(back_populates="notifications")
+
+
+class StripeEvent(Base):
+    """Deduplication table for Stripe webhook events.
+
+    Primary key is Stripe's `event.id` (a string like `evt_...`). Inserting
+    it inside the webhook handler gives us atomic deduplication: a UNIQUE
+    violation means "already processed this event, ignore it". Closes audit
+    finding #3 (2026-04-24): events can be replayed within the 300s signature
+    tolerance window, and Stripe itself re-delivers on network failures.
+    """
+
+    __tablename__ = "stripe_events"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(100))
+    received_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class Message(Base):

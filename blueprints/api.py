@@ -3,12 +3,16 @@ import uuid
 
 from flask import Blueprint, abort, g, jsonify, request
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 
 import config
 from extensions import csrf, limiter
 from blueprints.middleware import login_required
 from database import get_db
-from models import Caterer, Message, Notification, Order, OrderStatus, Payment, PaymentStatus, User
+from models import (
+    Caterer, Message, Notification, Order, OrderStatus, Payment,
+    PaymentStatus, StripeEvent, User,
+)
 from services.notifications import create_notification, get_unread_count, mark_as_read
 from services.stripe_service import verify_webhook_signature
 
@@ -16,11 +20,23 @@ logger = logging.getLogger(__name__)
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
+# Terminal payment states that a subsequent webhook must NEVER downgrade.
+# Stripe delivers events out of order and retries on failure, so a stale
+# `invoice.payment_failed` can arrive after `invoice.paid`.
+_TERMINAL_PAID_STATES = {PaymentStatus.succeeded, PaymentStatus.refunded}
+
 
 @api_bp.route("/webhooks/stripe", methods=["POST"])
 @csrf.exempt
 @limiter.exempt  # Stripe retries legitimately and sends bursts
 def stripe_webhook():
+    # Fail closed when the shared secret is missing. HMAC with an empty key
+    # is trivially computable by anyone, so accepting such signatures would
+    # let any caller forge events. Audit finding #1 (2026-04-24).
+    if not config.STRIPE_WEBHOOK_SECRET:
+        logger.error("STRIPE_WEBHOOK_SECRET is not configured; refusing webhook")
+        return jsonify({"error": "webhook not configured"}), 503
+
     payload = request.get_data()
     sig_header = request.headers.get("Stripe-Signature", "")
 
@@ -30,42 +46,67 @@ def stripe_webhook():
         logger.warning("Invalid Stripe webhook signature")
         return jsonify({"error": "invalid signature"}), 400
 
-    event_type = event.get("type", "")
-    data_object = event.get("data", {}).get("object", {})
+    # `event` is a stripe.Event (not a plain dict and not a subclass of dict
+    # in current SDKs) — use subscript access + getattr-style helpers instead
+    # of `.get(...)`. Audit finding #2 (2026-04-24).
+    event_id = event["id"]
+    event_type = event["type"]
+    data_object = event["data"]["object"]
+
+    def _field(obj, key, default=None):
+        """Read a field from a StripeObject OR plain dict."""
+        try:
+            return obj[key]
+        except (KeyError, TypeError):
+            return default
+
+    # Atomic dedup: insert the event.id inside its own transaction. A UNIQUE
+    # violation means we've seen this event before (Stripe retry, out-of-order
+    # redelivery, or signature-window replay attack). Audit finding #3.
+    db = get_db()
+    try:
+        db.add(StripeEvent(id=event_id, event_type=event_type))
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        logger.info("Ignoring duplicate Stripe event %s (%s)", event_id, event_type)
+        return jsonify({"status": "duplicate"}), 200
 
     if event_type == "invoice.paid":
-        stripe_invoice_id = data_object.get("id")
-        db = get_db()
+        stripe_invoice_id = _field(data_object, "id")
         payment = db.scalar(
             select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
         )
         if payment:
             payment.status = PaymentStatus.succeeded
-            payment.stripe_charge_id = data_object.get("charge")
+            payment.stripe_charge_id = _field(data_object, "charge")
             order = db.scalar(select(Order).where(Order.id == payment.order_id))
             if order:
                 order.status = OrderStatus.paid
         db.commit()
 
     elif event_type == "invoice.payment_failed":
-        stripe_invoice_id = data_object.get("id")
-        db = get_db()
+        stripe_invoice_id = _field(data_object, "id")
         payment = db.scalar(
             select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
         )
-        if payment:
+        if payment and payment.status not in _TERMINAL_PAID_STATES:
             payment.status = PaymentStatus.failed
+        elif payment:
+            logger.warning(
+                "Ignoring stale invoice.payment_failed for payment %s (current status: %s)",
+                payment.id, payment.status,
+            )
         db.commit()
 
     elif event_type == "account.updated":
-        account_id = data_object.get("id")
-        db = get_db()
+        account_id = _field(data_object, "id")
         caterer = db.scalar(
             select(Caterer).where(Caterer.stripe_account_id == account_id)
         )
         if caterer:
-            caterer.stripe_charges_enabled = data_object.get("charges_enabled", False)
-            caterer.stripe_payouts_enabled = data_object.get("payouts_enabled", False)
+            caterer.stripe_charges_enabled = _field(data_object, "charges_enabled", False)
+            caterer.stripe_payouts_enabled = _field(data_object, "payouts_enabled", False)
         db.commit()
 
     return jsonify({"status": "ok"}), 200
