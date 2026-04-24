@@ -37,25 +37,35 @@ def stripe_webhook():
         logger.warning("Invalid Stripe webhook signature")
         return jsonify({"error": "invalid signature"}), 400
 
-    event_type = event.get("type", "")
-    data_object = event.get("data", {}).get("object", {})
+    # `event` is a stripe.Event (not a plain dict and not a subclass of dict
+    # in current SDKs) — use subscript access + getattr-style helpers instead
+    # of `.get(...)`. Audit finding #2 (2026-04-24).
+    event_type = event["type"]
+    data_object = event["data"]["object"]
+
+    def _field(obj, key, default=None):
+        """Read a field from a StripeObject OR plain dict."""
+        try:
+            return obj[key]
+        except (KeyError, TypeError):
+            return default
 
     if event_type == "invoice.paid":
-        stripe_invoice_id = data_object.get("id")
+        stripe_invoice_id = _field(data_object, "id")
         db = get_db()
         payment = db.scalar(
             select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
         )
         if payment:
             payment.status = PaymentStatus.succeeded
-            payment.stripe_charge_id = data_object.get("charge")
+            payment.stripe_charge_id = _field(data_object, "charge")
             order = db.scalar(select(Order).where(Order.id == payment.order_id))
             if order:
                 order.status = OrderStatus.paid
         db.commit()
 
     elif event_type == "invoice.payment_failed":
-        stripe_invoice_id = data_object.get("id")
+        stripe_invoice_id = _field(data_object, "id")
         db = get_db()
         payment = db.scalar(
             select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
@@ -65,14 +75,14 @@ def stripe_webhook():
         db.commit()
 
     elif event_type == "account.updated":
-        account_id = data_object.get("id")
+        account_id = _field(data_object, "id")
         db = get_db()
         caterer = db.scalar(
             select(Caterer).where(Caterer.stripe_account_id == account_id)
         )
         if caterer:
-            caterer.stripe_charges_enabled = data_object.get("charges_enabled", False)
-            caterer.stripe_payouts_enabled = data_object.get("payouts_enabled", False)
+            caterer.stripe_charges_enabled = _field(data_object, "charges_enabled", False)
+            caterer.stripe_payouts_enabled = _field(data_object, "payouts_enabled", False)
         db.commit()
 
     return jsonify({"status": "ok"}), 200
