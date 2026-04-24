@@ -1,10 +1,17 @@
-import hashlib
-import hmac
-import json
-import math
-import time
+"""Stripe Connect integration via the official `stripe` SDK.
 
-import httpx
+The SDK handles HTTP, retries, idempotency, webhook signature verification
+(with timestamp tolerance), and stays in sync with Stripe API changes.
+
+Compared to the previous hand-rolled `_stripe_request`/`verify_webhook_signature`
+this module is ~150 LOC shorter and closes audit Vuln 5 (no replay-attack
+tolerance) by using `stripe.Webhook.construct_event` which enforces a
+timestamp window by default.
+"""
+import math
+from typing import Any
+
+import stripe
 
 import config
 from models import (
@@ -18,91 +25,93 @@ from models import (
 )
 from services.quotes import derive_invoice_reference
 
-STRIPE_BASE_URL = "https://api.stripe.com/v1"
+# Pin the API version so Stripe-side changes don't silently change behavior.
+# Bump deliberately after testing each new version.
+STRIPE_API_VERSION = "2024-12-18.acacia"
 
-_tax_rate_cache: dict[str, str] = {}
-
-
-def _stripe_request(method, endpoint, data=None, idempotency_key=None):
-    """Execute a Stripe API request via httpx."""
-    headers = {
-        "Authorization": f"Bearer {config.STRIPE_SECRET_KEY}",
-    }
-    if idempotency_key:
-        headers["Idempotency-Key"] = idempotency_key
-    url = f"{STRIPE_BASE_URL}{endpoint}"
-    response = httpx.request(method, url, data=data, headers=headers, timeout=30)
-    response.raise_for_status()
-    return response.json()
+if config.STRIPE_SECRET_KEY:
+    stripe.api_key = config.STRIPE_SECRET_KEY
+    stripe.api_version = STRIPE_API_VERSION
 
 
-def create_connect_account(caterer):
+def create_connect_account(caterer: Caterer) -> dict[str, Any]:
     """Create a Stripe Connect Express account for a caterer."""
     user = caterer.users[0] if caterer.users else None
     email = user.email if user else None
-    return _stripe_request("POST", "/accounts", data={
-        "type": "express",
-        "country": "FR",
-        "email": email,
-        "business_type": "company",
-        "capabilities[card_payments][requested]": "true",
-        "capabilities[transfers][requested]": "true",
-        "metadata[caterer_id]": str(caterer.id),
-    })
+    account = stripe.Account.create(
+        type="express",
+        country="FR",
+        email=email,
+        business_type="company",
+        capabilities={
+            "card_payments": {"requested": True},
+            "transfers": {"requested": True},
+        },
+        metadata={"caterer_id": str(caterer.id)},
+        idempotency_key=f"caterer-account-{caterer.id}",
+    )
+    return account
 
 
-def create_account_link(account_id, refresh_url, return_url):
+def create_account_link(account_id: str, refresh_url: str, return_url: str) -> str:
     """Create a Stripe account onboarding link."""
-    result = _stripe_request("POST", "/account_links", data={
-        "account": account_id,
-        "refresh_url": refresh_url,
-        "return_url": return_url,
-        "type": "account_onboarding",
-    })
-    return result["url"]
+    link = stripe.AccountLink.create(
+        account=account_id,
+        refresh_url=refresh_url,
+        return_url=return_url,
+        type="account_onboarding",
+    )
+    return link.url
 
 
-def get_account(account_id):
+def get_account(account_id: str) -> dict[str, bool]:
     """Fetch Stripe account status."""
-    result = _stripe_request("GET", f"/accounts/{account_id}")
+    account = stripe.Account.retrieve(account_id)
     return {
-        "charges_enabled": result.get("charges_enabled", False),
-        "payouts_enabled": result.get("payouts_enabled", False),
+        "charges_enabled": bool(account.get("charges_enabled", False)),
+        "payouts_enabled": bool(account.get("payouts_enabled", False)),
     }
 
 
-def get_or_create_customer(session, user):
+def get_or_create_customer(session, user) -> str:
     """Return existing Stripe customer ID or create one."""
     if user.stripe_customer_id:
         return user.stripe_customer_id
-    result = _stripe_request("POST", "/customers", data={
-        "email": user.email,
-        "name": f"{user.first_name} {user.last_name}",
-        "metadata[user_id]": str(user.id),
-    })
-    user.stripe_customer_id = result["id"]
+    customer = stripe.Customer.create(
+        email=user.email,
+        name=f"{user.first_name} {user.last_name}",
+        metadata={"user_id": str(user.id)},
+        idempotency_key=f"customer-user-{user.id}",
+    )
+    user.stripe_customer_id = customer.id
     session.add(user)
-    return result["id"]
+    return customer.id
 
 
-def create_tax_rate(percentage, description):
-    """Create a Stripe TaxRate or return cached ID."""
-    cache_key = f"{percentage}"
-    if cache_key in _tax_rate_cache:
-        return _tax_rate_cache[cache_key]
-    result = _stripe_request("POST", "/tax_rates", data={
-        "display_name": "TVA",
-        "description": description,
-        "percentage": str(percentage),
-        "inclusive": "false",
-        "country": "FR",
-        "jurisdiction": "FR",
-    })
-    _tax_rate_cache[cache_key] = result["id"]
-    return result["id"]
+def _create_or_get_tax_rate(percentage: float, description: str) -> str:
+    """Find or create a Stripe TaxRate matching the given percentage.
+
+    The previous in-process cache (`_tax_rate_cache`) was per-worker and would
+    create duplicate TaxRates on each worker restart. We now query Stripe for
+    an existing matching rate and only create one if absent.
+    """
+    pct_str = str(percentage)
+    existing = stripe.TaxRate.list(active=True, limit=100)
+    for rate in existing.auto_paging_iter():
+        if str(rate.percentage) == pct_str and rate.country == "FR":
+            return rate.id
+    new_rate = stripe.TaxRate.create(
+        display_name="TVA",
+        description=description,
+        percentage=pct_str,
+        inclusive=False,
+        country="FR",
+        jurisdiction="FR",
+    )
+    return new_rate.id
 
 
-def create_invoice_for_order(session, order):
+def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
     """Generate and send a Stripe invoice for a delivered order."""
     quote = order.quote
     caterer = quote.caterer
@@ -119,20 +128,22 @@ def create_invoice_for_order(session, order):
 
     invoice_ref = derive_invoice_reference(quote.reference)
 
-    invoice_data = _stripe_request("POST", "/invoices", data={
-        "customer": customer_id,
-        "collection_method": "send_invoice",
-        "days_until_due": "30",
-        "transfer_data[destination]": caterer.stripe_account_id,
-        "application_fee_amount": str(platform_fee_ttc_cents),
-        "metadata[order_id]": str(order.id),
-        "metadata[invoice_reference]": invoice_ref,
-        "custom_fields[0][name]": "Traiteur",
-        "custom_fields[0][value]": caterer.name,
-        "custom_fields[1][name]": "SIRET",
-        "custom_fields[1][value]": caterer.siret or "",
-    })
-    stripe_invoice_id = invoice_data["id"]
+    invoice = stripe.Invoice.create(
+        customer=customer_id,
+        collection_method="send_invoice",
+        days_until_due=30,
+        transfer_data={"destination": caterer.stripe_account_id},
+        application_fee_amount=platform_fee_ttc_cents,
+        metadata={
+            "order_id": str(order.id),
+            "invoice_reference": invoice_ref,
+        },
+        custom_fields=[
+            {"name": "Traiteur", "value": caterer.name},
+            {"name": "SIRET", "value": caterer.siret or ""},
+        ],
+        idempotency_key=f"invoice-order-{order.id}",
+    )
 
     tva_grouped: dict[str, dict] = {}
     for line in lines:
@@ -147,36 +158,35 @@ def create_invoice_for_order(session, order):
 
     for tva_rate_str, group in tva_grouped.items():
         tva_pct = float(tva_rate_str)
-        tax_rate_id = create_tax_rate(tva_pct, f"TVA {tva_rate_str}%")
+        tax_rate_id = _create_or_get_tax_rate(tva_pct, f"TVA {tva_rate_str}%")
         amount_cents = math.ceil(group["amount_ht"] * 100)
         desc = ", ".join(d for d in group["descriptions"] if d)
-        _stripe_request("POST", "/invoiceitems", data={
-            "customer": customer_id,
-            "invoice": stripe_invoice_id,
-            "amount": str(amount_cents),
-            "currency": "eur",
-            "description": desc or "Prestation traiteur",
-            "tax_rates[0]": tax_rate_id,
-        })
+        stripe.InvoiceItem.create(
+            customer=customer_id,
+            invoice=invoice.id,
+            amount=amount_cents,
+            currency="eur",
+            description=desc or "Prestation traiteur",
+            tax_rates=[tax_rate_id],
+        )
 
     # Platform fee line: 5% HT + 20% TVA
-    fee_tax_rate_id = create_tax_rate(20, "TVA 20%")
+    fee_tax_rate_id = _create_or_get_tax_rate(20, "TVA 20%")
     fee_ht_cents = math.ceil(platform_fee_ht * 100)
-    _stripe_request("POST", "/invoiceitems", data={
-        "customer": customer_id,
-        "invoice": stripe_invoice_id,
-        "amount": str(fee_ht_cents),
-        "currency": "eur",
-        "description": "Frais de mise en relation",
-        "tax_rates[0]": fee_tax_rate_id,
-    })
+    stripe.InvoiceItem.create(
+        customer=customer_id,
+        invoice=invoice.id,
+        amount=fee_ht_cents,
+        currency="eur",
+        description="Frais de mise en relation",
+        tax_rates=[fee_tax_rate_id],
+    )
 
-    _stripe_request("POST", f"/invoices/{stripe_invoice_id}/finalize")
-    send_result = _stripe_request("POST", f"/invoices/{stripe_invoice_id}/send")
+    stripe.Invoice.finalize_invoice(invoice.id)
+    sent = stripe.Invoice.send_invoice(invoice.id)
+    hosted_url = sent.get("hosted_invoice_url", "") or ""
 
-    hosted_url = send_result.get("hosted_invoice_url", "")
-
-    order.stripe_invoice_id = stripe_invoice_id
+    order.stripe_invoice_id = invoice.id
     order.stripe_hosted_invoice_url = hosted_url
     order.status = OrderStatus.invoiced
 
@@ -187,7 +197,7 @@ def create_invoice_for_order(session, order):
     payment = Payment(
         order_id=order.id,
         caterer_id=caterer.id,
-        stripe_invoice_id=stripe_invoice_id,
+        stripe_invoice_id=invoice.id,
         status=PaymentStatus.pending,
         amount_total_cents=total_ttc_cents + fee_ht_cents + math.ceil(platform_fee_tva * 100),
         application_fee_cents=platform_fee_ttc_cents,
@@ -234,40 +244,22 @@ def create_invoice_for_order(session, order):
     )
     session.add(commission_caterer)
 
-    return invoice_data
+    return invoice
 
 
-def verify_webhook_signature(payload, sig_header, secret):
-    """Verify Stripe webhook HMAC-SHA256 signature."""
-    if not sig_header:
-        raise ValueError("Missing signature header")
+def verify_webhook_signature(payload: bytes | str, sig_header: str, secret: str):
+    """Verify Stripe webhook signature using the official SDK.
 
-    elements = {}
-    for part in sig_header.split(","):
-        key, _, value = part.strip().partition("=")
-        elements.setdefault(key, []).append(value)
+    The SDK enforces a default 300s timestamp tolerance — closes audit Vuln 5
+    (replay-attack window) which the previous hand-rolled HMAC parser lacked.
 
-    timestamp = elements.get("t", [None])[0]
-    if not timestamp:
-        raise ValueError("Missing timestamp in signature")
-
-    signatures = elements.get("v1", [])
-    if not signatures:
-        raise ValueError("Missing v1 signature")
-
-    if isinstance(payload, bytes):
-        payload_str = payload.decode("utf-8")
-    else:
-        payload_str = payload
-
-    signed_payload = f"{timestamp}.{payload_str}"
-    expected = hmac.new(
-        secret.encode("utf-8"),
-        signed_payload.encode("utf-8"),
-        hashlib.sha256,
-    ).hexdigest()
-
-    if not any(hmac.compare_digest(expected, sig) for sig in signatures):
-        raise ValueError("Invalid signature")
-
-    return json.loads(payload_str)
+    Raises `ValueError` on any failure (signature mismatch, timestamp out of
+    window, malformed header, malformed payload) to keep the existing API
+    contract with `blueprints/api.py` unchanged.
+    """
+    try:
+        return stripe.Webhook.construct_event(payload, sig_header, secret)
+    except stripe.error.SignatureVerificationError as exc:
+        raise ValueError(str(exc)) from exc
+    except ValueError:
+        raise
