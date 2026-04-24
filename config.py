@@ -5,8 +5,15 @@ default fallback. This is deliberate: a missing key must crash the
 process at boot rather than silently signing sessions with a known
 string in production.
 """
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _empty_to_none(v):
+    """Coerce empty strings (common when docker-compose passes ${VAR:-}) to None."""
+    if isinstance(v, str) and v == "":
+        return None
+    return v
 
 
 class Settings(BaseSettings):
@@ -27,6 +34,20 @@ class Settings(BaseSettings):
 
     admin_email: str = "admin@traiteurs-engages.fr"
     admin_initial_password: SecretStr | None = None
+
+    @field_validator(
+        "stripe_secret_key", "stripe_publishable_key", "stripe_webhook_secret",
+        "stripe_connect_client_id", "admin_initial_password",
+        mode="before",
+    )
+    @classmethod
+    def _opt_empty_to_none(cls, v):
+        return _empty_to_none(v)
+
+    @field_validator("admin_email", mode="before")
+    @classmethod
+    def _email_empty_to_default(cls, v):
+        return v if (isinstance(v, str) and v) else "admin@traiteurs-engages.fr"
 
 
 settings = Settings()
