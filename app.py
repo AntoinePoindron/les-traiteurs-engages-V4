@@ -92,6 +92,14 @@ def create_app():
             )
         return response
 
+    @app.errorhandler(404)
+    def _not_found(_e):
+        return render_template("errors/404.html"), 404
+
+    @app.errorhandler(500)
+    def _server_error(_e):
+        return render_template("errors/500.html"), 500
+
     @app.route("/health")
     def health():
         try:

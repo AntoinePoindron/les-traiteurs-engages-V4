@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Erreur serveur{% endblock %}
+{% block content %}
+<div style="max-width:520px;margin:80px auto;text-align:center;padding:32px">
+  <h1 class="font-display" style="font-size:42px;color:#C4714A;margin-bottom:12px">500</h1>
+  <p style="color:#6B7280;margin-bottom:24px">Une erreur inattendue s&rsquo;est produite. L&rsquo;&eacute;quipe a &eacute;t&eacute; notifi&eacute;e.</p>
+  <a href="{{ url_for('landing') }}"
+     style="display:inline-block;background:#1A3A52;color:#FFF;padding:10px 20px;border-radius:9999px;text-decoration:none;font-weight:bold;font-size:14px">
+    Retour &agrave; l&rsquo;accueil
+  </a>
+</div>
+{% endblock %}
+{% block public_content %}
+<div style="max-width:520px;margin:80px auto;text-align:center;padding:32px">
+  <h1 class="font-display" style="font-size:42px;color:#C4714A;margin-bottom:12px">500</h1>
+  <p style="color:#6B7280;margin-bottom:24px">Une erreur inattendue s&rsquo;est produite. L&rsquo;&eacute;quipe a &eacute;t&eacute; notifi&eacute;e.</p>
+  <a href="{{ url_for('landing') }}"
+     style="display:inline-block;background:#1A3A52;color:#FFF;padding:10px 20px;border-radius:9999px;text-decoration:none;font-weight:bold;font-size:14px">
+    Retour &agrave; l&rsquo;accueil
+  </a>
+</div>
+{% endblock %}
