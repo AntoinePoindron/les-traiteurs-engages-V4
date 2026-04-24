@@ -28,9 +28,11 @@
             </div>
             <div class="flex gap-2">
               <form method="POST" action="{{ url_for('client.team_approve', user_id=pu.id) }}" class="flex-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="w-full rounded-full text-xs font-bold py-2.5" style="background-color: #1A3A52; color: #FFFFFF">Approuver</button>
               </form>
               <form method="POST" action="{{ url_for('client.team_reject', user_id=pu.id) }}" class="flex-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="w-full rounded-full text-xs font-bold py-2.5" style="background-color: #DC2626; color: #FFFFFF">Rejeter</button>
               </form>
             </div>
@@ -61,6 +63,7 @@
                   <i data-lucide="pencil" style="width:16px;height:16px"></i>
                 </button>
                 <form method="POST" action="{{ url_for('client.team_service_delete', service_id=s.id) }}" class="inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="hover:opacity-70 transition-opacity" style="color: #DC2626"
                           onclick="return confirm('Supprimer ce service ?')">
                     <i data-lucide="trash-2" style="width:16px;height:16px"></i>
@@ -72,6 +75,7 @@
             {% if s.annual_budget %}<p class="text-xs font-bold" style="color: #1A3A52">Budget annuel : {{ "%.2f"|format(s.annual_budget) }} EUR</p>{% endif %}
 
             <form id="edit-service-{{ s.id }}" method="POST" action="{{ url_for('client.team_service_edit', service_id=s.id) }}" class="hidden mt-3 pt-3 space-y-2" style="border-top: 1px solid #F3F4F6">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="text" name="name" value="{{ s.name }}" placeholder="Nom"
                 class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
               <input type="text" name="description" value="{{ s.description or '' }}" placeholder="Description"
@@ -88,6 +92,7 @@
         <div class="p-4 rounded-lg" style="background-color: #F5F1E8">
           <h3 class="text-sm font-bold mb-3" style="color: #1A1A1A">Ajouter un service</h3>
           <form method="POST" action="{{ url_for('client.team_service_create') }}" class="space-y-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="name" placeholder="Nom du service" required
               class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
             <input type="text" name="description" placeholder="Description (optionnel)"
@@ -141,6 +146,7 @@
               </div>
               {% else %}
               <form method="POST" action="{{ url_for('client.team_employee_invite', employee_id=e.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="text-xs font-bold hover:opacity-70 transition-opacity" style="color: #1A3A52">Inviter</button>
               </form>
               {% endif %}
@@ -149,6 +155,7 @@
                 <i data-lucide="pencil" style="width:16px;height:16px"></i>
               </button>
               <form method="POST" action="{{ url_for('client.team_employee_delete', employee_id=e.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="hover:opacity-70 transition-opacity" style="color: #DC2626"
                         onclick="return confirm('Supprimer cet employe ?')">
                   <i data-lucide="trash-2" style="width:16px;height:16px"></i>
@@ -158,6 +165,7 @@
           </div>
           <div id="edit-emp-{{ e.id }}" class="hidden p-4 rounded-lg mb-2" style="background-color: #F5F1E8">
             <form method="POST" action="{{ url_for('client.team_employee_edit', employee_id=e.id) }}" class="flex flex-wrap gap-2 items-end">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="text" name="first_name" value="{{ e.first_name }}" placeholder="Prenom"
                 class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
               <input type="text" name="last_name" value="{{ e.last_name }}" placeholder="Nom"
@@ -183,6 +191,7 @@
         <div class="p-4 rounded-lg" style="background-color: #F5F1E8">
           <h3 class="text-sm font-bold mb-3" style="color: #1A1A1A">Ajouter un employe</h3>
           <form method="POST" action="{{ url_for('client.team_employee_create') }}" class="flex flex-wrap gap-2 items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="first_name" placeholder="Prenom" required
               class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
             <input type="text" name="last_name" placeholder="Nom" required

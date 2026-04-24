@@ -23,6 +23,7 @@
           L'inscription prend environ 5 minutes.
         </p>
         <form method="POST" action="{{ url_for('caterer.stripe_onboard') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit"
                   class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
             <i data-lucide="link" style="width:16px;height:16px"></i>
@@ -54,6 +55,7 @@
           </span>
         </div>
         <form method="POST" action="{{ url_for('caterer.stripe_onboard') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit"
                   class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
             <i data-lucide="external-link" style="width:16px;height:16px"></i>

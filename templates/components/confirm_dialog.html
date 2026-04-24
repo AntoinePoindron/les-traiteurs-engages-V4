@@ -16,6 +16,7 @@
         Annuler
       </button>
       <form method="POST" action="{{ action_url }}" class="flex-1">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit"
           class="w-full py-2.5 rounded-full text-sm font-medium text-white transition-colors
           {% if destructive %}hover:opacity-90{% else %}hover:opacity-90{% endif %}"

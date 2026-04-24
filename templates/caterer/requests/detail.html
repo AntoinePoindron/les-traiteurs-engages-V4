@@ -22,6 +22,7 @@
         <i data-lucide="pencil" style="width:16px;height:16px"></i> Modifier le devis
       </a>
       <form method="POST" action="{{ url_for('caterer.quote_send', qr_id=qr.id, q_id=existing_quote.id) }}" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
           <i data-lucide="send" style="width:16px;height:16px"></i> Envoyer le devis
         </button>

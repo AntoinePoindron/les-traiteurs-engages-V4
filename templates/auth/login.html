@@ -25,6 +25,7 @@
       {% endif %}
 
       <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
           <label for="email" class="block text-sm font-medium text-dark mb-1.5">Adresse email</label>
           <input type="email" id="email" name="email" required autocomplete="email"

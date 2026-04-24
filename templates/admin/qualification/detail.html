@@ -169,6 +169,7 @@
       <div class="flex flex-col gap-3">
         {% if matches %}
         <form method="POST" action="{{ url_for('admin.qualification_approve', request_id=qr.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-bold" style="background-color: #1A3A52">
             <i data-lucide="check" style="width:16px;height:16px"></i>
             Approuver et envoyer a {{ matches|length }} traiteur{{ 's' if matches|length != 1 }}
@@ -188,6 +189,7 @@
         <h3 class="font-display font-bold text-lg text-black mb-2" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Rejeter la demande</h3>
         <p class="text-sm mb-4" style="color: #6B7280">Indiquez la raison du rejet. Le client sera notifie.</p>
         <form method="POST" action="{{ url_for('admin.qualification_reject', request_id=qr.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <textarea name="rejection_reason" rows="3" required
             class="w-full rounded-lg px-3 py-2.5 text-sm text-black focus:outline-none mb-4" style="border: 1px solid #E5E7EB" onfocus="this.style.borderColor='#1A3A52'" onblur="this.style.borderColor='#E5E7EB'"
             placeholder="Raison du rejet..."></textarea>

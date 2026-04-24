@@ -10,6 +10,7 @@
 
     <div class="max-w-lg">
       <form method="post" action="{{ url_for('client.profile') }}" class="bg-white rounded-lg p-6 space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
           <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Prenom</label>
           <input type="text" name="first_name" value="{{ user.first_name }}" required

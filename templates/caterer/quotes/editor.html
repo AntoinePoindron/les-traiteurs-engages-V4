@@ -83,6 +83,7 @@
   <div class="lg:col-span-2 order-1 lg:order-2">
     <form id="quote-form" method="POST"
           action="{% if quote %}{{ url_for('caterer.quote_update', qr_id=qr.id, q_id=quote.id) }}{% else %}{{ url_for('caterer.quote_create', qr_id=qr.id) }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="details" id="details-field" value="">
 
       {% set sections = [
@@ -137,7 +138,9 @@
     </form>
 
     {% if quote and quote.status.value == 'draft' %}
-    <form id="send-form" method="POST" action="{{ url_for('caterer.quote_send', qr_id=qr.id, q_id=quote.id) }}" class="hidden"></form>
+    <form id="send-form" method="POST" action="{{ url_for('caterer.quote_send', qr_id=qr.id, q_id=quote.id) }}" class="hidden">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
     {% endif %}
   </div>
 </div>

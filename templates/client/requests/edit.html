@@ -35,6 +35,7 @@
 
     <!-- Wizard form -->
     <form id="wizard-form" method="POST" action="{{ url_for('client.request_edit_post', request_id=qr.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <!-- STEP 1: Type de service -->
       <div id="step-1" class="bg-white rounded-lg p-6 mb-6" style="display: none;">

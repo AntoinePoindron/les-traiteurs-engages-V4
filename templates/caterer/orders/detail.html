@@ -20,6 +20,7 @@
   </div>
   {% if order.status.value == 'confirmed' %}
   <form method="POST" action="{{ url_for('caterer.order_deliver', order_id=order.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
       <i data-lucide="check-circle" style="width:16px;height:16px"></i> Marquer comme livree
     </button>

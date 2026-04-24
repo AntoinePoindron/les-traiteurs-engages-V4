@@ -10,6 +10,7 @@
 
     <div class="max-w-lg">
       <form method="post" action="{{ url_for('client.settings') }}" class="bg-white rounded-lg p-6 space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
           <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Nom de l'entreprise</label>
           <input type="text" name="name" value="{{ company.name }}" required

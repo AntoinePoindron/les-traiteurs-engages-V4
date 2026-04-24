@@ -10,6 +10,7 @@
 </div>
 
 <form method="POST" action="{{ url_for('caterer.profile_save') }}" class="space-y-6 max-w-3xl">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="bg-white rounded-lg p-6">
     <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Informations</h2>

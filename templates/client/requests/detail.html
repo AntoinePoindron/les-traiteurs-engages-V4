@@ -259,6 +259,7 @@
                   Annuler
                 </button>
                 <form method="POST" action="{{ url_for('client.accept_quote', request_id=qr.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="quote_id" value="{{ quote.id }}">
                   <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">
                     Confirmer l'acceptation
@@ -276,6 +277,7 @@
                 Veuillez indiquer la raison de votre refus a <strong>{{ quote.caterer.name }}</strong>.
               </p>
               <form method="POST" action="{{ url_for('client.refuse_quote', request_id=qr.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="quote_id" value="{{ quote.id }}">
                 <textarea name="refusal_reason" rows="3" required placeholder="Raison du refus..."
                   class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors resize-none mb-4" style="border-color: #E5E7EB"></textarea>
