@@ -10,13 +10,6 @@ session_factory = sessionmaker(bind=engine)
 ScopedSession = scoped_session(session_factory)
 
 
-def init_db():
-    """Create all tables from metadata."""
-    from models import Base
-
-    Base.metadata.create_all(engine)
-
-
 def get_db() -> Session:
     """Return the current scoped session (one per request/thread)."""
     return ScopedSession()

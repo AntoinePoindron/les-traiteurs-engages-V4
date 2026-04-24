@@ -1,18 +1,17 @@
+"""Bootstrap the first super-admin user.
+
+Schema management is owned by Alembic — run `alembic upgrade head` for that.
+This script is a no-op when ADMIN_INITIAL_PASSWORD is unset.
+"""
 import bcrypt
 from sqlalchemy import select
 
 from config import settings
-from database import get_session, init_db
+from database import get_session
 from models import User, UserRole
 
 
 def create_default_admin():
-    """Create the first super-admin from env vars.
-
-    Requires both ADMIN_EMAIL (defaulted in config) and ADMIN_INITIAL_PASSWORD.
-    If ADMIN_INITIAL_PASSWORD is unset, this is a no-op — operators must
-    provision the first admin manually (e.g., via a CLI or DB tool).
-    """
     if settings.admin_initial_password is None:
         print(
             "ADMIN_INITIAL_PASSWORD not set; skipping default admin creation. "
@@ -41,6 +40,4 @@ def create_default_admin():
 
 
 if __name__ == "__main__":
-    init_db()
-    print("Tables created.")
     create_default_admin()

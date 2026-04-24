@@ -49,13 +49,6 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
 
-    @app.cli.command("init-db")
-    def init_db_command():
-        from database import init_db
-
-        init_db()
-        print("Database initialized.")
-
     @app.before_request
     def load_current_user():
         g.current_user = None
