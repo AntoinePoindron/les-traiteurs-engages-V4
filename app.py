@@ -111,6 +111,13 @@ def create_app():
 
     @app.errorhandler(500)
     def _server_error(_e):
+        # A DB error leaves the SQLAlchemy session in PendingRollbackError —
+        # any subsequent ORM access (e.g. base.html dereferencing g.current_user)
+        # raises again. Reset the session so the error template renders cleanly.
+        try:
+            ScopedSession.rollback()
+        except Exception:
+            pass
         return render_template("errors/500.html"), 500
 
     @app.route("/health")
