@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
+from forms.caterer import RejectionForm
 from models import (
     Caterer,
     Company,
@@ -126,8 +127,12 @@ def qualification_reject(request_id):
     qr = db.get(QuoteRequest, request_id)
     if not qr:
         abort(404)
+    form = RejectionForm()
+    if not form.validate_on_submit():
+        flash("Veuillez corriger les erreurs du formulaire.", "error")
+        return redirect(url_for("admin.qualification_detail", request_id=request_id))
     qr.status = QuoteRequestStatus.cancelled
-    qr.message_to_caterer = request.form.get("rejection_reason", "")
+    qr.message_to_caterer = form.rejection_reason.data or ""
     db.commit()
     flash("Demande rejetee.", "info")
     return redirect(url_for("admin.qualification"))

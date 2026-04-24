@@ -7,6 +7,7 @@ from sqlalchemy import func, or_, select
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
+from forms.caterer import CatererProfileForm, QuoteForm
 from models import (
     Message,
     Order,
@@ -82,22 +83,34 @@ def profile():
 @role_required("caterer")
 def profile_save():
     caterer = g.current_user.caterer
+    form = CatererProfileForm()
+    if not form.validate_on_submit():
+        flash("Veuillez corriger les erreurs du formulaire.", "error")
+        return render_template("caterer/profile.html", user=g.current_user, caterer=caterer), 400
     db = get_db()
     db.add(caterer)
-    caterer.name = request.form.get("name", caterer.name)
-    caterer.description = request.form.get("description", caterer.description)
-    caterer.address = request.form.get("address", caterer.address)
-    caterer.city = request.form.get("city", caterer.city)
-    caterer.zip_code = request.form.get("zip_code", caterer.zip_code)
-    caterer.capacity_min = int(request.form["capacity_min"]) if request.form.get("capacity_min") else caterer.capacity_min
-    caterer.capacity_max = int(request.form["capacity_max"]) if request.form.get("capacity_max") else caterer.capacity_max
-    caterer.delivery_radius_km = int(request.form["delivery_radius_km"]) if request.form.get("delivery_radius_km") else caterer.delivery_radius_km
-    caterer.dietary_vegetarian = "dietary_vegetarian" in request.form
-    caterer.dietary_vegan = "dietary_vegan" in request.form
-    caterer.dietary_halal = "dietary_halal" in request.form
-    caterer.dietary_casher = "dietary_casher" in request.form
-    caterer.dietary_gluten_free = "dietary_gluten_free" in request.form
-    caterer.dietary_lactose_free = "dietary_lactose_free" in request.form
+    if form.name.data is not None:
+        caterer.name = form.name.data or caterer.name
+    if form.description.data is not None:
+        caterer.description = form.description.data or caterer.description
+    if form.address.data is not None:
+        caterer.address = form.address.data or caterer.address
+    if form.city.data is not None:
+        caterer.city = form.city.data or caterer.city
+    if form.zip_code.data is not None:
+        caterer.zip_code = form.zip_code.data or caterer.zip_code
+    if form.capacity_min.data is not None:
+        caterer.capacity_min = form.capacity_min.data
+    if form.capacity_max.data is not None:
+        caterer.capacity_max = form.capacity_max.data
+    if form.delivery_radius_km.data is not None:
+        caterer.delivery_radius_km = form.delivery_radius_km.data
+    caterer.dietary_vegetarian = form.dietary_vegetarian.data
+    caterer.dietary_vegan = form.dietary_vegan.data
+    caterer.dietary_halal = form.dietary_halal.data
+    caterer.dietary_casher = form.dietary_casher.data
+    caterer.dietary_gluten_free = form.dietary_gluten_free.data
+    caterer.dietary_lactose_free = form.dietary_lactose_free.data
     photos = list(caterer.photos or [])
     for file in request.files.getlist("photos"):
         url = save_upload(file, subfolder="caterers")
@@ -105,9 +118,9 @@ def profile_save():
             photos.append(url)
     caterer.photos = photos
 
-    specialties_raw = request.form.get("specialties", "")
+    specialties_raw = form.specialties.data or ""
     caterer.specialties = [s.strip() for s in specialties_raw.split(",") if s.strip()] if specialties_raw else caterer.specialties
-    service_config_raw = request.form.get("service_config", "")
+    service_config_raw = form.service_config.data or ""
     if service_config_raw:
         try:
             caterer.service_config = json.loads(service_config_raw)
@@ -210,10 +223,22 @@ def quote_create(qr_id):
     if not qrc:
         abort(404)
     qr = qrc.quote_request
-    details = json.loads(request.form.get("details", "[]"))
+    form = QuoteForm()
+    if not form.validate_on_submit():
+        flash("Veuillez corriger les erreurs du formulaire.", "error")
+        return render_template(
+            "caterer/quotes/editor.html",
+            user=g.current_user,
+            qr=qr,
+            qrc=qrc,
+            quote=None,
+        ), 400
+    try:
+        details = json.loads(form.details.data or "[]")
+    except json.JSONDecodeError:
+        details = []
     totals = calculate_quote_totals(details, qr.guest_count)
     reference = generate_quote_reference(db, caterer)
-    valid_until_str = request.form.get("valid_until", "")
     quote = Quote(
         quote_request_id=qr_id,
         caterer_id=caterer.id,
@@ -222,8 +247,8 @@ def quote_create(qr_id):
         total_amount_ht=totals["total_ht"],
         amount_per_person=totals["amount_per_person"],
         valorisable_agefiph=totals["valorisable_agefiph"],
-        notes=request.form.get("notes", ""),
-        valid_until=date.fromisoformat(valid_until_str) if valid_until_str else None,
+        notes=form.notes.data or "",
+        valid_until=form.valid_until.data,
         status=QuoteStatus.draft,
     )
     db.add(quote)
@@ -277,15 +302,32 @@ def quote_update(qr_id, q_id):
     if not quote:
         abort(404)
     qr = quote.quote_request
-    details = json.loads(request.form.get("details", "[]"))
+    qrc = db.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+    )
+    form = QuoteForm()
+    if not form.validate_on_submit():
+        flash("Veuillez corriger les erreurs du formulaire.", "error")
+        return render_template(
+            "caterer/quotes/editor.html",
+            user=g.current_user,
+            qr=qr,
+            qrc=qrc,
+            quote=quote,
+        ), 400
+    try:
+        details = json.loads(form.details.data or "[]")
+    except json.JSONDecodeError:
+        details = []
     totals = calculate_quote_totals(details, qr.guest_count)
     quote.details = {"lines": details, "totals": totals}
     quote.total_amount_ht = totals["total_ht"]
     quote.amount_per_person = totals["amount_per_person"]
     quote.valorisable_agefiph = totals["valorisable_agefiph"]
-    quote.notes = request.form.get("notes", "")
-    valid_until_str = request.form.get("valid_until", "")
-    quote.valid_until = date.fromisoformat(valid_until_str) if valid_until_str else quote.valid_until
+    quote.notes = form.notes.data or ""
+    quote.valid_until = form.valid_until.data if form.valid_until.data else quote.valid_until
     db.commit()
     flash("Devis mis a jour.", "success")
     return redirect(url_for("caterer.request_detail", qr_id=qr_id))

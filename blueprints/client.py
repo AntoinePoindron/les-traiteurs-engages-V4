@@ -7,6 +7,15 @@ from sqlalchemy import func, or_, select
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
+from forms.client import (
+    CompanySettingsForm,
+    EmployeeForm,
+    QuoteAcceptForm,
+    QuoteRefuseForm,
+    QuoteRequestForm,
+    ServiceForm,
+    UserProfileForm,
+)
 from services.uploads import save_upload
 from models import (
     Caterer,
@@ -180,18 +189,24 @@ def requests_new():
 @role_required("client_admin", "client_user")
 def requests_new_post():
     user = g.current_user
-    form = request.form
+    form = QuoteRequestForm()
+    if not form.validate_on_submit():
+        flash("Veuillez corriger les erreurs du formulaire.", "error")
+        db = get_db()
+        services = db.execute(
+            select(CompanyService).where(CompanyService.company_id == user.company_id)
+        ).scalars().all()
+        return render_template("client/requests/new.html", user=user, services=services), 400
 
-    is_compare = form.get("is_compare_mode") == "1"
+    service_id = None
+    if form.company_service_id.data:
+        try:
+            service_id = uuid.UUID(form.company_service_id.data)
+        except ValueError:
+            service_id = None
+
+    is_compare = form.is_compare_mode.data
     status = QuoteRequestStatus.pending_review if is_compare else QuoteRequestStatus.sent_to_caterers
-
-    service_id = form.get("company_service_id") or None
-    if service_id:
-        service_id = uuid.UUID(service_id)
-
-    budget_global = float(form["budget_global"]) if form.get("budget_global") else None
-    budget_per_person = float(form["budget_per_person"]) if form.get("budget_per_person") else None
-    guest_count = int(form["guest_count"]) if form.get("guest_count") else None
 
     db = get_db()
     qr = QuoteRequest(
@@ -199,39 +214,39 @@ def requests_new_post():
         user_id=user.id,
         company_service_id=service_id,
         status=status,
-        service_type=form.get("service_type") or None,
-        meal_type=form.get("meal_type"),
-        event_date=datetime.date.fromisoformat(form["event_date"]) if form.get("event_date") else None,
-        guest_count=guest_count,
-        event_address=form.get("event_address") or None,
-        event_city=form.get("event_city") or None,
-        event_zip_code=form.get("event_zip_code") or None,
-        event_latitude=float(form["event_latitude"]) if form.get("event_latitude") else None,
-        event_longitude=float(form["event_longitude"]) if form.get("event_longitude") else None,
-        budget_global=budget_global,
-        budget_per_person=budget_per_person,
-        dietary_vegetarian=form.get("dietary_vegetarian") == "1",
-        dietary_vegan=form.get("dietary_vegan") == "1",
-        dietary_halal=form.get("dietary_halal") == "1",
-        dietary_casher=form.get("dietary_casher") == "1",
-        dietary_gluten_free=form.get("dietary_gluten_free") == "1",
-        dietary_lactose_free=form.get("dietary_lactose_free") == "1",
-        vegetarian_count=int(form["vegetarian_count"]) if form.get("vegetarian_count") else None,
-        vegan_count=int(form["vegan_count"]) if form.get("vegan_count") else None,
-        halal_count=int(form["halal_count"]) if form.get("halal_count") else None,
-        casher_count=int(form["casher_count"]) if form.get("casher_count") else None,
-        gluten_free_count=int(form["gluten_free_count"]) if form.get("gluten_free_count") else None,
-        lactose_free_count=int(form["lactose_free_count"]) if form.get("lactose_free_count") else None,
-        drinks_alcohol=form.get("drinks_alcohol") == "1",
-        drinks_details=form.get("drinks_details") or None,
-        wants_waitstaff=form.get("wants_waitstaff") == "1",
-        service_waitstaff_details=form.get("service_waitstaff_details") or None,
-        wants_equipment=form.get("wants_equipment") == "1",
-        wants_decoration=form.get("wants_decoration") == "1",
-        wants_setup=form.get("wants_setup") == "1",
-        wants_cleanup=form.get("wants_cleanup") == "1",
+        service_type=form.service_type.data or None,
+        meal_type=form.meal_type.data or None,
+        event_date=form.event_date.data,
+        guest_count=form.guest_count.data,
+        event_address=form.event_address.data or None,
+        event_city=form.event_city.data or None,
+        event_zip_code=form.event_zip_code.data or None,
+        event_latitude=form.event_latitude.data,
+        event_longitude=form.event_longitude.data,
+        budget_global=form.budget_global.data,
+        budget_per_person=form.budget_per_person.data,
+        dietary_vegetarian=form.dietary_vegetarian.data,
+        dietary_vegan=form.dietary_vegan.data,
+        dietary_halal=form.dietary_halal.data,
+        dietary_casher=form.dietary_casher.data,
+        dietary_gluten_free=form.dietary_gluten_free.data,
+        dietary_lactose_free=form.dietary_lactose_free.data,
+        vegetarian_count=form.vegetarian_count.data,
+        vegan_count=form.vegan_count.data,
+        halal_count=form.halal_count.data,
+        casher_count=form.casher_count.data,
+        gluten_free_count=form.gluten_free_count.data,
+        lactose_free_count=form.lactose_free_count.data,
+        drinks_alcohol=form.drinks_alcohol.data,
+        drinks_details=form.drinks_details.data or None,
+        wants_waitstaff=form.wants_waitstaff.data,
+        service_waitstaff_details=form.service_waitstaff_details.data or None,
+        wants_equipment=form.wants_equipment.data,
+        wants_decoration=form.wants_decoration.data,
+        wants_setup=form.wants_setup.data,
+        wants_cleanup=form.wants_cleanup.data,
         is_compare_mode=is_compare,
-        message_to_caterer=form.get("message_to_caterer") or None,
+        message_to_caterer=form.message_to_caterer.data or None,
     )
     db.add(qr)
     db.flush()
@@ -283,8 +298,12 @@ def request_detail(request_id):
 @role_required("client_admin", "client_user")
 def accept_quote(request_id):
     user = g.current_user
-    quote_id = request.form.get("quote_id")
-    if not quote_id:
+    form = QuoteAcceptForm()
+    if not form.validate_on_submit():
+        abort(400)
+    try:
+        quote_uuid = uuid.UUID(form.quote_id.data)
+    except ValueError:
         abort(400)
 
     db = get_db()
@@ -299,7 +318,7 @@ def accept_quote(request_id):
 
     accepted_quote = db.execute(
         select(Quote).where(
-            Quote.id == uuid.UUID(quote_id),
+            Quote.id == quote_uuid,
             Quote.quote_request_id == request_id,
         )
     ).scalar_one_or_none()
@@ -342,10 +361,14 @@ def accept_quote(request_id):
 @role_required("client_admin", "client_user")
 def refuse_quote(request_id):
     user = g.current_user
-    quote_id = request.form.get("quote_id")
-    reason = request.form.get("refusal_reason", "")
-    if not quote_id:
+    form = QuoteRefuseForm()
+    if not form.validate_on_submit():
         abort(400)
+    try:
+        quote_uuid = uuid.UUID(form.quote_id.data)
+    except ValueError:
+        abort(400)
+    reason = form.refusal_reason.data or ""
 
     db = get_db()
     qr = db.execute(
@@ -359,7 +382,7 @@ def refuse_quote(request_id):
 
     quote = db.execute(
         select(Quote).where(
-            Quote.id == uuid.UUID(quote_id),
+            Quote.id == quote_uuid,
             Quote.quote_request_id == request_id,
         )
     ).scalar_one_or_none()
@@ -420,7 +443,6 @@ def request_edit(request_id):
 @role_required("client_admin", "client_user")
 def request_edit_post(request_id):
     user = g.current_user
-    form = request.form
 
     db = get_db()
     qr = db.execute(
@@ -435,47 +457,62 @@ def request_edit_post(request_id):
         flash("Cette demande ne peut plus etre modifiee.", "error")
         return redirect(url_for("client.request_detail", request_id=request_id))
 
-    service_id = form.get("company_service_id") or None
-    if service_id:
-        service_id = uuid.UUID(service_id)
+    form = QuoteRequestForm()
+    if not form.validate_on_submit():
+        flash("Veuillez corriger les erreurs du formulaire.", "error")
+        services = db.execute(
+            select(CompanyService).where(CompanyService.company_id == user.company_id)
+        ).scalars().all()
+        return render_template(
+            "client/requests/edit.html",
+            user=user,
+            qr=qr,
+            services=services,
+        ), 400
+
+    service_id = None
+    if form.company_service_id.data:
+        try:
+            service_id = uuid.UUID(form.company_service_id.data)
+        except ValueError:
+            service_id = None
 
     qr.company_service_id = service_id
-    qr.service_type = form.get("service_type") or None
-    qr.meal_type = form.get("meal_type")
-    qr.event_date = datetime.date.fromisoformat(form["event_date"]) if form.get("event_date") else None
-    qr.guest_count = int(form["guest_count"]) if form.get("guest_count") else None
-    qr.event_address = form.get("event_address") or None
-    qr.event_city = form.get("event_city") or None
-    qr.event_zip_code = form.get("event_zip_code") or None
-    qr.event_latitude = float(form["event_latitude"]) if form.get("event_latitude") else None
-    qr.event_longitude = float(form["event_longitude"]) if form.get("event_longitude") else None
-    qr.budget_global = float(form["budget_global"]) if form.get("budget_global") else None
-    qr.budget_per_person = float(form["budget_per_person"]) if form.get("budget_per_person") else None
-    qr.dietary_vegetarian = form.get("dietary_vegetarian") == "1"
-    qr.dietary_vegan = form.get("dietary_vegan") == "1"
-    qr.dietary_halal = form.get("dietary_halal") == "1"
-    qr.dietary_casher = form.get("dietary_casher") == "1"
-    qr.dietary_gluten_free = form.get("dietary_gluten_free") == "1"
-    qr.dietary_lactose_free = form.get("dietary_lactose_free") == "1"
-    qr.vegetarian_count = int(form["vegetarian_count"]) if form.get("vegetarian_count") else None
-    qr.vegan_count = int(form["vegan_count"]) if form.get("vegan_count") else None
-    qr.halal_count = int(form["halal_count"]) if form.get("halal_count") else None
-    qr.casher_count = int(form["casher_count"]) if form.get("casher_count") else None
-    qr.gluten_free_count = int(form["gluten_free_count"]) if form.get("gluten_free_count") else None
-    qr.lactose_free_count = int(form["lactose_free_count"]) if form.get("lactose_free_count") else None
-    qr.drinks_alcohol = form.get("drinks_alcohol") == "1"
-    qr.drinks_details = form.get("drinks_details") or None
-    qr.wants_waitstaff = form.get("wants_waitstaff") == "1"
-    qr.service_waitstaff_details = form.get("service_waitstaff_details") or None
-    qr.wants_equipment = form.get("wants_equipment") == "1"
-    qr.wants_decoration = form.get("wants_decoration") == "1"
-    qr.wants_setup = form.get("wants_setup") == "1"
-    qr.wants_cleanup = form.get("wants_cleanup") == "1"
-    qr.is_compare_mode = form.get("is_compare_mode") == "1"
-    qr.message_to_caterer = form.get("message_to_caterer") or None
+    qr.service_type = form.service_type.data or None
+    qr.meal_type = form.meal_type.data or None
+    qr.event_date = form.event_date.data
+    qr.guest_count = form.guest_count.data
+    qr.event_address = form.event_address.data or None
+    qr.event_city = form.event_city.data or None
+    qr.event_zip_code = form.event_zip_code.data or None
+    qr.event_latitude = form.event_latitude.data
+    qr.event_longitude = form.event_longitude.data
+    qr.budget_global = form.budget_global.data
+    qr.budget_per_person = form.budget_per_person.data
+    qr.dietary_vegetarian = form.dietary_vegetarian.data
+    qr.dietary_vegan = form.dietary_vegan.data
+    qr.dietary_halal = form.dietary_halal.data
+    qr.dietary_casher = form.dietary_casher.data
+    qr.dietary_gluten_free = form.dietary_gluten_free.data
+    qr.dietary_lactose_free = form.dietary_lactose_free.data
+    qr.vegetarian_count = form.vegetarian_count.data
+    qr.vegan_count = form.vegan_count.data
+    qr.halal_count = form.halal_count.data
+    qr.casher_count = form.casher_count.data
+    qr.gluten_free_count = form.gluten_free_count.data
+    qr.lactose_free_count = form.lactose_free_count.data
+    qr.drinks_alcohol = form.drinks_alcohol.data
+    qr.drinks_details = form.drinks_details.data or None
+    qr.wants_waitstaff = form.wants_waitstaff.data
+    qr.service_waitstaff_details = form.service_waitstaff_details.data or None
+    qr.wants_equipment = form.wants_equipment.data
+    qr.wants_decoration = form.wants_decoration.data
+    qr.wants_setup = form.wants_setup.data
+    qr.wants_cleanup = form.wants_cleanup.data
+    qr.is_compare_mode = form.is_compare_mode.data
+    qr.message_to_caterer = form.message_to_caterer.data or None
 
-    is_compare = form.get("is_compare_mode") == "1"
-    qr.status = QuoteRequestStatus.pending_review if is_compare else QuoteRequestStatus.sent_to_caterers
+    qr.status = QuoteRequestStatus.pending_review if form.is_compare_mode.data else QuoteRequestStatus.sent_to_caterers
 
     db.commit()
 
@@ -643,16 +680,16 @@ def team():
 @role_required("client_admin")
 def team_service_create():
     user = g.current_user
-    name = request.form.get("name", "").strip()
-    if not name:
+    form = ServiceForm()
+    if not form.validate_on_submit():
         flash("Le nom du service est obligatoire.", "error")
         return redirect(url_for("client.team"))
     db = get_db()
     service = CompanyService(
         company_id=user.company_id,
-        name=name,
-        description=request.form.get("description", "").strip() or None,
-        annual_budget=float(request.form["annual_budget"]) if request.form.get("annual_budget") else None,
+        name=form.name.data.strip(),
+        description=(form.description.data or "").strip() or None,
+        annual_budget=form.annual_budget.data,
     )
     db.add(service)
     db.commit()
@@ -674,9 +711,13 @@ def team_service_edit(service_id):
     )
     if not service:
         abort(404)
-    service.name = request.form.get("name", service.name).strip()
-    service.description = request.form.get("description", "").strip() or None
-    service.annual_budget = float(request.form["annual_budget"]) if request.form.get("annual_budget") else None
+    form = ServiceForm()
+    if not form.validate_on_submit():
+        flash("Le nom du service est obligatoire.", "error")
+        return redirect(url_for("client.team"))
+    service.name = form.name.data.strip()
+    service.description = (form.description.data or "").strip() or None
+    service.annual_budget = form.annual_budget.data
     db.commit()
     flash("Service mis a jour.", "success")
     return redirect(url_for("client.team"))
@@ -713,20 +754,23 @@ def team_service_delete(service_id):
 @role_required("client_admin")
 def team_employee_create():
     user = g.current_user
-    first_name = request.form.get("first_name", "").strip()
-    last_name = request.form.get("last_name", "").strip()
-    email = request.form.get("email", "").strip().lower()
-    if not all([first_name, last_name, email]):
+    form = EmployeeForm()
+    if not form.validate_on_submit():
         flash("Prenom, nom et email sont obligatoires.", "error")
         return redirect(url_for("client.team"))
-    service_id = uuid.UUID(request.form["service_id"]) if request.form.get("service_id") else None
+    service_id = None
+    if form.service_id.data:
+        try:
+            service_id = uuid.UUID(form.service_id.data)
+        except ValueError:
+            service_id = None
     db = get_db()
     employee = CompanyEmployee(
         company_id=user.company_id,
-        first_name=first_name,
-        last_name=last_name,
-        email=email,
-        position=request.form.get("position", "").strip() or None,
+        first_name=form.first_name.data.strip(),
+        last_name=form.last_name.data.strip(),
+        email=form.email.data.strip().lower(),
+        position=(form.position.data or "").strip() or None,
         service_id=service_id,
     )
     db.add(employee)
@@ -749,12 +793,21 @@ def team_employee_edit(employee_id):
     )
     if not employee:
         abort(404)
-    employee.first_name = request.form.get("first_name", employee.first_name).strip()
-    employee.last_name = request.form.get("last_name", employee.last_name).strip()
-    employee.email = request.form.get("email", employee.email).strip().lower()
-    employee.position = request.form.get("position", "").strip() or None
-    service_id = request.form.get("service_id")
-    employee.service_id = uuid.UUID(service_id) if service_id else None
+    form = EmployeeForm()
+    if not form.validate_on_submit():
+        flash("Prenom, nom et email sont obligatoires.", "error")
+        return redirect(url_for("client.team"))
+    service_id = None
+    if form.service_id.data:
+        try:
+            service_id = uuid.UUID(form.service_id.data)
+        except ValueError:
+            service_id = None
+    employee.first_name = form.first_name.data.strip()
+    employee.last_name = form.last_name.data.strip()
+    employee.email = form.email.data.strip().lower()
+    employee.position = (form.position.data or "").strip() or None
+    employee.service_id = service_id
     db.commit()
     flash("Employe mis a jour.", "success")
     return redirect(url_for("client.team"))
@@ -882,11 +935,18 @@ def message_thread(thread_id):
 def profile():
     user = g.current_user
     if request.method == "POST":
+        form = UserProfileForm()
+        if not form.validate_on_submit():
+            flash("Veuillez corriger les erreurs du formulaire.", "error")
+            return render_template("client/profile.html", user=user), 400
         db = get_db()
         u = db.get(User, user.id)
-        u.first_name = request.form.get("first_name", u.first_name).strip()
-        u.last_name = request.form.get("last_name", u.last_name).strip()
-        u.email = request.form.get("email", u.email).strip().lower()
+        if form.first_name.data is not None:
+            u.first_name = (form.first_name.data or "").strip() or u.first_name
+        if form.last_name.data is not None:
+            u.last_name = (form.last_name.data or "").strip() or u.last_name
+        if form.email.data:
+            u.email = form.email.data.strip().lower()
         db.commit()
         flash("Profil mis a jour.", "success")
         return redirect(url_for("client.profile"))
@@ -899,15 +959,21 @@ def profile():
 def settings():
     user = g.current_user
     if request.method == "POST":
+        form = CompanySettingsForm()
         db = get_db()
         company = db.get(Company, user.company_id)
-        company.name = request.form.get("name", company.name).strip()
-        company.siret = request.form.get("siret", company.siret).strip()
-        company.address = request.form.get("address", "").strip() or None
-        company.city = request.form.get("city", "").strip() or None
-        company.zip_code = request.form.get("zip_code", "").strip() or None
-        company.oeth_eligible = request.form.get("oeth_eligible") == "1"
-        company.budget_annual = float(request.form["budget_annual"]) if request.form.get("budget_annual") else None
+        if not form.validate_on_submit():
+            flash("Veuillez corriger les erreurs du formulaire.", "error")
+            return render_template("client/settings.html", user=user, company=company), 400
+        if form.name.data is not None:
+            company.name = (form.name.data or "").strip() or company.name
+        if form.siret.data is not None:
+            company.siret = (form.siret.data or "").strip() or company.siret
+        company.address = (form.address.data or "").strip() or None
+        company.city = (form.city.data or "").strip() or None
+        company.zip_code = (form.zip_code.data or "").strip() or None
+        company.oeth_eligible = form.oeth_eligible.data
+        company.budget_annual = form.budget_annual.data
         logo_file = request.files.get("logo")
         if logo_file:
             logo_url = save_upload(logo_file, subfolder="companies")

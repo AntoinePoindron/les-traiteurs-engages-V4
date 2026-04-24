@@ -1,7 +1,7 @@
 import logging
 import uuid
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, abort, g, jsonify, request
 from sqlalchemy import or_, select
 
 import config
@@ -114,14 +114,27 @@ def get_messages(thread_id):
 @login_required
 def send_message():
     user = g.current_user
-    data = request.get_json()
-    recipient_id = uuid.UUID(data["recipient_id"])
-    body = data.get("body", "").strip()
+    data = request.get_json() or {}
+    try:
+        recipient_id = uuid.UUID(str(data.get("recipient_id", "")))
+    except (ValueError, TypeError):
+        abort(400)
+    body = (data.get("body") or "").strip()
     if not body:
         return jsonify({"error": "Le message ne peut pas etre vide."}), 400
 
-    order_id = uuid.UUID(data["order_id"]) if data.get("order_id") else None
-    quote_request_id = uuid.UUID(data["quote_request_id"]) if data.get("quote_request_id") else None
+    order_id = None
+    if data.get("order_id"):
+        try:
+            order_id = uuid.UUID(str(data["order_id"]))
+        except (ValueError, TypeError):
+            order_id = None
+    quote_request_id = None
+    if data.get("quote_request_id"):
+        try:
+            quote_request_id = uuid.UUID(str(data["quote_request_id"]))
+        except (ValueError, TypeError):
+            quote_request_id = None
 
     pair = sorted([str(user.id), str(recipient_id)])
     thread_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{pair[0]}:{pair[1]}")
