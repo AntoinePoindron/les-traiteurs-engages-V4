@@ -4,7 +4,7 @@ import uuid
 import bcrypt
 from sqlalchemy import select
 
-from database import get_session, init_db
+from database import get_session
 from models import (
     Caterer,
     CatererStructureType,
@@ -436,5 +436,5 @@ def seed():
 
 
 if __name__ == "__main__":
-    init_db()
+    # Schema management lives in alembic — run `alembic upgrade head` first.
     seed()

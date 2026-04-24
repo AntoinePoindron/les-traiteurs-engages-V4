@@ -13,6 +13,7 @@ services:
       - STRIPE_CONNECT_CLIENT_ID=${STRIPE_CONNECT_CLIENT_ID:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:-}
+      - ENABLE_DEMO_SEED=${ENABLE_DEMO_SEED:-}
     depends_on:
       db:
         condition: service_healthy
