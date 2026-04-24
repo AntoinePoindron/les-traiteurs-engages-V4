@@ -9,6 +9,16 @@ docker-compose up
 # Visit http://localhost:8000
 ```
 
+## Tests
+
+```bash
+docker compose exec app pytest
+```
+
+The test suite recreates a fresh `traiteurs_test` Postgres database on each run,
+applies all Alembic migrations, then exercises auth + per-role page rendering.
+Tests must run inside the `app` container so they can reach the `db` service.
+
 ## Manual setup
 
 ```bash
