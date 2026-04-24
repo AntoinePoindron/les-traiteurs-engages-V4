@@ -2,13 +2,17 @@ from datetime import timedelta
 
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
 from sqlalchemy import func, select, text
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 import config
 from config import settings
 from database import ScopedSession, get_db
 from extensions import csrf, limiter
 from logging_config import configure_logging, install_request_id_hooks
-from models import Caterer, Company, Order, OrderStatus, User
+from models import (
+    Caterer, Company, MembershipStatus, Order, OrderStatus, PaymentStatus,
+    QRCStatus, QuoteRequestStatus, QuoteStatus, User, UserRole,
+)
 
 configure_logging()
 
@@ -30,6 +34,9 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = config.SECRET_KEY
 
+    if settings.trust_proxy_headers:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
@@ -41,6 +48,16 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
     install_request_id_hooks(app)
+
+    app.jinja_env.globals.update(
+        OrderStatus=OrderStatus,
+        PaymentStatus=PaymentStatus,
+        QuoteRequestStatus=QuoteRequestStatus,
+        QuoteStatus=QuoteStatus,
+        QRCStatus=QRCStatus,
+        MembershipStatus=MembershipStatus,
+        UserRole=UserRole,
+    )
 
     from blueprints.admin import admin_bp
     from blueprints.api import api_bp

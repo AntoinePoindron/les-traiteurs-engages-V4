@@ -35,8 +35,10 @@ class Settings(BaseSettings):
     admin_email: str = "admin@traiteurs-engages.fr"
     admin_initial_password: SecretStr | None = None
 
-    # Set True in production with TLS — flips SESSION_COOKIE_SECURE and HSTS on.
     secure_cookies: bool = False
+    # Only True behind a reverse proxy: with the flag on, direct clients
+    # can otherwise spoof X-Forwarded-For to bypass rate limits.
+    trust_proxy_headers: bool = False
 
     @field_validator(
         "stripe_secret_key", "stripe_publishable_key", "stripe_webhook_secret",
@@ -51,6 +53,13 @@ class Settings(BaseSettings):
     @classmethod
     def _email_empty_to_default(cls, v):
         return v if (isinstance(v, str) and v) else "admin@traiteurs-engages.fr"
+
+    @field_validator("secure_cookies", "trust_proxy_headers", mode="before")
+    @classmethod
+    def _bool_empty_to_false(cls, v):
+        if isinstance(v, str) and v == "":
+            return False
+        return v
 
 
 settings = Settings()
