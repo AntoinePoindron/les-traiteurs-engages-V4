@@ -22,7 +22,7 @@ from models import (
     User,
 )
 from services.quotes import (
-    calculate_quote_totals, generate_quote_reference, lines_from_dicts, totals_for_json,
+    calculate_quote_totals, generate_quote_reference, lines_from_dicts,
 )
 from services.uploads import save_upload
 from services.stripe_service import (
@@ -247,7 +247,6 @@ def quote_create(qr_id):
         quote_request_id=qr_id,
         caterer_id=caterer.id,
         reference=reference,
-        details={"totals": totals_for_json(totals)},
         total_amount_ht=totals["total_ht"],
         amount_per_person=totals["amount_per_person"],
         valorisable_agefiph=totals["valorisable_agefiph"],
@@ -330,7 +329,6 @@ def quote_update(qr_id, q_id):
         line_dicts = []
     totals = calculate_quote_totals(line_dicts, qr.guest_count)
     quote.lines = lines_from_dicts(line_dicts)
-    quote.details = {"totals": totals_for_json(totals)}
     quote.total_amount_ht = totals["total_ht"]
     quote.amount_per_person = totals["amount_per_person"]
     quote.valorisable_agefiph = totals["valorisable_agefiph"]

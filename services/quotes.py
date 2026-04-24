@@ -49,11 +49,12 @@ def derive_invoice_reference(quote_reference):
 
 
 def calculate_quote_totals(details, guest_count):
-    """Compute all totals from line items, returning Decimals throughout.
+    """Compute all totals from line items as Decimals.
 
-    Callers should write Decimal values directly into Numeric columns
-    (Quote.total_amount_ht etc.). For storage in the Quote.details JSON
-    column (display-only), pass the dict through `totals_for_json`.
+    Callers write the relevant fields onto Quote columns
+    (`total_amount_ht`, `amount_per_person`, `valorisable_agefiph`).
+    Templates that need richer breakdowns (per-section, per-TVA-rate) call
+    this helper at render time — there is no persisted cache.
     """
     lines = details if isinstance(details, list) else []
 
@@ -109,18 +110,3 @@ def calculate_quote_totals(details, guest_count):
         "platform_fee_ttc": platform_fee_ttc.quantize(CENT),
         "valorisable_agefiph": valorisable_agefiph.quantize(CENT),
     }
-
-
-def totals_for_json(totals):
-    """Convert a Decimal-typed totals dict to a JSON-serialisable dict.
-
-    Used when persisting to JSON columns for display purposes only.
-    Callers should NOT round-trip business calculations through this.
-    """
-    def conv(v):
-        if isinstance(v, Decimal):
-            return float(v)
-        if isinstance(v, dict):
-            return {k: conv(x) for k, x in v.items()}
-        return v
-    return {k: conv(v) for k, v in totals.items()}

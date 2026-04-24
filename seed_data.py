@@ -5,6 +5,8 @@ import bcrypt
 from sqlalchemy import select
 
 from database import get_session
+from decimal import Decimal
+
 from models import (
     Caterer,
     CatererStructureType,
@@ -18,6 +20,7 @@ from models import (
     OrderStatus,
     QRCStatus,
     Quote,
+    QuoteLine,
     QuoteRequest,
     QuoteRequestCaterer,
     QuoteRequestStatus,
@@ -294,48 +297,36 @@ def seed():
             quote_request_id=qr_sent.id,
             caterer_id=cat_esat.id,
             reference="DEVIS-ESAT1-2026-001",
-            total_amount_ht=1350.00,
-            amount_per_person=45.00,
-            valorisable_agefiph=1350.00,
-            details={
-                "lines": [
-                    {"section": "principal", "label": "Menu dejeuner complet", "quantity": 30, "unit_price_ht": 40, "tva_rate": 10},
-                    {"section": "boissons", "label": "Boissons sans alcool", "quantity": 30, "unit_price_ht": 5, "tva_rate": 10},
-                ],
-                "totals": {
-                    "total_ht": 1350.00,
-                    "total_tva": 135.00,
-                    "total_ttc": 1485.00,
-                    "amount_per_person": 49.50,
-                },
-            },
+            total_amount_ht=Decimal("1350.00"),
+            amount_per_person=Decimal("45.00"),
+            valorisable_agefiph=Decimal("1350.00"),
             notes="Menu compose avec des produits de saison.",
             valid_until=today + datetime.timedelta(days=30),
             status=QuoteStatus.sent,
+            lines=[
+                QuoteLine(position=0, section="principal", description="Menu dejeuner complet",
+                          quantity=Decimal("30"), unit_price_ht=Decimal("40"), tva_rate=Decimal("10")),
+                QuoteLine(position=1, section="boissons", description="Boissons sans alcool",
+                          quantity=Decimal("30"), unit_price_ht=Decimal("5"), tva_rate=Decimal("10")),
+            ],
         )
 
         quote_accepted = Quote(
             quote_request_id=qr_completed.id,
             caterer_id=cat_ea.id,
             reference="DEVIS-EATCO-2026-001",
-            total_amount_ht=1100.00,
-            amount_per_person=55.00,
-            valorisable_agefiph=1100.00,
-            details={
-                "lines": [
-                    {"section": "principal", "label": "Diner gastronomique", "quantity": 20, "unit_price_ht": 50, "tva_rate": 10},
-                    {"section": "boissons", "label": "Vin et boissons", "quantity": 20, "unit_price_ht": 5, "tva_rate": 20},
-                ],
-                "totals": {
-                    "total_ht": 1100.00,
-                    "total_tva": 120.00,
-                    "total_ttc": 1220.00,
-                    "amount_per_person": 61.00,
-                },
-            },
+            total_amount_ht=Decimal("1100.00"),
+            amount_per_person=Decimal("55.00"),
+            valorisable_agefiph=Decimal("1100.00"),
             notes="Menu gastronomique adapte aux regimes specifiques.",
             valid_until=today - datetime.timedelta(days=5),
             status=QuoteStatus.accepted,
+            lines=[
+                QuoteLine(position=0, section="principal", description="Diner gastronomique",
+                          quantity=Decimal("20"), unit_price_ht=Decimal("50"), tva_rate=Decimal("10")),
+                QuoteLine(position=1, section="boissons", description="Vin et boissons",
+                          quantity=Decimal("20"), unit_price_ht=Decimal("5"), tva_rate=Decimal("20")),
+            ],
         )
         db.add_all([quote_sent, quote_accepted])
         db.flush()
