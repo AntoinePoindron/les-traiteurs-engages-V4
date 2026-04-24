@@ -8,3 +8,4 @@ werkzeug
 gunicorn
 bcrypt
 pydantic-settings>=2.0
+flask-wtf>=1.2

@@ -1,14 +1,43 @@
+from datetime import timedelta
+
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import func, select, text
 
 import config
+from config import settings
 from database import ScopedSession, get_db
 from models import Caterer, Company, Order, OrderStatus, User
+
+csrf = CSRFProtect()
+
+
+CSP_REPORT_ONLY = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data:; "
+    "connect-src 'self'; "
+    "object-src 'none'; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'"
+)
 
 
 def create_app():
     app = Flask(__name__)
     app.secret_key = config.SECRET_KEY
+
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=settings.secure_cookies,
+        PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+        WTF_CSRF_TIME_LIMIT=None,  # token lives for the session lifetime
+    )
+
+    csrf.init_app(app)
 
     from blueprints.admin import admin_bp
     from blueprints.api import api_bp
@@ -47,6 +76,23 @@ def create_app():
     @app.teardown_appcontext
     def remove_session(exc=None):
         ScopedSession.remove()
+
+    @app.after_request
+    def security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=(), payment=()"
+        )
+        # CSP starts in Report-Only mode — collect violations before enforcing.
+        # Switch the header name to "Content-Security-Policy" to enforce.
+        response.headers["Content-Security-Policy-Report-Only"] = CSP_REPORT_ONLY
+        if settings.secure_cookies:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
+        return response
 
     @app.route("/health")
     def health():

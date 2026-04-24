@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     admin_email: str = "admin@traiteurs-engages.fr"
     admin_initial_password: SecretStr | None = None
 
+    # Set True in production with TLS — flips SESSION_COOKIE_SECURE and HSTS on.
+    secure_cookies: bool = False
+
     @field_validator(
         "stripe_secret_key", "stripe_publishable_key", "stripe_webhook_secret",
         "stripe_connect_client_id", "admin_initial_password",
