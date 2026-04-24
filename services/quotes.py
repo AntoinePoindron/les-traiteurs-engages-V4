@@ -5,6 +5,8 @@ from sqlalchemy import extract, func, select
 
 from models import Quote
 
+CENT = Decimal("0.01")
+
 
 def generate_quote_reference(session, caterer):
     """Generate DEVIS-{invoice_prefix}-YYYY-NNN sequential per caterer per year."""
@@ -23,11 +25,16 @@ def derive_invoice_reference(quote_reference):
 
 
 def calculate_quote_totals(details, guest_count):
-    """Compute all totals from line items."""
+    """Compute all totals from line items, returning Decimals throughout.
+
+    Callers should write Decimal values directly into Numeric columns
+    (Quote.total_amount_ht etc.). For storage in the Quote.details JSON
+    column (display-only), pass the dict through `totals_for_json`.
+    """
     lines = details if isinstance(details, list) else []
 
-    section_totals = {}
-    tva_totals = {}
+    section_totals: dict[str, Decimal] = {}
+    tva_totals: dict[str, dict[str, Decimal]] = {}
     total_ht = Decimal("0")
     total_tva = Decimal("0")
 
@@ -64,17 +71,32 @@ def calculate_quote_totals(details, guest_count):
     valorisable_agefiph = total_ht
 
     return {
-        "section_totals": {k: float(v.quantize(Decimal("0.01"))) for k, v in section_totals.items()},
+        "section_totals": {k: v.quantize(CENT) for k, v in section_totals.items()},
         "tva_totals": {
-            k: {"base_ht": float(v["base_ht"].quantize(Decimal("0.01"))), "tva": float(v["tva"].quantize(Decimal("0.01")))}
+            k: {"base_ht": v["base_ht"].quantize(CENT), "tva": v["tva"].quantize(CENT)}
             for k, v in tva_totals.items()
         },
-        "total_ht": float(total_ht.quantize(Decimal("0.01"))),
-        "total_tva": float(total_tva.quantize(Decimal("0.01"))),
-        "total_ttc": float(total_ttc.quantize(Decimal("0.01"))),
-        "amount_per_person": float(amount_per_person.quantize(Decimal("0.01"))),
-        "platform_fee_ht": float(platform_fee_ht.quantize(Decimal("0.01"))),
-        "platform_fee_tva": float(platform_fee_tva.quantize(Decimal("0.01"))),
-        "platform_fee_ttc": float(platform_fee_ttc.quantize(Decimal("0.01"))),
-        "valorisable_agefiph": float(valorisable_agefiph.quantize(Decimal("0.01"))),
+        "total_ht": total_ht.quantize(CENT),
+        "total_tva": total_tva.quantize(CENT),
+        "total_ttc": total_ttc.quantize(CENT),
+        "amount_per_person": amount_per_person.quantize(CENT),
+        "platform_fee_ht": platform_fee_ht.quantize(CENT),
+        "platform_fee_tva": platform_fee_tva.quantize(CENT),
+        "platform_fee_ttc": platform_fee_ttc.quantize(CENT),
+        "valorisable_agefiph": valorisable_agefiph.quantize(CENT),
     }
+
+
+def totals_for_json(totals):
+    """Convert a Decimal-typed totals dict to a JSON-serialisable dict.
+
+    Used when persisting to JSON columns for display purposes only.
+    Callers should NOT round-trip business calculations through this.
+    """
+    def conv(v):
+        if isinstance(v, Decimal):
+            return float(v)
+        if isinstance(v, dict):
+            return {k: conv(x) for k, x in v.items()}
+        return v
+    return {k: conv(v) for k, v in totals.items()}
