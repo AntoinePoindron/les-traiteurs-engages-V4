@@ -34,7 +34,11 @@ def login():
         if not user.is_active:
             flash("Votre compte est desactive.", "error")
             return render_template("auth/login.html")
+        # Rotate session on successful auth: drop any pre-login state
+        # (CSRF token, anonymous flash) before issuing the authenticated cookie.
+        session.clear()
         session["user_id"] = str(user.id)
+        session.permanent = True
         endpoint = ROLE_DASHBOARDS.get(UserRole(user.role), "client.dashboard")
         return redirect(url_for(endpoint))
     return render_template("auth/login.html")
