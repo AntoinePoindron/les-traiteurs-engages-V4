@@ -5,11 +5,14 @@ services:
       - "${HOST_PORT:-8000}:8000"
     environment:
       - DATABASE_URL=postgresql://traiteurs:traiteurs@db:5432/traiteurs
-      - SECRET_KEY=change-me-in-production
-      - STRIPE_SECRET_KEY=
-      - STRIPE_PUBLISHABLE_KEY=
-      - STRIPE_WEBHOOK_SECRET=
-      - STRIPE_CONNECT_CLIENT_ID=
+      # SECRET_KEY must be set via .deploy.env or shell env. App fails to boot if missing or <32 chars.
+      - SECRET_KEY=${SECRET_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_CONNECT_CLIENT_ID=${STRIPE_CONNECT_CLIENT_ID:-}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy

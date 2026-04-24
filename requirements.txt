@@ -7,3 +7,4 @@ python-dotenv
 werkzeug
 gunicorn
 bcrypt
+pydantic-settings>=2.0
