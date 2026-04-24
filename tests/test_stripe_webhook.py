@@ -52,6 +52,9 @@ def _event(
 # ---------------------------------------------------------------------------
 
 
+TEST_SECRET = "whsec_test_" + "a" * 32
+
+
 def test_empty_webhook_secret_rejects_forged_event(client, monkeypatch):
     """If STRIPE_WEBHOOK_SECRET is empty the endpoint MUST refuse to process.
 
@@ -75,3 +78,144 @@ def test_empty_webhook_secret_rejects_forged_event(client, monkeypatch):
     assert resp.status_code >= 400, (
         f"empty-secret webhook should be rejected, got {resp.status_code}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Helpers for the DB-touching tests below
+# ---------------------------------------------------------------------------
+
+
+def _seed_order_with_payment(stripe_invoice_id: str):
+    """Insert a minimal Quote → Order → Payment chain tied to the seeded
+    caterer and alice's company. Returns (order_id, payment_id) as UUIDs.
+
+    Imports are deferred: see module docstring.
+    """
+    import uuid as _uuid
+    from decimal import Decimal
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import (
+        Caterer,
+        Company,
+        Order,
+        OrderStatus,
+        Payment,
+        PaymentStatus,
+        Quote,
+        QuoteRequest,
+        QuoteStatus,
+        User,
+    )
+
+    s = session_factory()
+    try:
+        company = s.scalar(select(Company).where(Company.siret == "12345678901234"))
+        caterer = s.scalar(select(Caterer).where(Caterer.siret == "98765432109876"))
+        alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+
+        qr = QuoteRequest(
+            company_id=company.id,
+            user_id=alice.id,
+            guest_count=10,
+        )
+        s.add(qr)
+        s.flush()
+
+        quote = Quote(
+            quote_request_id=qr.id,
+            caterer_id=caterer.id,
+            reference=f"DEVIS-TST-{_uuid.uuid4().hex[:6].upper()}",
+            total_amount_ht=Decimal("100"),
+            status=QuoteStatus.accepted,
+        )
+        s.add(quote)
+        s.flush()
+
+        order = Order(
+            quote_id=quote.id,
+            client_admin_id=alice.id,
+            status=OrderStatus.invoiced,
+            stripe_invoice_id=stripe_invoice_id,
+        )
+        s.add(order)
+        s.flush()
+
+        payment = Payment(
+            order_id=order.id,
+            caterer_id=caterer.id,
+            stripe_invoice_id=stripe_invoice_id,
+            status=PaymentStatus.pending,
+            amount_total_cents=12000,
+            application_fee_cents=600,
+            amount_to_caterer_cents=11400,
+        )
+        s.add(payment)
+        s.commit()
+        return order.id, payment.id
+    finally:
+        s.close()
+
+
+def _load_payment(payment_id):
+    from database import session_factory
+    from models import Payment
+
+    s = session_factory()
+    try:
+        return s.get(Payment, payment_id)
+    finally:
+        s.close()
+
+
+def _load_order(order_id):
+    from database import session_factory
+    from models import Order
+
+    s = session_factory()
+    try:
+        return s.get(Order, order_id)
+    finally:
+        s.close()
+
+
+# ---------------------------------------------------------------------------
+# #2 — a legitimately-signed invoice.paid event must actually process
+# ---------------------------------------------------------------------------
+
+
+def test_signed_invoice_paid_marks_payment_succeeded(client, monkeypatch):
+    """Before the fix, `event.get("type", "")` crashed with AttributeError
+    because stripe.Event does not inherit from dict — so real Stripe
+    webhooks could never mark anything paid."""
+    import config
+
+    monkeypatch.setattr(config, "STRIPE_WEBHOOK_SECRET", TEST_SECRET)
+
+    invoice_id = f"in_test_{uuid.uuid4().hex[:16]}"
+    charge_id = f"ch_test_{uuid.uuid4().hex[:16]}"
+    order_id, payment_id = _seed_order_with_payment(invoice_id)
+
+    payload = _event(
+        "invoice.paid",
+        {"id": invoice_id, "object": "invoice", "charge": charge_id},
+    )
+    header = _sign(payload, TEST_SECRET)
+
+    resp = client.post(
+        "/api/webhooks/stripe",
+        data=payload,
+        headers={"Content-Type": "application/json", "Stripe-Signature": header},
+    )
+    assert resp.status_code == 200, (
+        f"expected 200, got {resp.status_code}; body={resp.get_data(as_text=True)[:400]}"
+    )
+
+    from models import OrderStatus, PaymentStatus
+
+    payment = _load_payment(payment_id)
+    order = _load_order(order_id)
+    assert payment.status == PaymentStatus.succeeded, payment.status
+    assert payment.stripe_charge_id == charge_id
+    assert order.status == OrderStatus.paid, order.status
