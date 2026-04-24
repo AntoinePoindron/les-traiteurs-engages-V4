@@ -8,6 +8,7 @@ this module is ~150 LOC shorter and closes audit Vuln 5 (no replay-attack
 tolerance) by using `stripe.Webhook.construct_event` which enforces a
 timestamp window by default.
 """
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
@@ -31,6 +32,49 @@ CENTS_PER_EURO = Decimal("100")
 def _to_cents(amount: Decimal) -> int:
     """Convert a Decimal euro amount to integer cents (Stripe's unit)."""
     return int((amount * CENTS_PER_EURO).quantize(Decimal("1")))
+
+
+@dataclass(frozen=True)
+class InvoiceAmounts:
+    """Invoice / transfer amounts in integer cents.
+
+    Invariant: `amount_to_caterer_cents + application_fee_cents ==
+    invoice_total_cents`.
+    """
+    invoice_total_cents: int
+    application_fee_cents: int
+    amount_to_caterer_cents: int
+
+
+def split_invoice_amounts(
+    *,
+    total_ttc: Decimal,
+    fee_ht: Decimal,
+    fee_tva: Decimal,
+) -> InvoiceAmounts:
+    """Compute the Stripe invoice amounts given the quote total and platform fee.
+
+    The platform fee is charged to the customer as an additional invoice
+    line on top of `total_ttc`. Stripe takes `application_fee_amount`
+    from the total and transfers the rest to the caterer via
+    `transfer_data.destination`. So:
+
+        invoice_total  = total_ttc + fee_ttc
+        transfer       = invoice_total − application_fee_amount
+                       = total_ttc   (when application_fee == fee_ttc)
+
+    Audit finding #7 (2026-04-24): the prior implementation recorded
+    `amount_to_caterer = total_ttc − fee_ttc`, double-deducting the fee
+    and understating caterer payouts by fee_ttc in the ledger.
+    """
+    fee_ttc_cents = _to_cents(fee_ht) + _to_cents(fee_tva)
+    total_ttc_cents = _to_cents(total_ttc)
+    invoice_total_cents = total_ttc_cents + fee_ttc_cents
+    return InvoiceAmounts(
+        invoice_total_cents=invoice_total_cents,
+        application_fee_cents=fee_ttc_cents,
+        amount_to_caterer_cents=invoice_total_cents - fee_ttc_cents,
+    )
 
 # Pin the API version so Stripe-side changes don't silently change behavior.
 # Bump deliberately after testing each new version.
@@ -204,18 +248,20 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
     order.stripe_hosted_invoice_url = hosted_url
     order.status = OrderStatus.invoiced
 
-    total_ttc = totals["total_ttc"]
-    total_ttc_cents = _to_cents(total_ttc)
-    caterer_amount_cents = total_ttc_cents - platform_fee_ttc_cents
+    amounts = split_invoice_amounts(
+        total_ttc=totals["total_ttc"],
+        fee_ht=platform_fee_ht,
+        fee_tva=platform_fee_tva,
+    )
 
     payment = Payment(
         order_id=order.id,
         caterer_id=caterer.id,
         stripe_invoice_id=invoice.id,
         status=PaymentStatus.pending,
-        amount_total_cents=total_ttc_cents + fee_ht_cents + _to_cents(platform_fee_tva),
-        application_fee_cents=platform_fee_ttc_cents,
-        amount_to_caterer_cents=caterer_amount_cents,
+        amount_total_cents=amounts.invoice_total_cents,
+        application_fee_cents=amounts.application_fee_cents,
+        amount_to_caterer_cents=amounts.amount_to_caterer_cents,
     )
     session.add(payment)
 
