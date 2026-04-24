@@ -47,14 +47,14 @@
     </div>
 
     <!-- Entity badge -->
-    {% if g.current_user.role in ('client_admin', 'client_user') and g.current_user.company %}
+    {% if g.current_user.role in (UserRole.client_admin, UserRole.client_user) and g.current_user.company %}
     <div class="px-4 pb-3">
       <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold" style="background: #F0F4F8; color: #1A3A52;">
         <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
         {{ g.current_user.company.name if g.current_user.company else 'Mon entreprise' }}
       </span>
     </div>
-    {% elif g.current_user.role == 'caterer' and g.current_user.caterer %}
+    {% elif g.current_user.role == UserRole.caterer and g.current_user.caterer %}
     <div class="px-4 pb-3">
       <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold" style="background: #F0F4F8; color: #1A3A52;">
         <i data-lucide="chef-hat" class="w-3.5 h-3.5"></i>
@@ -66,7 +66,7 @@
     <!-- Navigation -->
     <nav class="flex-1 overflow-y-auto px-3 py-2">
       <div class="flex flex-col gap-0.5">
-        {% if g.current_user.role in ('client_admin', 'client_user') %}
+        {% if g.current_user.role in (UserRole.client_admin, UserRole.client_user) %}
         <a href="{{ url_for('client.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
           <span>Dashboard</span>
@@ -83,7 +83,7 @@
           <i data-lucide="search" class="w-5 h-5 flex-shrink-0"></i>
           <span>Catalogue</span>
         </a>
-        {% if g.current_user.role == 'client_admin' %}
+        {% if g.current_user.role == UserRole.client_admin %}
         <a href="{{ url_for('client.team') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="team">
           <i data-lucide="users" class="w-5 h-5 flex-shrink-0"></i>
           <span>&#201;quipe</span>
@@ -98,14 +98,14 @@
           <i data-lucide="user" class="w-5 h-5 flex-shrink-0"></i>
           <span>Mon profil</span>
         </a>
-        {% if g.current_user.role == 'client_admin' %}
+        {% if g.current_user.role == UserRole.client_admin %}
         <a href="{{ url_for('client.settings') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="settings">
           <i data-lucide="settings" class="w-5 h-5 flex-shrink-0"></i>
           <span>Param&#232;tres</span>
         </a>
         {% endif %}
 
-        {% elif g.current_user.role == 'caterer' %}
+        {% elif g.current_user.role == UserRole.caterer %}
         <a href="{{ url_for('caterer.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
           <span>Dashboard</span>
@@ -132,7 +132,7 @@
           <span class="notification-badge absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-coral-red hidden"></span>
         </a>
 
-        {% elif g.current_user.role == 'super_admin' %}
+        {% elif g.current_user.role == UserRole.super_admin %}
         <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
           <span>Dashboard</span>

@@ -80,9 +80,9 @@
           <td class="px-4 py-3 text-center">
             {% from "components/status_badge.html" import status_badge %}
             <div class="flex items-center justify-center gap-1.5">
-              {% if p.status.value == 'succeeded' %}
+              {% if p.status == PaymentStatus.succeeded %}
               <span class="w-2 h-2 rounded-full" style="background-color: #16A34A"></span>
-              {% elif p.status.value == 'pending' %}
+              {% elif p.status == PaymentStatus.pending %}
               <span class="w-2 h-2 rounded-full" style="background-color: #F59E0B"></span>
               {% else %}
               <span class="w-2 h-2 rounded-full" style="background-color: #6B7280"></span>

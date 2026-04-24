@@ -129,7 +129,7 @@
         <button type="submit" name="action" value="draft" class="rounded-full text-sm font-bold px-4 py-2.5 transition-colors" style="border: 1px solid #1A3A52; color: #1A3A52" onmouseover="this.style.backgroundColor='#F5F1E8'" onmouseout="this.style.backgroundColor='transparent'">
           Enregistrer brouillon
         </button>
-        {% if quote and quote.status.value == 'draft' %}
+        {% if quote and quote.status == QuoteStatus.draft %}
         <a href="javascript:void(0)" onclick="document.getElementById('send-form').submit()" class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
           <i data-lucide="send" style="width:16px;height:16px"></i> Envoyer le devis
         </a>
@@ -137,7 +137,7 @@
       </div>
     </form>
 
-    {% if quote and quote.status.value == 'draft' %}
+    {% if quote and quote.status == QuoteStatus.draft %}
     <form id="send-form" method="POST" action="{{ url_for('caterer.quote_send', qr_id=qr.id, q_id=quote.id) }}" class="hidden">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     </form>

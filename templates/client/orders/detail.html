@@ -141,7 +141,7 @@
     </div>
     {% endif %}
 
-    {% if order.status.value in ('confirmed', 'delivered') and not order.stripe_hosted_invoice_url %}
+    {% if order.status in (OrderStatus.confirmed, OrderStatus.delivered) and not order.stripe_hosted_invoice_url %}
     <div class="bg-white rounded-lg p-6 mb-6">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
@@ -150,7 +150,7 @@
         <div>
           <p class="text-sm font-bold" style="color: #1A1A1A">En attente de facturation</p>
           <p class="text-xs" style="color: #6B7280">
-            {% if order.status.value == 'confirmed' %}
+            {% if order.status == OrderStatus.confirmed %}
             Le traiteur doit d'abord confirmer la livraison.
             {% else %}
             La facture sera generee automatiquement.

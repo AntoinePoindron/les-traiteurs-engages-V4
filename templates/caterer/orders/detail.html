@@ -18,7 +18,7 @@
       {{ status_badge(order.status) }}
     </div>
   </div>
-  {% if order.status.value == 'confirmed' %}
+  {% if order.status == OrderStatus.confirmed %}
   <form method="POST" action="{{ url_for('caterer.order_deliver', order_id=order.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
@@ -58,7 +58,7 @@
     {% endif %}
     {% endfor %}
   </div>
-  {% if order.status.value == 'disputed' %}
+  {% if order.status == OrderStatus.disputed %}
   <div class="mt-4 p-3 rounded-lg text-sm" style="background-color: #FEF2F2; color: #DC2626">
     <i data-lucide="alert-triangle" style="width:16px;height:16px" class="inline"></i> Cette commande est contestee.
   </div>

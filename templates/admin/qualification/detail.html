@@ -163,7 +163,7 @@
       {% endif %}
     </div>
 
-    {% if qr.status.value == 'pending_review' %}
+    {% if qr.status == QuoteRequestStatus.pending_review %}
     <div class="bg-white rounded-lg p-6">
       <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Actions</h2>
       <div class="flex flex-col gap-3">

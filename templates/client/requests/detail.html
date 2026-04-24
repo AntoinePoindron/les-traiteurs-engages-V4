@@ -23,7 +23,7 @@
           <span class="text-xs" style="color: #6B7280">Creee le {{ qr.created_at.strftime('%d/%m/%Y') }}</span>
         </div>
       </div>
-      {% if qr.status.value in ('draft', 'pending_review') %}
+      {% if qr.status in (QuoteRequestStatus.draft, QuoteRequestStatus.pending_review) %}
       <a href="{{ url_for('client.request_edit', request_id=qr.id) }}" class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2" style="border: 1px solid #1A3A52; color: #1A3A52">
         <i data-lucide="edit" style="width:16px;height:16px"></i>
         Modifier
@@ -230,7 +230,7 @@
           <p class="text-xs mb-4" style="color: #6B7280">Valable jusqu'au {{ quote.valid_until.strftime('%d/%m/%Y') }}</p>
           {% endif %}
 
-          {% if quote.status.value == 'sent' %}
+          {% if quote.status == QuoteStatus.sent %}
           <div class="flex items-center gap-3 pt-3" style="border-top: 1px solid #F3F4F6">
             <button type="button" onclick="document.getElementById('accept-dialog-{{ quote.id }}').showModal()"
               class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
@@ -304,7 +304,7 @@
           </script>
           {% endif %}
 
-          {% if quote.status.value == 'refused' and quote.refusal_reason %}
+          {% if quote.status == QuoteStatus.refused and quote.refusal_reason %}
           <div class="pt-3" style="border-top: 1px solid #F3F4F6">
             <p class="text-xs" style="color: #6B7280">Raison du refus :</p>
             <p class="text-sm" style="color: #313131">{{ quote.refusal_reason }}</p>
