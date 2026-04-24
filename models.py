@@ -410,7 +410,11 @@ class Payment(Base):
     caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"))
     stripe_checkout_session_id: Mapped[str | None] = mapped_column(String(255))
     stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
-    stripe_invoice_id: Mapped[str | None] = mapped_column(String(255))
+    # UNIQUE: a single Stripe invoice maps to exactly one Payment row.
+    # Without this, a race on POST /caterer/orders/<id>/deliver can create
+    # duplicate Payment rows pointing at the same invoice, of which the
+    # webhook updates only one. Audit finding #6 (2026-04-24).
+    stripe_invoice_id: Mapped[str | None] = mapped_column(String(255), unique=True)
     stripe_charge_id: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[PaymentStatus] = mapped_column(String(20), default=PaymentStatus.pending)
     amount_total_cents: Mapped[int | None] = mapped_column(Integer)
