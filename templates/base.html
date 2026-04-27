@@ -18,9 +18,9 @@
   <!-- Mobile topbar -->
   <div class="fixed top-0 left-0 right-0 h-14 bg-white z-40 flex items-center px-4 lg:hidden border-b border-soft">
     <button id="mobile-menu-btn" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
-      <i data-lucide="menu" class="w-5 h-5 text-dark"></i>
+      <i data-lucide="menu" class="w-5 h-5 text-text"></i>
     </button>
-    <span class="font-display text-base font-semibold text-dark ml-3">Les Traiteurs Engag&#233;s</span>
+    <span class="font-display text-base font-semibold text-text ml-3">Les Traiteurs Engag&#233;s</span>
   </div>
 
   <!-- Mobile overlay -->
@@ -160,7 +160,7 @@
           {{ g.current_user.first_name[0] }}{{ g.current_user.last_name[0] }}
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-dark truncate">{{ g.current_user.first_name }} {{ g.current_user.last_name }}</p>
+          <p class="text-sm font-medium text-text truncate">{{ g.current_user.first_name }} {{ g.current_user.last_name }}</p>
         </div>
         <button class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
           <i data-lucide="bell" class="w-4.5 h-4.5 text-mute"></i>

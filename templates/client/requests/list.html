@@ -31,7 +31,7 @@
       <h2 class="font-display font-bold text-xl mb-4 text-text">Demandes</h2>
       <div>
         {% for qr in requests %}
-        <a href="{{ url_for('client.request_detail', request_id=qr.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-[#F5F1E8] -mx-2 px-2 rounded-lg transition-colors border-t border-soft">
+        <a href="{{ url_for('client.request_detail', request_id=qr.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft">
           <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
             <i data-lucide="grid-2x2" class="w-4 h-4 text-navy"></i>
           </div>

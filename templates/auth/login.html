@@ -15,7 +15,7 @@
 
     <!-- Login card -->
     <div class="bg-white rounded-2xl p-8 shadow-sm border border-default">
-      <h1 class="font-display text-2xl font-semibold text-dark mb-1">Connectez-vous</h1>
+      <h1 class="font-display text-2xl font-semibold text-text mb-1">Connectez-vous</h1>
       <p class="text-sm mb-6 text-mute-soft">Acc&#233;dez &#224; votre espace sur Les Traiteurs Engag&#233;s</p>
 
       {% if error %}
@@ -27,16 +27,16 @@
       <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-5">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
-          <label for="email" class="block text-sm font-medium text-dark mb-1.5">Adresse email</label>
+          <label for="email" class="block text-sm font-medium text-text mb-1.5">Adresse email</label>
           <input type="email" id="email" name="email" required autocomplete="email"
-            class="w-full px-4 py-2.5 rounded-xl text-dark text-sm input-coral"
+            class="w-full px-4 py-2.5 rounded-xl text-text text-sm input-coral"
             placeholder="vous@entreprise.fr">
         </div>
         <div>
-          <label for="password" class="block text-sm font-medium text-dark mb-1.5">Mot de passe</label>
+          <label for="password" class="block text-sm font-medium text-text mb-1.5">Mot de passe</label>
           <div class="relative">
             <input type="password" id="password" name="password" required autocomplete="current-password"
-              class="w-full px-4 py-2.5 rounded-xl text-dark text-sm pr-10 input-coral"
+              class="w-full px-4 py-2.5 rounded-xl text-text text-sm pr-10 input-coral"
               placeholder="Votre mot de passe">
             <button type="button" data-action="toggle-password" data-target="password" class="absolute right-3 top-1/2 -translate-y-1/2 text-mute-soft">
               <i data-lucide="eye" class="w-4 h-4"></i>

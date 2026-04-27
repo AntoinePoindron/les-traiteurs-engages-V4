@@ -31,7 +31,7 @@
     </thead>
     <tbody>
       {% for req in requests %}
-      <tr class="hover:bg-[#F5F1E8] border-t border-soft">
+      <tr class="hover:bg-cream border-t border-soft">
         <td class="px-4 py-3 text-sm font-medium text-black">{{ req.company.name }}</td>
         <td class="px-4 py-3 text-sm text-mute">{{ req.meal_type.value if req.meal_type else req.service_type or '-' }}</td>
         <td class="px-4 py-3 text-sm text-mute">{{ req.event_date.strftime('%d/%m/%Y') if req.event_date else '-' }}</td>

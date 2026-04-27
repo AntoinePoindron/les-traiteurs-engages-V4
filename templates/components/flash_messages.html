@@ -4,7 +4,7 @@
 <div class="space-y-3 mb-6">
   {% for category, message in messages %}
   <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm border
-    {% if category == 'success' %}text-green-800 bg-flash-success border-flash-success{% elif category == 'error' %}text-red-800 bg-error-light border-error{% else %}text-dark bg-info border-info{% endif %}">
+    {% if category == 'success' %}text-green-800 bg-flash-success border-flash-success{% elif category == 'error' %}text-red-800 bg-error-light border-error{% else %}text-text bg-info border-info{% endif %}">
     <div class="flex items-center gap-2">
       {% if category == 'success' %}
       <i data-lucide="check-circle" class="w-5 h-5 flex-shrink-0"></i>

@@ -228,6 +228,8 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 /* Has-checked variants */
 .has-\[\:checked\]\:bg-navy:has(:checked)      { background-color: var(--c-navy); }
 .has-\[\:checked\]\:bg-navy-soft:has(:checked) { background-color: var(--c-navy-soft); }
+.has-\[\:checked\]\:bg-white:has(:checked)     { background-color: #ffffff; }
+.has-\[\:checked\]\:text-white:has(:checked)   { color: #ffffff; }
 
 /* Stock Tailwind classes the original tailwind.css scan missed */
 .w-3  { width: 0.75rem; }
@@ -262,17 +264,3 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .text-success-dark { color: var(--c-success-dark); }
 .bg-purple       { background-color: var(--c-purple-bg); }
 .text-purple     { color: var(--c-purple-fg); }
-
-/* ============================================================
-   Legacy custom — to remove
-   Repatriated from tailwind.css to keep that file regenerable.
-   PR 2's final commit deletes this block once no template
-   references these names.
-   ============================================================ */
-.text-dark { color: var(--c-text); }
-.hover\:bg-\[\#F5F1E8\]:hover { background-color: var(--c-cream); }
-.focus\:border-\[\#1A3A52\]:focus { border-color: var(--c-navy); }
-.has-\[\:checked\]\:bg-\[\#1A3A52\]:has(:checked) { background-color: var(--c-navy); }
-.has-\[\:checked\]\:bg-\[\#F0F4F7\]:has(:checked) { background-color: var(--c-navy-soft); }
-.has-\[\:checked\]\:bg-white:has(:checked) { background-color: #ffffff; }
-.has-\[\:checked\]\:text-white:has(:checked) { color: #ffffff; }

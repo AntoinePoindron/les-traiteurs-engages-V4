@@ -90,7 +90,7 @@
         <div class="mt-6">
           <label for="service_type" class="block text-sm font-bold mb-2 text-text">Precision sur le service <span class="text-mute">(optionnel)</span></label>
           <input type="text" id="service_type" name="service_type" placeholder="Ex: brunch, gouter, pause cafe..."
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
       </div>
 
@@ -110,12 +110,12 @@
           <div>
             <label for="event_date" class="block text-sm font-bold mb-2 text-text">Date de l'evenement <span class="text-danger">*</span></label>
             <input type="date" id="event_date" name="event_date" required
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
           </div>
           <div>
             <label for="guest_count" class="block text-sm font-bold mb-2 text-text">Nombre de convives <span class="text-danger">*</span></label>
             <input type="number" id="guest_count" name="guest_count" min="1" max="5000" required placeholder="Ex: 50"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
           </div>
         </div>
 
@@ -123,7 +123,7 @@
           <label for="event_address" class="block text-sm font-bold mb-2 text-text">Adresse <span class="text-danger">*</span></label>
           <div class="flex gap-2">
             <input type="text" id="event_address" name="event_address" required placeholder="Numero et rue"
-              class="flex-1 border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+              class="flex-1 border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <button type="button" id="btn-geocode" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2 bg-cream text-navy" title="Geolocaliser l'adresse">
               <i data-lucide="map-pin" class="w-4 h-4"></i>
               <span class="hidden sm:inline">Geolocaliser</span>
@@ -135,12 +135,12 @@
           <div>
             <label for="event_zip_code" class="block text-sm font-bold mb-2 text-text">Code postal <span class="text-danger">*</span></label>
             <input type="text" id="event_zip_code" name="event_zip_code" required placeholder="75001" maxlength="5"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
           </div>
           <div>
             <label for="event_city" class="block text-sm font-bold mb-2 text-text">Ville <span class="text-danger">*</span></label>
             <input type="text" id="event_city" name="event_city" required placeholder="Paris"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
           </div>
         </div>
 
@@ -165,7 +165,7 @@
             <label for="budget_global" class="block text-sm font-bold mb-2 text-text">Budget global</label>
             <div class="relative">
               <input type="number" id="budget_global" name="budget_global" min="0" step="0.01" placeholder="1500.00"
-                class="w-full border rounded-lg px-3 py-2.5 pr-12 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+                class="w-full border rounded-lg px-3 py-2.5 pr-12 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-mute">EUR</span>
             </div>
           </div>
@@ -173,7 +173,7 @@
             <label for="budget_per_person" class="block text-sm font-bold mb-2 text-text">Budget par personne</label>
             <div class="relative">
               <input type="number" id="budget_per_person" name="budget_per_person" min="0" step="0.01" placeholder="30.00"
-                class="w-full border rounded-lg px-3 py-2.5 pr-20 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+                class="w-full border rounded-lg px-3 py-2.5 pr-20 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-mute">EUR/pers.</span>
             </div>
           </div>
@@ -231,7 +231,7 @@
             <div class="dietary-count-wrapper mt-3 ml-8 flex items-center gap-3 hidden">
               <label for="{{ count_id }}" class="text-xs text-mute">Nombre de personnes :</label>
               <input type="number" id="{{ count_id }}" name="{{ count_id }}" min="1" max="5000" placeholder="0"
-                class="w-24 border rounded-lg px-3 py-2 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+                class="w-24 border rounded-lg px-3 py-2 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             </div>
           </div>
           {% endfor %}
@@ -288,7 +288,7 @@
         <div>
           <label for="drinks_details" class="block text-sm font-bold mb-2 text-text">Precisions sur les boissons <span class="text-mute">(optionnel)</span></label>
           <textarea id="drinks_details" name="drinks_details" rows="3" placeholder="Ex: 2 bouteilles de vin rouge, jus d'orange pour 20 personnes..."
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors resize-none border-default"></textarea>
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors resize-none border-default"></textarea>
         </div>
       </div>
 
@@ -326,7 +326,7 @@
         <div id="waitstaff-details-wrapper" class="mt-4 hidden">
           <label for="service_waitstaff_details" class="block text-sm font-bold mb-2 text-text">Details du service en salle</label>
           <textarea id="service_waitstaff_details" name="service_waitstaff_details" rows="3" placeholder="Ex: 3 serveurs pour un service a l'assiette, de 12h a 15h..."
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors resize-none border-default"></textarea>
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors resize-none border-default"></textarea>
         </div>
       </div>
 
@@ -410,7 +410,7 @@
         <div class="mb-6">
           <label for="message_to_caterer" class="block text-sm font-bold mb-2 text-text">Message aux traiteurs <span class="text-mute">(optionnel)</span></label>
           <textarea id="message_to_caterer" name="message_to_caterer" rows="4" placeholder="Informations complementaires, contraintes particulieres, questions..."
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors resize-none border-default"></textarea>
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors resize-none border-default"></textarea>
         </div>
 
         <!-- Compare mode -->
@@ -438,7 +438,7 @@
         <div id="caterer-select-wrapper" class="mb-6 hidden">
           <label for="target_caterer_id" class="block text-sm font-bold mb-2 text-text">Choisir un traiteur</label>
           <select id="target_caterer_id" name="target_caterer_id"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <option value="">Selectionnez un traiteur...</option>
           </select>
         </div>
@@ -447,7 +447,7 @@
         <div class="mb-2">
           <label for="company_service_id" class="block text-sm font-bold mb-2 text-text">Service interne <span class="text-mute">(optionnel)</span></label>
           <select id="company_service_id" name="company_service_id"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <option value="">Aucun service selectionne</option>
             {% if services is defined %}
             {% for service in services %}

@@ -31,7 +31,7 @@
     </thead>
     <tbody>
       {% for caterer in caterers %}
-      <tr class="hover:bg-[#F5F1E8] border-t border-soft">
+      <tr class="hover:bg-cream border-t border-soft">
         <td class="px-4 py-3 text-sm font-medium text-black">{{ caterer.name }}</td>
         <td class="px-4 py-3">{{ structure_type_badge(caterer.structure_type) }}</td>
         <td class="px-4 py-3 text-sm text-mute">{{ caterer.city or '-' }}</td>

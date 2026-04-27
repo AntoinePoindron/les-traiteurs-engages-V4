@@ -12,7 +12,7 @@
       <div>
         {% for t in threads %}
         <a href="{{ url_for('client.message_thread', thread_id=t.thread_id) }}"
-           class="flex items-center gap-3 py-3.5 hover:bg-[#F5F1E8] -mx-2 px-2 rounded-lg transition-colors border-t border-soft">
+           class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft">
           <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
             <i data-lucide="user" class="w-4 h-4 text-navy"></i>
           </div>

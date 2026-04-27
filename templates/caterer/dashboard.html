@@ -46,7 +46,7 @@
   <h2 class="font-display font-bold text-xl mb-4 text-text">Prochaines livraisons</h2>
   <div>
     {% for order in upcoming_deliveries %}
-    <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg transition-colors hover:bg-[#F5F1E8] border-t border-soft">
+    <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg transition-colors hover:bg-cream border-t border-soft">
       <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
         <i data-lucide="truck" class="w-4 h-4 text-navy"></i>
       </div>

@@ -78,7 +78,7 @@
         ('dietary_lactose_free', 'Sans lactose', caterer.dietary_lactose_free),
       ] %}
       {% for name, label, checked in dietary_options %}
-      <label class="flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors hover:bg-[#F5F1E8] border border-default">
+      <label class="flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors hover:bg-cream border border-default">
         <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} class="w-4 h-4 rounded accent-navy">
         <span class="text-sm text-text">{{ label }}</span>
       </label>
