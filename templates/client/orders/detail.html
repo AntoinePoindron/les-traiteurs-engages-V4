@@ -32,20 +32,19 @@
         {% for s in statuses %}
         <div class="flex flex-col items-center flex-1">
           <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-            {% if loop.index0 <= current_idx %}text-white{% else %}{% endif %}"
-            style="background-color: {% if loop.index0 <= current_idx %}#1A3A52{% elif loop.index0 == current_idx + 1 %}#F0F4F7{% else %}#F5F1E8{% endif %}; color: {% if loop.index0 <= current_idx %}#FFFFFF{% else %}#6B7280{% endif %}">
+            {% if loop.index0 <= current_idx %}bg-navy text-white{% elif loop.index0 == current_idx + 1 %}bg-navy-soft text-mute{% else %}bg-cream text-mute{% endif %}">
             {% if loop.index0 < current_idx %}
             <i data-lucide="check" class="w-4 h-4"></i>
             {% else %}
             {{ loop.index }}
             {% endif %}
           </div>
-          <span class="text-xs mt-1 text-center font-bold" style="color: {% if loop.index0 <= current_idx %}#1A1A1A{% else %}#6B7280{% endif %}">
+          <span class="text-xs mt-1 text-center font-bold {% if loop.index0 <= current_idx %}text-text{% else %}text-mute{% endif %}">
             {{ order_status_labels.get(s, s) }}
           </span>
         </div>
         {% if not loop.last %}
-        <div class="flex-1 h-0.5 mx-1" style="background-color: {% if loop.index0 < current_idx %}#1A3A52{% else %}#F5F1E8{% endif %}"></div>
+        <div class="flex-1 h-0.5 mx-1 {% if loop.index0 < current_idx %}bg-navy{% else %}bg-cream{% endif %}"></div>
         {% endif %}
         {% endfor %}
       </div>
