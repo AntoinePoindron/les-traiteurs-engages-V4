@@ -124,6 +124,12 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
   color: #FFFFFF;
 }
 
+/* Desktop main offset for the fixed sidebar.
+   Set in CSS so the first paint is correct (no slide-in from JS). */
+@media (min-width: 1024px) {
+  #main-content { margin-left: var(--w-sidebar); }
+}
+
 /* Wizard step indicator (semantic component, JS toggles --done / --current) */
 .step-dot {
   display: inline-flex;
