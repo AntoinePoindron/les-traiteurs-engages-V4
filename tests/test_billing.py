@@ -290,3 +290,85 @@ def test_send_stripe_invoice_is_noop_if_already_sent(session, monkeypatch):
     assert "invoice_create" not in captured, "must not call Stripe when already sent"
     assert "invoice_finalize" not in captured
     assert "invoice_send" not in captured
+
+
+def test_retry_pending_invoices_completes_phase_2(app, monkeypatch):
+    """Le retry CLI doit boucler sur les Payment(stripe_invoice_id IS NULL,
+    status=pending, anciens) et appeler send_stripe_invoice. Test sans
+    Flask CLI runner — on appelle la fonction sous-jacente avec une
+    session jetable et un cleanup explicite (le retry commit, donc la
+    fixture rollback ne suffit pas)."""
+    import datetime as _dt2
+
+    from sqlalchemy import delete, select
+
+    from database import session_factory
+    from services import billing
+
+    captured: dict = {}
+    _install_stripe_mocks(monkeypatch, captured)
+
+    setup = session_factory()
+    order = _seed_delivered_order_with_lines(setup)
+    payment = billing.queue_invoice(setup, order=order)
+    setup.commit()
+    payment_id = payment.id
+    order_id = order.id
+    caterer_id = order.quote.caterer_id
+    quote_id = order.quote_id
+    qr_id = order.quote.quote_request_id
+    setup.close()
+
+    try:
+        runner = session_factory()
+        try:
+            # age_threshold=0 pour retenir le Payment fraîchement créé
+            success, failed = billing.retry_pending_invoices(
+                runner, age_threshold=_dt2.timedelta(seconds=0),
+            )
+            assert success == 1
+            assert failed == 0
+        finally:
+            runner.close()
+
+        check = session_factory()
+        try:
+            p = check.scalar(select(Payment).where(Payment.id == payment_id))
+            assert p.stripe_invoice_id == "in_test_abc"
+            o = check.scalar(select(Order).where(Order.id == order_id))
+            assert o.status == OrderStatus.invoiced
+        finally:
+            check.close()
+    finally:
+        cleanup = session_factory()
+        try:
+            cleanup.execute(delete(CommissionInvoice).where(CommissionInvoice.order_id == order_id))
+            cleanup.execute(delete(Invoice).where(Invoice.order_id == order_id))
+            cleanup.execute(delete(Payment).where(Payment.id == payment_id))
+            cleanup.execute(delete(Order).where(Order.id == order_id))
+            cleanup.execute(delete(QuoteLine).where(QuoteLine.quote_id == quote_id))
+            cleanup.execute(delete(Quote).where(Quote.id == quote_id))
+            cleanup.execute(delete(QuoteRequest).where(QuoteRequest.id == qr_id))
+            cleanup.execute(delete(Caterer).where(Caterer.id == caterer_id))
+            cleanup.commit()
+        finally:
+            cleanup.close()
+
+
+def test_retry_pending_invoices_skips_recent_payments(session, monkeypatch):
+    """Garde-fou : le retry n'attrape pas les Payment plus récents que
+    `age_threshold` (par défaut 2 min) — pour ne pas marcher sur les pieds
+    d'une requête HTTP encore en vol."""
+    from services import billing
+
+    captured: dict = {}
+    _install_stripe_mocks(monkeypatch, captured)
+
+    order = _seed_delivered_order_with_lines(session)
+    billing.queue_invoice(session, order=order)
+    session.flush()
+
+    success, failed = billing.retry_pending_invoices(session)  # défaut 2 min
+    assert success == 0
+    assert failed == 0
+    assert "invoice_create" not in captured

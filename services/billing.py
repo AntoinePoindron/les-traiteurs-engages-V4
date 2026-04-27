@@ -20,10 +20,12 @@ Invariants :
 """
 from __future__ import annotations
 
+import datetime
 import logging
 from decimal import Decimal
 
 import stripe
+from sqlalchemy import select
 
 from models import (
     CommissionInvoice,
@@ -37,6 +39,8 @@ from services.quotes import calculate_quote_totals, derive_invoice_reference
 from services.stripe_service import create_or_get_tax_rate, get_or_create_customer
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_RETRY_AGE = datetime.timedelta(minutes=2)
 
 CENTS_PER_EURO = Decimal("100")
 
@@ -206,3 +210,42 @@ def send_stripe_invoice(db, *, payment: Payment) -> None:
     order.stripe_hosted_invoice_url = hosted_url
     order.status = OrderStatus.invoiced
     db.flush()
+
+
+def retry_pending_invoices(
+    db,
+    *,
+    age_threshold: datetime.timedelta = DEFAULT_RETRY_AGE,
+) -> tuple[int, int]:
+    """Rejoue la Phase 2 pour tous les Payment en attente d'envoi Stripe.
+
+    Sélection : `Payment.stripe_invoice_id IS NULL` ET `status == pending`,
+    et plus ancien que `age_threshold` (par défaut 2 min) pour ne pas
+    interférer avec une requête HTTP encore en vol qui n'a juste pas
+    encore commit la phase 2.
+
+    Commit après chaque succès, rollback après chaque échec — les
+    paiements indépendants ne se bloquent pas mutuellement.
+
+    Retourne `(success_count, failed_count)`.
+    """
+    cutoff = datetime.datetime.utcnow() - age_threshold
+    pending = db.scalars(
+        select(Payment)
+        .where(Payment.stripe_invoice_id.is_(None))
+        .where(Payment.status == PaymentStatus.pending)
+        .where(Payment.created_at < cutoff)
+    ).all()
+    success = 0
+    failed = 0
+    for p in pending:
+        try:
+            send_stripe_invoice(db, payment=p)
+            db.commit()
+            logger.info("Retried payment %s -> stripe %s", p.id, p.stripe_invoice_id)
+            success += 1
+        except stripe.StripeError as exc:
+            db.rollback()
+            logger.error("Retry failed for payment %s: %s", p.id, exc)
+            failed += 1
+    return success, failed
