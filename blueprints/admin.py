@@ -25,6 +25,7 @@ from models import (
     QRCStatus,
     User,
 )
+from services import workflow
 from services.matching import find_matching_caterers
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -98,24 +99,15 @@ def qualification_detail(request_id):
 @role_required("super_admin")
 def qualification_approve(request_id):
     db = get_db()
-    qr = db.get(QuoteRequest, request_id)
-    if not qr:
+    try:
+        qrcs = workflow.approve_quote_request(db, request_id=request_id)
+    except workflow.RequestNotFound:
         abort(404)
-    matches = find_matching_caterers(db, qr)
-    if not matches:
+    except workflow.NoMatchingCaterers:
         flash("Aucun traiteur compatible trouve. Impossible d'approuver.", "error")
         return redirect(url_for("admin.qualification_detail", request_id=request_id))
-    for caterer, _distance in matches:
-        db.add(
-            QuoteRequestCaterer(
-                quote_request_id=qr.id,
-                caterer_id=caterer.id,
-                status=QRCStatus.selected,
-            )
-        )
-    qr.status = QuoteRequestStatus.sent_to_caterers
     db.commit()
-    flash(f"Demande approuvee et envoyee a {len(matches)} traiteur(s).", "success")
+    flash(f"Demande approuvee et envoyee a {len(qrcs)} traiteur(s).", "success")
     return redirect(url_for("admin.qualification"))
 
 
@@ -123,16 +115,17 @@ def qualification_approve(request_id):
 @login_required
 @role_required("super_admin")
 def qualification_reject(request_id):
-    db = get_db()
-    qr = db.get(QuoteRequest, request_id)
-    if not qr:
-        abort(404)
     form = RejectionForm()
     if not form.validate_on_submit():
         flash("Veuillez corriger les erreurs du formulaire.", "error")
         return redirect(url_for("admin.qualification_detail", request_id=request_id))
-    qr.status = QuoteRequestStatus.cancelled
-    qr.message_to_caterer = form.rejection_reason.data or ""
+    db = get_db()
+    try:
+        workflow.reject_quote_request(
+            db, request_id=request_id, reason=form.rejection_reason.data,
+        )
+    except workflow.RequestNotFound:
+        abort(404)
     db.commit()
     flash("Demande rejetee.", "info")
     return redirect(url_for("admin.qualification"))
