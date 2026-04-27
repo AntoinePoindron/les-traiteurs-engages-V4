@@ -189,7 +189,9 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .w-12 { width: 3rem; }
 
 /* Notification badge accent (project-specific, was in tailwind.css) */
-.bg-coral-red { background-color: #FF5455; }
+.bg-coral-red   { background-color: #FF5455; }
+.text-coral-red { color: #FF5455; }
+.bg-error-light { background-color: #FFE8E8; }
 
 /* ============================================================
    Legacy custom — to remove

@@ -3,8 +3,8 @@
 {% block title %}Inscription - Les Traiteurs Engag&#233;s{% endblock %}
 
 {% block public_content %}
-<div class="min-h-screen flex items-center justify-center p-4" style="background-color: #FAF7F2;">
-  <div class="w-full" style="max-width: 28rem;">
+<div class="min-h-screen flex items-center justify-center p-4 bg-cream-page">
+  <div class="w-full max-w-md">
     <!-- Logo -->
     <div class="text-center mb-8">
       <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-12 mx-auto mb-6">
@@ -14,18 +14,18 @@
     {% include "components/flash_messages.html" %}
 
     <!-- Signup card -->
-    <div class="bg-white rounded-2xl p-8 shadow-sm" style="border: 1px solid #E5E7EB;">
+    <div class="bg-white rounded-2xl p-8 shadow-sm border border-default">
       <h1 class="font-display text-2xl font-semibold text-dark mb-1">Cr&#233;er votre compte</h1>
-      <p class="text-sm mb-6" style="color: #9CA3AF;">Rejoignez Les Traiteurs Engag&#233;s</p>
+      <p class="text-sm mb-6 text-mute-soft">Rejoignez Les Traiteurs Engag&#233;s</p>
 
       {% if error %}
-      <div class="text-sm px-4 py-3 rounded-xl mb-4" style="color: #FF5455; background: #FFE8E8;">
+      <div class="text-sm px-4 py-3 rounded-xl mb-4 text-coral-red bg-error-light">
         {{ error }}
       </div>
       {% endif %}
 
       <!-- Role toggle tabs -->
-      <div class="flex rounded-xl p-1 mb-6" style="background: #F5F1E8;">
+      <div class="flex rounded-xl p-1 mb-6 bg-cream">
         <button type="button" id="tab-client" data-action="select-role" data-role="client"
           class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors">
           <i data-lucide="building-2" class="w-4 h-4"></i>
@@ -39,7 +39,7 @@
       </div>
 
       <!-- Signup form -->
-      <form method="POST" action="{{ url_for('auth.signup') }}" class="space-y-4" id="signup-form" style="display:none;">
+      <form method="POST" action="{{ url_for('auth.signup') }}" class="space-y-4 hidden" id="signup-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="role" id="role-input" value="">
 
@@ -67,7 +67,7 @@
             <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password"
               class="w-full px-4 py-2.5 rounded-xl text-dark text-sm pr-10 input-coral"
               placeholder="Minimum 8 caract&#232;res">
-            <button type="button" data-action="toggle-password" data-target="password" class="absolute right-3 top-1/2 -translate-y-1/2" style="color: #9CA3AF;">
+            <button type="button" data-action="toggle-password" data-target="password" class="absolute right-3 top-1/2 -translate-y-1/2 text-mute-soft">
               <i data-lucide="eye" class="w-4 h-4"></i>
             </button>
           </div>
@@ -80,14 +80,14 @@
         </div>
 
         <!-- Client-specific fields -->
-        <div id="client-fields" style="display:none;">
+        <div id="client-fields" class="hidden">
           <label for="company_name" class="block text-sm font-medium text-dark mb-1.5">Nom de l'entreprise</label>
           <input type="text" id="company_name" name="company_name"
             class="w-full px-4 py-2.5 rounded-xl text-dark text-sm input-coral">
         </div>
 
         <!-- Caterer-specific fields -->
-        <div id="caterer-fields" class="space-y-4" style="display:none;">
+        <div id="caterer-fields" class="space-y-4 hidden">
           <div>
             <label for="structure_type" class="block text-sm font-medium text-dark mb-1.5">Type de structure</label>
             <select id="structure_type" name="structure_type"
@@ -131,9 +131,9 @@
     </div>
 
     <!-- Login link -->
-    <p class="text-center text-sm mt-6" style="color: #9CA3AF;">
+    <p class="text-center text-sm mt-6 text-mute-soft">
       D&#233;j&#224; un compte ?
-      <a href="{{ url_for('auth.login') }}" class="font-medium transition-colors" style="color: #C4714A;">
+      <a href="{{ url_for('auth.login') }}" class="font-medium transition-colors text-coral">
         Se connecter
       </a>
     </p>
