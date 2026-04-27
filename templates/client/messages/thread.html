@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Conversation avec {{ other_user.first_name }} {{ other_user.last_name }} — Les Traiteurs Engages{% endblock %}
 {% block content %}
-<main style="background-color: #F5F1E8; min-height: 100vh;">
+<main class="bg-cream min-h-screen">
   <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
     <!-- Back button -->
-    <a href="{{ url_for('client.messages') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6" style="color: #1A3A52">
-      <i data-lucide="chevron-left" style="width:16px;height:16px"></i> Retour
+    <a href="{{ url_for('client.messages') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
     </a>
 
     <div class="bg-white rounded-lg flex flex-col" style="height: calc(100vh - 220px);">
       <!-- Header -->
-      <div class="px-6 py-4 flex items-center gap-3" style="border-bottom: 1px solid #F3F4F6">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
-          <i data-lucide="user" style="width:16px;height:16px;color:#1A3A52"></i>
+      <div class="px-6 py-4 flex items-center gap-3 border-b border-soft">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+          <i data-lucide="user" class="w-4 h-4 text-navy"></i>
         </div>
-        <p class="text-sm font-bold" style="color: #1A1A1A">{{ other_user.first_name }} {{ other_user.last_name }}</p>
+        <p class="text-sm font-bold text-text">{{ other_user.first_name }} {{ other_user.last_name }}</p>
       </div>
 
       <!-- Messages -->
@@ -26,14 +26,14 @@
       </div>
 
       <!-- Input -->
-      <form id="message-form" class="p-4 flex gap-3" style="border-top: 1px solid #F3F4F6">
+      <form id="message-form" class="p-4 flex gap-3 border-t border-soft">
         <input type="hidden" name="recipient_id" value="{{ other_user.id }}">
         <input type="text" name="body" placeholder="Votre message..."
-               class="flex-1 border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB"
+               class="flex-1 border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors border-default"
                autocomplete="off">
         <button type="submit"
-                class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
-          <i data-lucide="send" style="width:16px;height:16px"></i> Envoyer
+                class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2 bg-navy text-white">
+          <i data-lucide="send" class="w-4 h-4"></i> Envoyer
         </button>
       </form>
     </div>

@@ -5,33 +5,32 @@
 {% block title %}Mes commandes - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
-<main style="background-color: #F5F1E8; min-height: 100vh;">
+<main class="bg-cream min-h-screen">
   <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
-    <h1 class="font-display font-bold text-4xl mb-6" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Mes commandes</h1>
+    <h1 class="font-display font-bold text-4xl mb-6 text-text">Mes commandes</h1>
 
     {% if orders %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Commandes</h2>
+      <h2 class="font-display font-bold text-xl mb-4 text-text">Commandes</h2>
       <div>
         {% for order in orders %}
-        <a href="{{ url_for('client.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-[#F5F1E8] -mx-2 px-2 rounded-lg transition-colors"
-           style="border-top: 1px solid #F3F4F6">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
-            <i data-lucide="shopping-bag" style="width:16px;height:16px;color:#1A3A52"></i>
+        <a href="{{ url_for('client.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-[#F5F1E8] -mx-2 px-2 rounded-lg transition-colors border-t border-soft">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+            <i data-lucide="shopping-bag" class="w-4 h-4 text-navy"></i>
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ order.quote.caterer.name }}</p>
+              <p class="text-sm font-bold truncate text-text">{{ order.quote.caterer.name }}</p>
               {{ structure_type_badge(order.quote.caterer.structure_type) }}
             </div>
             <div class="flex items-center gap-3 mt-0.5">
-              <span class="text-xs" style="color: #6B7280">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
-              <span class="text-xs" style="color: #6B7280">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR HT</span>
+              <span class="text-xs text-mute">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
+              <span class="text-xs text-mute">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR HT</span>
             </div>
           </div>
           {{ status_badge(order.status) }}
-          <i data-lucide="chevron-right" style="width:16px;height:16px;color:#D1D5DB"></i>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
         </a>
         {% endfor %}
       </div>
@@ -39,13 +38,13 @@
     {% else %}
     <!-- Empty state -->
     <div class="bg-white rounded-lg p-12 text-center">
-      <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4" style="background-color: #F0F4F7">
-        <i data-lucide="shopping-bag" style="width:24px;height:24px;color:#1A3A52"></i>
+      <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
+        <i data-lucide="shopping-bag" class="w-6 h-6 text-navy"></i>
       </div>
-      <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Aucune commande</h3>
-      <p class="text-sm mb-6" style="color: #6B7280">Vous n'avez pas encore de commande. Acceptez un devis pour creer votre premiere commande.</p>
-      <a href="{{ url_for('client.requests_list') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
-        <i data-lucide="file-text" style="width:16px;height:16px"></i>
+      <h3 class="font-display font-bold text-xl mb-2 text-text">Aucune commande</h3>
+      <p class="text-sm mb-6 text-mute">Vous n'avez pas encore de commande. Acceptez un devis pour creer votre premiere commande.</p>
+      <a href="{{ url_for('client.requests_list') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white">
+        <i data-lucide="file-text" class="w-4 h-4"></i>
         Voir mes demandes
       </a>
     </div>
