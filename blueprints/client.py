@@ -16,6 +16,7 @@ from forms.client import (
     ServiceForm,
     UserProfileForm,
 )
+from services import workflow
 from services.uploads import save_upload
 from models import (
     MEAL_TYPE_LABELS,
@@ -379,7 +380,6 @@ def accept_quote(request_id):
 @login_required
 @role_required("client_admin", "client_user")
 def refuse_quote(request_id):
-    user = g.current_user
     form = QuoteRefuseForm()
     if not form.validate_on_submit():
         abort(400)
@@ -387,40 +387,18 @@ def refuse_quote(request_id):
         quote_uuid = uuid.UUID(form.quote_id.data)
     except ValueError:
         abort(400)
-    reason = form.refusal_reason.data or ""
 
     db = get_db()
-    qr = db.execute(
-        select(QuoteRequest).where(
-            QuoteRequest.id == request_id,
-            QuoteRequest.company_id == user.company_id,
+    try:
+        workflow.refuse_quote(
+            db,
+            request_id=request_id,
+            quote_id=quote_uuid,
+            user=g.current_user,
+            reason=form.refusal_reason.data or None,
         )
-    ).scalar_one_or_none()
-    if not qr:
+    except (workflow.RequestNotFound, workflow.QuoteNotFound):
         abort(404)
-
-    quote = db.execute(
-        select(Quote).where(
-            Quote.id == quote_uuid,
-            Quote.quote_request_id == request_id,
-        )
-    ).scalar_one_or_none()
-    if not quote:
-        abort(404)
-
-    quote.status = QuoteStatus.refused
-    quote.refusal_reason = reason or None
-
-    remaining = db.execute(
-        select(func.count(Quote.id)).where(
-            Quote.quote_request_id == request_id,
-            Quote.status == QuoteStatus.sent,
-        )
-    ).scalar_one()
-
-    if remaining == 0:
-        qr.status = QuoteRequestStatus.quotes_refused
-
     db.commit()
 
     flash("Devis refuse.", "info")
