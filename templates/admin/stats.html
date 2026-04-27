@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="font-display font-bold text-2xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Statistiques</h1>
-  <p class="text-sm mt-1" style="color: #6B7280">Vue d'ensemble de la plateforme</p>
+  <h1 class="font-display font-bold text-2xl text-black">Statistiques</h1>
+  <p class="text-sm mt-1 text-mute">Vue d'ensemble de la plateforme</p>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -16,11 +16,11 @@
   ] %}
   {% for label, value, icon in steps %}
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="{{ icon }}" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="{{ icon }}" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ value }}</p>
-    <p class="text-xs" style="color: #6B7280">{{ label }}{% if not loop.first and funnel.requests > 0 %} <span style="color: #1A3A52">({{ "%.1f"|format(value / funnel.requests * 100) }}%)</span>{% endif %}</p>
+    <p class="font-display font-bold text-3xl text-black">{{ value }}</p>
+    <p class="text-xs text-mute">{{ label }}{% if not loop.first and funnel.requests > 0 %} <span class="text-navy">({{ "%.1f"|format(value / funnel.requests * 100) }}%)</span>{% endif %}</p>
   </div>
   {% endfor %}
 </div>
@@ -32,17 +32,17 @@
   ] %}
   {% for label, value, icon in steps2 %}
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="{{ icon }}" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="{{ icon }}" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ value }}</p>
-    <p class="text-xs" style="color: #6B7280">{{ label }}</p>
+    <p class="font-display font-bold text-3xl text-black">{{ value }}</p>
+    <p class="text-xs text-mute">{{ label }}</p>
   </div>
   {% endfor %}
 </div>
 
 <div class="bg-white rounded-lg p-6 mb-8">
-  <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Revenu mensuel (12 mois)</h2>
+  <h2 class="font-display font-bold text-lg text-black mb-4">Revenu mensuel (12 mois)</h2>
   <canvas id="revenueChart" height="250"
     data-labels='{{ months|map(attribute="label")|list|tojson }}'
     data-revenue='{{ months|map(attribute="revenue")|list|tojson }}'></canvas>
@@ -50,68 +50,74 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Top 5 traiteurs</h2>
+    <h2 class="font-display font-bold text-lg text-black mb-4">Top 5 traiteurs</h2>
     {% if top_caterers %}
     <div>
       {% for c in top_caterers %}
-      <div class="flex items-center gap-3 py-3.5" style="{% if not loop.first %}border-top: 1px solid #F3F4F6{% endif %}">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-          style="background-color: {% if loop.index == 1 %}#F59E0B{% elif loop.index == 2 %}#9CA3AF{% elif loop.index == 3 %}#CD7F32{% else %}#E5E7EB{% endif %}; {% if loop.index > 3 %}color: #6B7280{% endif %}">
+      <div class="flex items-center gap-3 py-3.5 {% if not loop.first %}border-t border-soft{% endif %}">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
+          {% if loop.index == 1 %}bg-warning text-white
+          {% elif loop.index == 2 %}bg-mute-soft text-white
+          {% elif loop.index == 3 %}bg-bronze text-white
+          {% else %}border-2 border-default text-mute{% endif %}">
           {{ loop.index }}
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-black">{{ c.name }}</p>
-          <p class="text-xs" style="color: #6B7280">{{ c.order_count }} commande{{ 's' if c.order_count != 1 }}</p>
+          <p class="text-xs text-mute">{{ c.order_count }} commande{{ 's' if c.order_count != 1 }}</p>
         </div>
-        <p class="text-sm font-bold" style="color: #1A3A52">{{ "%.2f"|format(c.revenue) }} &euro;</p>
+        <p class="text-sm font-bold text-navy">{{ "%.2f"|format(c.revenue) }} &euro;</p>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <p class="text-sm" style="color: #6B7280">Aucune donnee.</p>
+    <p class="text-sm text-mute">Aucune donnee.</p>
     {% endif %}
   </div>
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Top 5 clients</h2>
+    <h2 class="font-display font-bold text-lg text-black mb-4">Top 5 clients</h2>
     {% if geo_data %}
     <div>
       {% for g in geo_data[:5] %}
-      <div class="flex items-center gap-3 py-3.5" style="{% if not loop.first %}border-top: 1px solid #F3F4F6{% endif %}">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-          style="background-color: {% if loop.index == 1 %}#F59E0B{% elif loop.index == 2 %}#9CA3AF{% elif loop.index == 3 %}#CD7F32{% else %}#E5E7EB{% endif %}; {% if loop.index > 3 %}color: #6B7280{% endif %}">
+      <div class="flex items-center gap-3 py-3.5 {% if not loop.first %}border-t border-soft{% endif %}">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
+          {% if loop.index == 1 %}bg-warning text-white
+          {% elif loop.index == 2 %}bg-mute-soft text-white
+          {% elif loop.index == 3 %}bg-bronze text-white
+          {% else %}border-2 border-default text-mute{% endif %}">
           {{ loop.index }}
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-black">{{ g.city }}</p>
         </div>
-        <p class="text-sm font-bold" style="color: #1A3A52">{{ g.count }}</p>
+        <p class="text-sm font-bold text-navy">{{ g.count }}</p>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <p class="text-sm" style="color: #6B7280">Aucune donnee.</p>
+    <p class="text-sm text-mute">Aucune donnee.</p>
     {% endif %}
   </div>
 </div>
 
 <div class="bg-white rounded-lg p-6">
-  <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Types de prestations</h2>
+  <h2 class="font-display font-bold text-lg text-black mb-4">Types de prestations</h2>
   {% if meal_data %}
   <div class="space-y-3">
     {% set max_meal = meal_data[0].count if meal_data else 1 %}
     {% for m in meal_data %}
     <div class="flex items-center gap-3">
       <span class="text-sm text-black w-32 truncate">{{ m.type }}</span>
-      <div class="flex-1 rounded-full h-6 overflow-hidden" style="background-color: #F5F1E8">
-        <div class="h-full rounded-full" style="width: {{ (m.count / max_meal * 100)|int }}%; background-color: #1A3A52"></div>
+      <div class="flex-1 rounded-full h-6 overflow-hidden bg-cream">
+        <div class="h-full rounded-full bg-navy" style="width: {{ (m.count / max_meal * 100)|int }}%"></div>
       </div>
-      <span class="text-sm font-bold w-8 text-right" style="color: #1A3A52">{{ m.count }}</span>
+      <span class="text-sm font-bold w-8 text-right text-navy">{{ m.count }}</span>
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <p class="text-sm" style="color: #6B7280">Aucune donnee.</p>
+  <p class="text-sm text-mute">Aucune donnee.</p>
   {% endif %}
 </div>
 {% endblock %}

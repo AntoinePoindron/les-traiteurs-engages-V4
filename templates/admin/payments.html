@@ -4,48 +4,47 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="font-display font-bold text-2xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Paiements</h1>
-  <p class="text-sm mt-1" style="color: #6B7280">Suivi des paiements Stripe</p>
+  <h1 class="font-display font-bold text-2xl text-black">Paiements</h1>
+  <p class="text-sm mt-1 text-mute">Suivi des paiements Stripe</p>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="banknote" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="banknote" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ "%.2f"|format(total_revenue / 100) }}&euro;</p>
-    <p class="text-xs" style="color: #6B7280">Revenu total</p>
+    <p class="font-display font-bold text-3xl text-black">{{ "%.2f"|format(total_revenue / 100) }}&euro;</p>
+    <p class="text-xs text-mute">Revenu total</p>
   </div>
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="percent" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="percent" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ "%.2f"|format(total_commission / 100) }}&euro;</p>
-    <p class="text-xs" style="color: #6B7280">Commission totale</p>
+    <p class="font-display font-bold text-3xl text-black">{{ "%.2f"|format(total_commission / 100) }}&euro;</p>
+    <p class="text-xs text-mute">Commission totale</p>
   </div>
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="clock" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="clock" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ pending_count }}</p>
-    <p class="text-xs" style="color: #6B7280">Paiements en attente</p>
+    <p class="font-display font-bold text-3xl text-black">{{ pending_count }}</p>
+    <p class="text-xs text-mute">Paiements en attente</p>
   </div>
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="trending-up" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="trending-up" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ payments|length }}</p>
-    <p class="text-xs" style="color: #6B7280">Total paiements</p>
+    <p class="font-display font-bold text-3xl text-black">{{ payments|length }}</p>
+    <p class="text-xs text-mute">Total paiements</p>
   </div>
 </div>
 
 <div class="bg-white rounded-lg">
-  <div class="p-4 flex flex-wrap items-center gap-2" style="border-bottom: 1px solid #F3F4F6">
+  <div class="p-4 flex flex-wrap items-center gap-2 border-b border-soft">
     {% set status_tabs = [("all", "Tous"), ("pending", "En attente"), ("processing", "En cours"), ("succeeded", "Reussis"), ("failed", "Echoues"), ("refunded", "Rembourses")] %}
     {% for key, label in status_tabs %}
     <a href="{{ url_for('admin.payments', status=key) }}"
-      class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors"
-      style="{% if current_status == key %}background-color: #1A3A52; color: white{% else %}background-color: #F5F1E8; color: #1A3A52{% endif %}">
+      class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors {% if current_status == key %}bg-navy text-white{% else %}bg-cream text-navy{% endif %}">
       {{ label }}
     </a>
     {% endfor %}
@@ -54,56 +53,56 @@
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
-        <tr style="border-bottom: 1px solid #F3F4F6">
-          <th class="px-4 py-3 text-left font-medium text-xs uppercase" style="color: #6B7280">Commande</th>
-          <th class="px-4 py-3 text-left font-medium text-xs uppercase" style="color: #6B7280">Traiteur</th>
-          <th class="px-4 py-3 text-right font-medium text-xs uppercase" style="color: #6B7280">Total</th>
-          <th class="px-4 py-3 text-right font-medium text-xs uppercase" style="color: #6B7280">Commission</th>
-          <th class="px-4 py-3 text-right font-medium text-xs uppercase" style="color: #6B7280">Traiteur</th>
-          <th class="px-4 py-3 text-center font-medium text-xs uppercase" style="color: #6B7280">Statut</th>
-          <th class="px-4 py-3 text-left font-medium text-xs uppercase" style="color: #6B7280">Stripe</th>
-          <th class="px-4 py-3 text-left font-medium text-xs uppercase" style="color: #6B7280">Date</th>
+        <tr class="border-b border-soft">
+          <th class="px-4 py-3 text-left font-medium text-xs uppercase text-mute">Commande</th>
+          <th class="px-4 py-3 text-left font-medium text-xs uppercase text-mute">Traiteur</th>
+          <th class="px-4 py-3 text-right font-medium text-xs uppercase text-mute">Total</th>
+          <th class="px-4 py-3 text-right font-medium text-xs uppercase text-mute">Commission</th>
+          <th class="px-4 py-3 text-right font-medium text-xs uppercase text-mute">Traiteur</th>
+          <th class="px-4 py-3 text-center font-medium text-xs uppercase text-mute">Statut</th>
+          <th class="px-4 py-3 text-left font-medium text-xs uppercase text-mute">Stripe</th>
+          <th class="px-4 py-3 text-left font-medium text-xs uppercase text-mute">Date</th>
         </tr>
       </thead>
       <tbody>
         {% for p in payments %}
-        <tr class="hover:bg-[#F5F1E8]" style="border-top: 1px solid #F3F4F6">
+        <tr class="hover:bg-[#F5F1E8] border-t border-soft">
           <td class="px-4 py-3">
-            <a href="{{ url_for('admin.company_detail', company_id=p.order.quote.quote_request.company_id) }}" class="font-bold text-sm" style="color: #1A3A52">
+            <a href="{{ url_for('admin.company_detail', company_id=p.order.quote.quote_request.company_id) }}" class="font-bold text-sm text-navy">
               #{{ p.order_id|string|truncate(8, True, '') }}
             </a>
           </td>
           <td class="px-4 py-3 font-medium text-black">{{ p.caterer.name }}</td>
           <td class="px-4 py-3 text-right text-black">{{ "%.2f"|format((p.amount_total_cents or 0) / 100) }} &euro;</td>
-          <td class="px-4 py-3 text-right" style="color: #1A3A52">{{ "%.2f"|format((p.application_fee_cents or 0) / 100) }} &euro;</td>
-          <td class="px-4 py-3 text-right" style="color: #16A34A">{{ "%.2f"|format((p.amount_to_caterer_cents or 0) / 100) }} &euro;</td>
+          <td class="px-4 py-3 text-right text-navy">{{ "%.2f"|format((p.application_fee_cents or 0) / 100) }} &euro;</td>
+          <td class="px-4 py-3 text-right text-success">{{ "%.2f"|format((p.amount_to_caterer_cents or 0) / 100) }} &euro;</td>
           <td class="px-4 py-3 text-center">
             {% from "components/status_badge.html" import status_badge %}
             <div class="flex items-center justify-center gap-1.5">
               {% if p.status == PaymentStatus.succeeded %}
-              <span class="w-2 h-2 rounded-full" style="background-color: #16A34A"></span>
+              <span class="w-2 h-2 rounded-full bg-success"></span>
               {% elif p.status == PaymentStatus.pending %}
-              <span class="w-2 h-2 rounded-full" style="background-color: #F59E0B"></span>
+              <span class="w-2 h-2 rounded-full bg-warning"></span>
               {% else %}
-              <span class="w-2 h-2 rounded-full" style="background-color: #6B7280"></span>
+              <span class="w-2 h-2 rounded-full bg-mute-soft"></span>
               {% endif %}
               {{ status_badge(p.status) }}
             </div>
           </td>
           <td class="px-4 py-3">
             {% if p.order.stripe_hosted_invoice_url %}
-            <a href="{{ p.order.stripe_hosted_invoice_url }}" target="_blank" class="text-xs flex items-center gap-1" style="color: #1A3A52">
-              <i data-lucide="external-link" style="width:12px;height:12px"></i> Facture
+            <a href="{{ p.order.stripe_hosted_invoice_url }}" target="_blank" class="text-xs flex items-center gap-1 text-navy">
+              <i data-lucide="external-link" class="w-3 h-3"></i> Facture
             </a>
             {% else %}
-            <span class="text-xs" style="color: #6B7280">-</span>
+            <span class="text-xs text-mute">-</span>
             {% endif %}
           </td>
-          <td class="px-4 py-3" style="color: #6B7280">{{ p.created_at.strftime('%d/%m/%Y') }}</td>
+          <td class="px-4 py-3 text-mute">{{ p.created_at.strftime('%d/%m/%Y') }}</td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="8" class="px-4 py-8 text-center" style="color: #6B7280">Aucun paiement.</td>
+          <td colspan="8" class="px-4 py-8 text-center text-mute">Aucun paiement.</td>
         </tr>
         {% endfor %}
       </tbody>

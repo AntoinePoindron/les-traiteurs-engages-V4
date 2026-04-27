@@ -6,12 +6,12 @@
 
 {% block content %}
 <div class="mb-6">
-  <a href="{{ url_for('admin.qualification') }}" class="inline-flex items-center gap-2 text-sm mb-3" style="color: #6B7280">
-    <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
+  <a href="{{ url_for('admin.qualification') }}" class="inline-flex items-center gap-2 text-sm mb-3 text-mute">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i>
     Retour a la liste
   </a>
   <div class="flex items-center gap-3">
-    <h1 class="font-display font-bold text-2xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ qr.meal_type.value if qr.meal_type else qr.service_type or 'Demande' }} - {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else 'Date non definie' }}</h1>
+    <h1 class="font-display font-bold text-2xl text-black">{{ qr.meal_type.value if qr.meal_type else qr.service_type or 'Demande' }} - {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else 'Date non definie' }}</h1>
     {{ status_badge(qr.status) }}
   </div>
 </div>
@@ -19,33 +19,33 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
   <div class="lg:col-span-2 space-y-6">
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Entreprise</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Entreprise</h2>
       <p class="text-sm font-medium text-black">{{ qr.company.name }}</p>
-      <p class="text-xs mt-1" style="color: #6B7280">SIRET : {{ qr.company.siret }}</p>
-      {% if qr.company.city %}<p class="text-xs" style="color: #6B7280">{{ qr.company.city }}</p>{% endif %}
+      <p class="text-xs mt-1 text-mute">SIRET : {{ qr.company.siret }}</p>
+      {% if qr.company.city %}<p class="text-xs text-mute">{{ qr.company.city }}</p>{% endif %}
       {% if qr.company.oeth_eligible %}
-      <span class="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">OETH</span>
+      <span class="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">OETH</span>
       {% endif %}
     </div>
 
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Details de l'evenement</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Details de l'evenement</h2>
       <div class="flex flex-wrap gap-2 mb-4">
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="utensils" style="width:12px;height:12px"></i>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="utensils" class="w-3 h-3"></i>
           {{ qr.meal_type.value if qr.meal_type else qr.service_type or '-' }}
         </span>
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="calendar" style="width:12px;height:12px"></i>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="calendar" class="w-3 h-3"></i>
           {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}
         </span>
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="users" style="width:12px;height:12px"></i>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="users" class="w-3 h-3"></i>
           {{ qr.guest_count or '-' }} convives
         </span>
         {% if qr.event_address or qr.event_city %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="map-pin" style="width:12px;height:12px"></i>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="map-pin" class="w-3 h-3"></i>
           {{ qr.event_address or '' }}{% if qr.event_city %}, {{ qr.event_city }}{% endif %}{% if qr.event_zip_code %} {{ qr.event_zip_code }}{% endif %}
         </span>
         {% endif %}
@@ -53,81 +53,81 @@
 
       <div class="grid grid-cols-2 gap-4 mt-4">
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Budget global</p>
+          <p class="text-xs font-bold uppercase text-mute">Budget global</p>
           <p class="text-sm font-medium text-black mt-1">{% if qr.budget_global %}{{ "%.2f"|format(qr.budget_global) }} EUR{% else %}-{% endif %}</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Budget par personne</p>
+          <p class="text-xs font-bold uppercase text-mute">Budget par personne</p>
           <p class="text-sm font-medium text-black mt-1">{% if qr.budget_per_person %}{{ "%.2f"|format(qr.budget_per_person) }} EUR{% else %}-{% endif %}</p>
         </div>
       </div>
     </div>
 
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Regimes alimentaires</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Regimes alimentaires</h2>
       <div class="flex flex-wrap gap-2">
         {% if qr.dietary_vegetarian %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">Vegetarien{% if qr.vegetarian_count %} ({{ qr.vegetarian_count }}){% endif %}</span>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">Vegetarien{% if qr.vegetarian_count %} ({{ qr.vegetarian_count }}){% endif %}</span>
         {% endif %}
         {% if qr.dietary_vegan %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">Vegan{% if qr.vegan_count %} ({{ qr.vegan_count }}){% endif %}</span>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">Vegan{% if qr.vegan_count %} ({{ qr.vegan_count }}){% endif %}</span>
         {% endif %}
         {% if qr.dietary_halal %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">Halal{% if qr.halal_count %} ({{ qr.halal_count }}){% endif %}</span>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">Halal{% if qr.halal_count %} ({{ qr.halal_count }}){% endif %}</span>
         {% endif %}
         {% if qr.dietary_casher %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">Casher{% if qr.casher_count %} ({{ qr.casher_count }}){% endif %}</span>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">Casher{% if qr.casher_count %} ({{ qr.casher_count }}){% endif %}</span>
         {% endif %}
         {% if qr.dietary_gluten_free %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">Sans gluten{% if qr.gluten_free_count %} ({{ qr.gluten_free_count }}){% endif %}</span>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">Sans gluten{% if qr.gluten_free_count %} ({{ qr.gluten_free_count }}){% endif %}</span>
         {% endif %}
         {% if qr.dietary_lactose_free %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">Sans lactose{% if qr.lactose_free_count %} ({{ qr.lactose_free_count }}){% endif %}</span>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">Sans lactose{% if qr.lactose_free_count %} ({{ qr.lactose_free_count }}){% endif %}</span>
         {% endif %}
         {% if not (qr.dietary_vegetarian or qr.dietary_vegan or qr.dietary_halal or qr.dietary_casher or qr.dietary_gluten_free or qr.dietary_lactose_free) %}
-        <p class="text-sm" style="color: #6B7280">Aucun regime specifique.</p>
+        <p class="text-sm text-mute">Aucun regime specifique.</p>
         {% endif %}
       </div>
     </div>
 
     {% if qr.message_to_caterer %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Message du client</h2>
-      <p class="text-sm" style="color: #6B7280">{{ qr.message_to_caterer }}</p>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Message du client</h2>
+      <p class="text-sm text-mute">{{ qr.message_to_caterer }}</p>
     </div>
     {% endif %}
 
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Services additionnels</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Services additionnels</h2>
       <div class="flex flex-wrap gap-2">
         {% if qr.drinks_alcohol %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="wine" style="width:12px;height:12px"></i> Boissons avec alcool
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="wine" class="w-3 h-3"></i> Boissons avec alcool
         </span>
         {% endif %}
         {% if qr.wants_waitstaff %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="users" style="width:12px;height:12px"></i> Service/personnel
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="users" class="w-3 h-3"></i> Service/personnel
         </span>
         {% endif %}
         {% if qr.wants_equipment %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="utensils" style="width:12px;height:12px"></i> Vaisselle
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="utensils" class="w-3 h-3"></i> Vaisselle
         </span>
         {% endif %}
         {% if qr.wants_decoration %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="sparkles" style="width:12px;height:12px"></i> Decoration
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="sparkles" class="w-3 h-3"></i> Decoration
         </span>
         {% endif %}
         {% if qr.wants_setup %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="package" style="width:12px;height:12px"></i> Installation
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="package" class="w-3 h-3"></i> Installation
         </span>
         {% endif %}
         {% if qr.wants_cleanup %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-          <i data-lucide="trash-2" style="width:12px;height:12px"></i> Nettoyage
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="trash-2" class="w-3 h-3"></i> Nettoyage
         </span>
         {% endif %}
       </div>
@@ -136,28 +136,28 @@
 
   <div class="space-y-6">
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Traiteurs compatibles</h2>
-      <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ matches|length }}</p>
-      <p class="text-xs mt-1" style="color: #6B7280">resultat{{ 's' if matches|length != 1 }}</p>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Traiteurs compatibles</h2>
+      <p class="font-display font-bold text-3xl text-black">{{ matches|length }}</p>
+      <p class="text-xs mt-1 text-mute">resultat{{ 's' if matches|length != 1 }}</p>
 
       {% if matches %}
       <div class="mt-4">
         {% for caterer, distance in matches %}
-        <div class="flex items-center gap-3 py-3.5" style="border-top: 1px solid #F3F4F6">
+        <div class="flex items-center gap-3 py-3.5 border-t border-soft">
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-black">{{ caterer.name }}</p>
-            <p class="text-xs" style="color: #6B7280">{{ distance }} km &middot; {{ caterer.capacity_min or '?' }}-{{ caterer.capacity_max or '?' }} pers.</p>
+            <p class="text-xs text-mute">{{ distance }} km &middot; {{ caterer.capacity_min or '?' }}-{{ caterer.capacity_max or '?' }} pers.</p>
           </div>
           {{ structure_type_badge(caterer.structure_type) }}
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div class="mt-4 rounded-lg p-4 flex items-start gap-3" style="background-color: #FEF2F2">
-        <i data-lucide="alert-triangle" style="width:20px;height:20px;color:#DC2626;margin-top:2px"></i>
+      <div class="mt-4 rounded-lg p-4 flex items-start gap-3 bg-danger-soft">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-danger" style="margin-top:2px"></i>
         <div>
-          <p class="text-sm font-medium" style="color: #DC2626">Aucun traiteur compatible</p>
-          <p class="text-xs mt-1" style="color: #DC2626">Aucun traiteur valide ne correspond aux criteres.</p>
+          <p class="text-sm font-medium text-danger">Aucun traiteur compatible</p>
+          <p class="text-xs mt-1 text-danger">Aucun traiteur valide ne correspond aux criteres.</p>
         </div>
       </div>
       {% endif %}
@@ -165,20 +165,20 @@
 
     {% if qr.status == QuoteRequestStatus.pending_review %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Actions</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Actions</h2>
       <div class="flex flex-col gap-3">
         {% if matches %}
         <form method="POST" action="{{ url_for('admin.qualification_approve', request_id=qr.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-bold" style="background-color: #1A3A52">
-            <i data-lucide="check" style="width:16px;height:16px"></i>
+          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-bold bg-navy">
+            <i data-lucide="check" class="w-4 h-4"></i>
             Approuver et envoyer a {{ matches|length }} traiteur{{ 's' if matches|length != 1 }}
           </button>
         </form>
         {% endif %}
         <button type="button" data-action="dialog-open" data-target="reject-dialog"
-          class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-bold" style="background-color: #DC2626">
-          <i data-lucide="x" style="width:16px;height:16px"></i>
+          class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-bold bg-danger">
+          <i data-lucide="x" class="w-4 h-4"></i>
           Rejeter
         </button>
       </div>
@@ -186,8 +186,8 @@
 
     <dialog id="reject-dialog" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
       <div class="p-6">
-        <h3 class="font-display font-bold text-lg text-black mb-2" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Rejeter la demande</h3>
-        <p class="text-sm mb-4" style="color: #6B7280">Indiquez la raison du rejet. Le client sera notifie.</p>
+        <h3 class="font-display font-bold text-lg text-black mb-2">Rejeter la demande</h3>
+        <p class="text-sm mb-4 text-mute">Indiquez la raison du rejet. Le client sera notifie.</p>
         <form method="POST" action="{{ url_for('admin.qualification_reject', request_id=qr.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <textarea name="rejection_reason" rows="3" required
@@ -195,10 +195,10 @@
             placeholder="Raison du rejet..."></textarea>
           <div class="flex items-center justify-end gap-3">
             <button type="button" data-action="dialog-close" data-target="reject-dialog"
-              class="px-4 py-2 text-sm font-bold rounded-full" style="border: 1px solid #1A3A52; color: #1A3A52">
+              class="px-4 py-2 text-sm font-bold rounded-full btn-ghost-navy">
               Annuler
             </button>
-            <button type="submit" class="px-4 py-2 text-sm font-bold text-white rounded-full" style="background-color: #DC2626">
+            <button type="submit" class="px-4 py-2 text-sm font-bold text-white rounded-full bg-danger">
               Confirmer le rejet
             </button>
           </div>

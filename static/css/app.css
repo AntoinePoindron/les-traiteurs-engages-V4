@@ -27,6 +27,7 @@
   --c-text-soft:   #313131;
   --c-mute:        #6B7280;
   --c-mute-soft:   #9CA3AF;
+  --c-bronze:      #CD7F32;   /* 3rd-place ranking badge */
   --c-disabled:    #D1D5DB;
 
   /* Surfaces & borders */
@@ -175,6 +176,8 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .bg-navy         { background-color: var(--c-navy); }
 .bg-navy-soft    { background-color: var(--c-navy-soft); }
 .bg-coral        { background-color: var(--c-coral); }
+.bg-mute-soft    { background-color: var(--c-mute-soft); }
+.bg-bronze       { background-color: var(--c-bronze); }
 .bg-success      { background-color: var(--c-success); }
 .bg-success-soft { background-color: var(--c-success-bg); }
 .bg-warning      { background-color: var(--c-warning); }

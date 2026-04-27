@@ -5,15 +5,15 @@
 
 {% block content %}
 <div class="mb-6">
-  <a href="{{ url_for('admin.caterers_list') }}" class="inline-flex items-center gap-2 text-sm mb-3" style="color: #6B7280">
-    <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
+  <a href="{{ url_for('admin.caterers_list') }}" class="inline-flex items-center gap-2 text-sm mb-3 text-mute">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i>
     Retour a la liste
   </a>
   <div class="flex items-center gap-3">
-    <h1 class="font-display font-bold text-2xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ caterer.name }}</h1>
+    <h1 class="font-display font-bold text-2xl text-black">{{ caterer.name }}</h1>
     {% if caterer.is_validated %}
-    <div class="w-6 h-6 rounded-full flex items-center justify-center" style="background-color: #DCFCE7">
-      <i data-lucide="check" style="width:14px;height:14px;color:#16A34A"></i>
+    <div class="w-6 h-6 rounded-full flex items-center justify-center bg-success-soft">
+      <i data-lucide="check" class="w-3\.5 h-3\.5 text-success"></i>
     </div>
     {% endif %}
   </div>
@@ -22,81 +22,81 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
   <div class="lg:col-span-1 space-y-6">
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Informations</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Informations</h2>
       <div class="space-y-3">
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">SIRET</p>
+          <p class="text-xs font-bold uppercase text-mute">SIRET</p>
           <p class="text-sm font-medium text-black mt-1">{{ caterer.siret }}</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Type de structure</p>
+          <p class="text-xs font-bold uppercase text-mute">Type de structure</p>
           <p class="text-sm font-medium text-black mt-1">{{ caterer.structure_type.value if caterer.structure_type else '-' }}</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Adresse</p>
+          <p class="text-xs font-bold uppercase text-mute">Adresse</p>
           <p class="text-sm font-medium text-black mt-1">{{ caterer.address or '-' }}</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Ville</p>
+          <p class="text-xs font-bold uppercase text-mute">Ville</p>
           <p class="text-sm font-medium text-black mt-1">{{ caterer.city or '-' }}{% if caterer.zip_code %} ({{ caterer.zip_code }}){% endif %}</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Rayon de livraison</p>
+          <p class="text-xs font-bold uppercase text-mute">Rayon de livraison</p>
           <p class="text-sm font-medium text-black mt-1">{{ caterer.delivery_radius_km or '-' }} km</p>
         </div>
       </div>
       {% if caterer.description %}
       <div class="mt-4">
-        <p class="text-xs font-bold uppercase" style="color: #6B7280">Description</p>
+        <p class="text-xs font-bold uppercase text-mute">Description</p>
         <p class="text-sm text-black mt-1">{{ caterer.description }}</p>
       </div>
       {% endif %}
     </div>
 
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Contact</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Contact</h2>
       <div class="space-y-3">
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Commission</p>
+          <p class="text-xs font-bold uppercase text-mute">Commission</p>
           <p class="text-sm font-medium text-black mt-1">{{ "%.0f"|format(caterer.commission_rate * 100) }}%</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Prefixe facture</p>
+          <p class="text-xs font-bold uppercase text-mute">Prefixe facture</p>
           <p class="text-sm font-medium text-black mt-1">{{ caterer.invoice_prefix or '-' }}</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Stripe</p>
+          <p class="text-xs font-bold uppercase text-mute">Stripe</p>
           {% if caterer.stripe_charges_enabled %}
-          <span class="mt-1 inline-flex items-center px-2 py-1 rounded text-xs font-bold" style="background-color: #DCFCE7; color: #16A34A">Actif</span>
+          <span class="mt-1 inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Actif</span>
           {% elif caterer.stripe_account_id %}
-          <span class="mt-1 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">En cours</span>
+          <span class="mt-1 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">En cours</span>
           {% else %}
-          <span class="text-sm" style="color: #6B7280">Non configure</span>
+          <span class="text-sm text-mute">Non configure</span>
           {% endif %}
         </div>
         <div>
-          <p class="text-xs font-bold uppercase" style="color: #6B7280">Inscrit le</p>
+          <p class="text-xs font-bold uppercase text-mute">Inscrit le</p>
           <p class="text-sm font-medium text-black mt-1">{{ caterer.created_at.strftime('%d/%m/%Y') }}</p>
         </div>
       </div>
     </div>
 
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Actions admin</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Actions admin</h2>
       <div class="space-y-3">
         {% if caterer.is_validated %}
         <form method="POST" action="{{ url_for('admin.caterer_invalidate', caterer_id=caterer.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-white text-sm font-bold" style="background-color: #DC2626">
-            <i data-lucide="x-circle" style="width:16px;height:16px"></i>
+          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-white text-sm font-bold bg-danger">
+            <i data-lucide="x-circle" class="w-4 h-4"></i>
             Invalider
           </button>
         </form>
         {% else %}
         <form method="POST" action="{{ url_for('admin.caterer_validate', caterer_id=caterer.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-white text-sm font-bold" style="background-color: #1A3A52">
-            <i data-lucide="check-circle" style="width:16px;height:16px"></i>
+          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-white text-sm font-bold bg-navy">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
             Valider
           </button>
         </form>
@@ -108,58 +108,58 @@
   <div class="lg:col-span-2 space-y-6">
     <div class="grid grid-cols-2 gap-4">
       <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-          <i data-lucide="users" style="width:18px;height:18px;color:#1A3A52"></i>
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+          <i data-lucide="users" class="w-4\.5 h-4\.5 text-navy"></i>
         </div>
-        <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ caterer.capacity_min or '-' }}</p>
-        <p class="text-xs" style="color: #6B7280">Capacite min</p>
+        <p class="font-display font-bold text-3xl text-black">{{ caterer.capacity_min or '-' }}</p>
+        <p class="text-xs text-mute">Capacite min</p>
       </div>
       <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-          <i data-lucide="users" style="width:18px;height:18px;color:#1A3A52"></i>
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+          <i data-lucide="users" class="w-4\.5 h-4\.5 text-navy"></i>
         </div>
-        <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ caterer.capacity_max or '-' }}</p>
-        <p class="text-xs" style="color: #6B7280">Capacite max</p>
+        <p class="font-display font-bold text-3xl text-black">{{ caterer.capacity_max or '-' }}</p>
+        <p class="text-xs text-mute">Capacite max</p>
       </div>
       <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-          <i data-lucide="map-pin" style="width:18px;height:18px;color:#1A3A52"></i>
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+          <i data-lucide="map-pin" class="w-4\.5 h-4\.5 text-navy"></i>
         </div>
-        <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ caterer.delivery_radius_km or '-' }}</p>
-        <p class="text-xs" style="color: #6B7280">km de rayon</p>
+        <p class="font-display font-bold text-3xl text-black">{{ caterer.delivery_radius_km or '-' }}</p>
+        <p class="text-xs text-mute">km de rayon</p>
       </div>
       <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-          <i data-lucide="percent" style="width:18px;height:18px;color:#1A3A52"></i>
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+          <i data-lucide="percent" class="w-4\.5 h-4\.5 text-navy"></i>
         </div>
-        <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ "%.0f"|format(caterer.commission_rate * 100) }}%</p>
-        <p class="text-xs" style="color: #6B7280">Commission</p>
+        <p class="font-display font-bold text-3xl text-black">{{ "%.0f"|format(caterer.commission_rate * 100) }}%</p>
+        <p class="text-xs text-mute">Commission</p>
       </div>
     </div>
 
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Types de prestations</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Types de prestations</h2>
       <div class="flex flex-wrap gap-2">
         {% if caterer.dietary_vegetarian %}
-        <span class="px-2 py-1 rounded text-xs font-bold" style="background-color: #DCFCE7; color: #16A34A">Vegetarien</span>
+        <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Vegetarien</span>
         {% endif %}
         {% if caterer.dietary_vegan %}
-        <span class="px-2 py-1 rounded text-xs font-bold" style="background-color: #DCFCE7; color: #16A34A">Vegan</span>
+        <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Vegan</span>
         {% endif %}
         {% if caterer.dietary_halal %}
-        <span class="px-2 py-1 rounded text-xs font-bold" style="background-color: #DCFCE7; color: #16A34A">Halal</span>
+        <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Halal</span>
         {% endif %}
         {% if caterer.dietary_casher %}
-        <span class="px-2 py-1 rounded text-xs font-bold" style="background-color: #DCFCE7; color: #16A34A">Casher</span>
+        <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Casher</span>
         {% endif %}
         {% if caterer.dietary_gluten_free %}
-        <span class="px-2 py-1 rounded text-xs font-bold" style="background-color: #DCFCE7; color: #16A34A">Sans gluten</span>
+        <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Sans gluten</span>
         {% endif %}
         {% if caterer.dietary_lactose_free %}
-        <span class="px-2 py-1 rounded text-xs font-bold" style="background-color: #DCFCE7; color: #16A34A">Sans lactose</span>
+        <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Sans lactose</span>
         {% endif %}
         {% if not (caterer.dietary_vegetarian or caterer.dietary_vegan or caterer.dietary_halal or caterer.dietary_casher or caterer.dietary_gluten_free or caterer.dietary_lactose_free) %}
-        <p class="text-sm" style="color: #6B7280">Aucun regime specifique declare.</p>
+        <p class="text-sm text-mute">Aucun regime specifique declare.</p>
         {% endif %}
       </div>
     </div>
