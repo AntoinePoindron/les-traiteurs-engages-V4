@@ -10,24 +10,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/tailwind.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@1.11.0/dist/umd/lucide.min.js" defer></script>
   {% block head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-cream">
   {% if g.current_user %}
   <!-- Mobile topbar -->
-  <div class="fixed top-0 left-0 right-0 h-14 bg-white z-40 flex items-center px-4 lg:hidden" style="border-bottom: 1px solid #F3F4F6;">
+  <div class="fixed top-0 left-0 right-0 h-14 bg-white z-40 flex items-center px-4 lg:hidden border-b border-soft">
     <button id="mobile-menu-btn" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
-      <i data-lucide="menu" class="w-5 h-5 text-dark"></i>
+      <i data-lucide="menu" class="w-5 h-5 text-text"></i>
     </button>
-    <span class="font-display text-base font-semibold text-dark ml-3">Les Traiteurs Engag&#233;s</span>
+    <span class="font-display text-base font-semibold text-text ml-3">Les Traiteurs Engag&#233;s</span>
   </div>
 
   <!-- Mobile overlay -->
   <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" data-action="toggle-mobile-menu"></div>
 
   <!-- Sidebar -->
-  <aside id="sidebar" class="fixed left-0 top-0 h-full bg-white z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0" style="width: 241px; border-right: 1px solid #F3F4F6;">
+  <aside id="sidebar" class="w-sidebar fixed left-0 top-0 h-full bg-white z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0 border-r border-soft">
     <!-- Logo -->
     <div class="p-4 flex items-center gap-3">
       <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-10">
@@ -36,14 +36,14 @@
     <!-- Entity badge -->
     {% if g.current_user.role in (UserRole.client_admin, UserRole.client_user) and g.current_user.company %}
     <div class="px-4 pb-3">
-      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold" style="background: #F0F4F8; color: #1A3A52;">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-navy-soft text-navy">
         <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
         {{ g.current_user.company.name if g.current_user.company else 'Mon entreprise' }}
       </span>
     </div>
     {% elif g.current_user.role == UserRole.caterer and g.current_user.caterer %}
     <div class="px-4 pb-3">
-      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold" style="background: #F0F4F8; color: #1A3A52;">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-navy-soft text-navy">
         <i data-lucide="chef-hat" class="w-3.5 h-3.5"></i>
         {{ g.current_user.caterer.name if g.current_user.caterer else 'Mon activit&#233;' }}
       </span>
@@ -154,26 +154,26 @@
     </nav>
 
     <!-- Footer -->
-    <div class="p-3" style="border-top: 1px solid #F3F4F6;">
+    <div class="p-3 border-t border-soft">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style="background: #1A3A52;">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white bg-navy">
           {{ g.current_user.first_name[0] }}{{ g.current_user.last_name[0] }}
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-dark truncate">{{ g.current_user.first_name }} {{ g.current_user.last_name }}</p>
+          <p class="text-sm font-medium text-text truncate">{{ g.current_user.first_name }} {{ g.current_user.last_name }}</p>
         </div>
         <button class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
-          <i data-lucide="bell" class="w-4.5 h-4.5" style="color: #6B7280;"></i>
+          <i data-lucide="bell" class="w-4.5 h-4.5 text-mute"></i>
         </button>
         <a href="{{ url_for('auth.logout') }}" class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors" title="D&#233;connexion">
-          <i data-lucide="log-out" class="w-4.5 h-4.5" style="color: #6B7280;"></i>
+          <i data-lucide="log-out" class="w-4.5 h-4.5 text-mute"></i>
         </a>
       </div>
     </div>
   </aside>
 
   <!-- Main content -->
-  <main id="main-content" class="min-h-screen transition-all duration-300 pt-14 lg:pt-0" style="margin-left: 0;">
+  <main id="main-content" class="min-h-screen transition-all duration-300 pt-14 lg:pt-0">
     <div class="p-6 max-w-7xl mx-auto">
       {% include "components/flash_messages.html" %}
       {% block content %}{% endblock %}

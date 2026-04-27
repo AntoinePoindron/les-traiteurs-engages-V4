@@ -1,33 +1,31 @@
 {% extends "base.html" %}
 {% block title %}Messages — Les Traiteurs Engages{% endblock %}
 {% block content %}
-<main style="background-color: #F5F1E8; min-height: 100vh;">
-  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
+<main class="bg-cream min-h-screen">
 
-    <h1 class="font-display font-bold text-4xl mb-6" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Messages</h1>
+    <h1 class="font-display font-bold text-4xl mb-6 text-text">Messages</h1>
 
     {% if threads %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Conversations</h2>
+      <h2 class="font-display font-bold text-xl mb-4 text-text">Conversations</h2>
       <div>
         {% for t in threads %}
         <a href="{{ url_for('client.message_thread', thread_id=t.thread_id) }}"
-           class="flex items-center gap-3 py-3.5 hover:bg-[#F5F1E8] -mx-2 px-2 rounded-lg transition-colors"
-           style="border-top: 1px solid #F3F4F6">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
-            <i data-lucide="user" style="width:16px;height:16px;color:#1A3A52"></i>
+           class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+            <i data-lucide="user" class="w-4 h-4 text-navy"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ t.other_name }}</p>
-            <p class="text-xs truncate mt-0.5" style="color: #6B7280">{{ t.last_message }}</p>
+            <p class="text-sm font-bold truncate text-text">{{ t.other_name }}</p>
+            <p class="text-xs truncate mt-0.5 text-mute">{{ t.last_message }}</p>
           </div>
           <div class="flex items-center gap-3 flex-shrink-0">
-            <span class="text-xs" style="color: #6B7280">{{ t.last_at.strftime('%d/%m %H:%M') }}</span>
+            <span class="text-xs text-mute">{{ t.last_at.strftime('%d/%m %H:%M') }}</span>
             {% if t.unread > 0 %}
-            <span class="text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" style="background-color: #DC2626; color: #FFFFFF">{{ t.unread }}</span>
+            <span class="text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center bg-danger text-white">{{ t.unread }}</span>
             {% endif %}
           </div>
-          <i data-lucide="chevron-right" style="width:16px;height:16px;color:#D1D5DB"></i>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
         </a>
         {% endfor %}
       </div>
@@ -35,14 +33,13 @@
     {% else %}
     <!-- Empty state -->
     <div class="bg-white rounded-lg p-12 text-center">
-      <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4" style="background-color: #F0F4F7">
-        <i data-lucide="message-circle" style="width:24px;height:24px;color:#1A3A52"></i>
+      <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
+        <i data-lucide="message-circle" class="w-6 h-6 text-navy"></i>
       </div>
-      <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Aucune conversation</h3>
-      <p class="text-sm" style="color: #6B7280">Aucune conversation pour le moment.</p>
+      <h3 class="font-display font-bold text-xl mb-2 text-text">Aucune conversation</h3>
+      <p class="text-sm text-mute">Aucune conversation pour le moment.</p>
     </div>
     {% endif %}
 
-  </div>
 </main>
 {% endblock %}

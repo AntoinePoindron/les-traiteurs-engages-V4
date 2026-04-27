@@ -1,25 +1,24 @@
 {% macro confirm_dialog(id, title, message, action_url, action_label="Confirmer", destructive=False) %}
-<div id="{{ id }}" class="fixed inset-0 z-50 hidden items-center justify-center" style="background: rgba(0,0,0,0.5);" data-backdrop-dismiss>
-  <div class="bg-white rounded-xl shadow-2xl w-full p-6" style="max-width: 440px;">
+<div id="{{ id }}" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50" data-backdrop-dismiss>
+  <div class="max-w-dialog bg-white rounded-xl shadow-2xl w-full p-6">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="font-display text-lg font-bold text-dark">{{ title }}</h3>
+      <h3 class="font-display text-lg font-bold text-text">{{ title }}</h3>
       <button type="button" data-action="dialog-close" data-target="{{ id }}"
         class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
-        <i data-lucide="x" class="w-4 h-4" style="color: #6B7280;"></i>
+        <i data-lucide="x" class="w-4 h-4 text-mute"></i>
       </button>
     </div>
-    <p class="text-sm mb-6" style="color: #313131;">{{ message }}</p>
+    <p class="text-sm mb-6 text-text-soft">{{ message }}</p>
     <div class="flex items-center gap-3">
       <button type="button" data-action="dialog-close" data-target="{{ id }}"
-        class="flex-1 py-2.5 rounded-full text-sm font-medium transition-colors" style="border: 1px solid #1A3A52; color: #1A3A52; background: white;">
+        class="flex-1 py-2.5 rounded-full text-sm font-medium transition-colors btn-ghost-navy">
         Annuler
       </button>
       <form method="POST" action="{{ action_url }}" class="flex-1">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit"
-          class="w-full py-2.5 rounded-full text-sm font-medium text-white transition-colors
-          {% if destructive %}hover:opacity-90{% else %}hover:opacity-90{% endif %}"
-          style="background-color: {% if destructive %}#DC2626{% else %}#1A3A52{% endif %};">
+          class="w-full py-2.5 rounded-full text-sm font-medium text-white transition-colors hover:opacity-90
+          {% if destructive %}bg-danger{% else %}bg-navy{% endif %}">
           {{ action_label }}
         </button>
       </form>

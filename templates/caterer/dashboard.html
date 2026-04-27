@@ -5,60 +5,60 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Bienvenue, {{ user.first_name }}</h1>
-  <p class="text-xs mt-1" style="color: #6B7280">Espace traiteur</p>
+  <h1 class="font-display font-bold text-3xl text-black">Bienvenue, {{ user.first_name }}</h1>
+  <p class="text-xs mt-1 text-mute">Espace traiteur</p>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="file-text" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="file-text" class="w-4.5 h-4.5 text-navy"></i>
     </div>
     <div>
-      <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ pending_count }}</p>
-      <p class="text-xs mt-0.5" style="color: #6B7280">Demandes en attente</p>
+      <p class="font-display font-bold text-3xl text-black">{{ pending_count }}</p>
+      <p class="text-xs mt-0.5 text-mute">Demandes en attente</p>
     </div>
-    <a href="{{ url_for('caterer.requests_list', status='selected') }}" class="text-xs font-bold" style="color: #1A3A52">Voir les demandes</a>
+    <a href="{{ url_for('caterer.requests_list', status='selected') }}" class="text-xs font-bold text-navy">Voir les demandes</a>
   </div>
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="truck" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="truck" class="w-4.5 h-4.5 text-navy"></i>
     </div>
     <div>
-      <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ upcoming_deliveries|length }}</p>
-      <p class="text-xs mt-0.5" style="color: #6B7280">Prochaines livraisons</p>
+      <p class="font-display font-bold text-3xl text-black">{{ upcoming_deliveries|length }}</p>
+      <p class="text-xs mt-0.5 text-mute">Prochaines livraisons</p>
     </div>
-    <a href="{{ url_for('caterer.orders_list') }}" class="text-xs font-bold" style="color: #1A3A52">Voir les commandes</a>
+    <a href="{{ url_for('caterer.orders_list') }}" class="text-xs font-bold text-navy">Voir les commandes</a>
   </div>
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="banknote" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="banknote" class="w-4.5 h-4.5 text-navy"></i>
     </div>
     <div>
-      <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ "%.2f"|format(total_revenue) }} &euro;</p>
-      <p class="text-xs mt-0.5" style="color: #6B7280">Total commandes payees</p>
+      <p class="font-display font-bold text-3xl text-black">{{ "%.2f"|format(total_revenue) }} &euro;</p>
+      <p class="text-xs mt-0.5 text-mute">Total commandes payees</p>
     </div>
   </div>
 </div>
 
 {% if upcoming_deliveries %}
 <div class="bg-white rounded-lg p-6">
-  <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Prochaines livraisons</h2>
+  <h2 class="font-display font-bold text-xl mb-4 text-text">Prochaines livraisons</h2>
   <div>
     {% for order in upcoming_deliveries %}
-    <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg transition-colors hover:bg-[#F5F1E8]" style="border-top: 1px solid #F3F4F6">
-      <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
-        <i data-lucide="truck" style="width:16px;height:16px;color:#1A3A52"></i>
+    <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg transition-colors hover:bg-cream border-t border-soft">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+        <i data-lucide="truck" class="w-4 h-4 text-navy"></i>
       </div>
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ order.quote.quote_request.company.name if order.quote and order.quote.quote_request and order.quote.quote_request.company else 'Client' }}</p>
+        <p class="text-sm font-bold truncate text-text">{{ order.quote.quote_request.company.name if order.quote and order.quote.quote_request and order.quote.quote_request.company else 'Client' }}</p>
         <div class="flex items-center gap-3 mt-0.5">
-          <span class="text-xs" style="color: #6B7280">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
-          <span class="text-xs" style="color: #6B7280">{{ order.delivery_address or 'Adresse non renseignee' }}</span>
+          <span class="text-xs text-mute">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
+          <span class="text-xs text-mute">{{ order.delivery_address or 'Adresse non renseignee' }}</span>
         </div>
       </div>
       {{ status_badge(order.status) }}
-      <i data-lucide="chevron-right" style="width:16px;height:16px;color:#D1D5DB"></i>
+      <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
     </a>
     {% endfor %}
   </div>

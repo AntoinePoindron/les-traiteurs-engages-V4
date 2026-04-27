@@ -4,96 +4,96 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="font-display font-bold text-4xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Bonjour, {{ user.first_name }}!</h1>
+  <h1 class="font-display font-bold text-4xl text-black">Bonjour, {{ user.first_name }}!</h1>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="clipboard-check" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="clipboard-check" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ pending_requests }}</p>
-    <p class="text-xs" style="color: #6B7280">Demandes en attente</p>
+    <p class="font-display font-bold text-3xl text-black">{{ pending_requests }}</p>
+    <p class="text-xs text-mute">Demandes en attente</p>
   </div>
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="chef-hat" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="chef-hat" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ pending_caterers }}</p>
-    <p class="text-xs" style="color: #6B7280">Traiteurs a valider</p>
+    <p class="font-display font-bold text-3xl text-black">{{ pending_caterers }}</p>
+    <p class="text-xs text-mute">Traiteurs a valider</p>
   </div>
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="building-2" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="building-2" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ active_companies }}</p>
-    <p class="text-xs" style="color: #6B7280">Entreprises actives</p>
+    <p class="font-display font-bold text-3xl text-black">{{ active_companies }}</p>
+    <p class="text-xs text-mute">Entreprises actives</p>
   </div>
   <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-      <i data-lucide="shopping-bag" style="width:18px;height:18px;color:#1A3A52"></i>
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+      <i data-lucide="shopping-bag" class="w-4\.5 h-4\.5 text-navy"></i>
     </div>
-    <p class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ orders_this_month }}</p>
-    <p class="text-xs" style="color: #6B7280">Commandes ce mois</p>
+    <p class="font-display font-bold text-3xl text-black">{{ orders_this_month }}</p>
+    <p class="text-xs text-mute">Commandes ce mois</p>
   </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">File de qualification</h2>
+    <h2 class="font-display font-bold text-lg text-black mb-4">File de qualification</h2>
     {% if recent_requests %}
     <div>
       {% for req in recent_requests %}
-      <div class="flex items-center gap-3 py-3.5 hover:rounded-lg" style="border-top: 1px solid #F3F4F6; {% if loop.first %}border-top: none;{% endif %}">
+      <div class="flex items-center gap-3 py-3.5 hover:rounded-lg {% if not loop.first %}border-t border-soft{% endif %}">
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-black">{{ req.company.name }}</p>
-          <p class="text-xs" style="color: #6B7280">{{ req.service_type or req.meal_type or '-' }} &middot; {{ req.guest_count or '-' }} convives</p>
+          <p class="text-xs text-mute">{{ req.service_type or req.meal_type or '-' }} &middot; {{ req.guest_count or '-' }} convives</p>
         </div>
         <div class="text-right">
           {% from "components/status_badge.html" import status_badge %}
           {{ status_badge(req.status) }}
-          <p class="text-xs mt-1" style="color: #6B7280">{{ req.created_at.strftime('%d/%m/%Y') }}</p>
+          <p class="text-xs mt-1 text-mute">{{ req.created_at.strftime('%d/%m/%Y') }}</p>
         </div>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <p class="text-sm" style="color: #6B7280">Aucune demande en attente.</p>
+    <p class="text-sm text-mute">Aucune demande en attente.</p>
     {% endif %}
   </div>
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-lg text-black mb-4" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Traiteurs en attente</h2>
+    <h2 class="font-display font-bold text-lg text-black mb-4">Traiteurs en attente</h2>
     <div class="flex flex-col gap-2">
-      <a href="{{ url_for('admin.qualification') }}" class="flex items-center gap-3 py-3.5 hover:rounded-lg" style="border-top: 1px solid #F3F4F6">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-          <i data-lucide="clipboard-check" style="width:18px;height:18px;color:#1A3A52"></i>
+      <a href="{{ url_for('admin.qualification') }}" class="flex items-center gap-3 py-3.5 hover:rounded-lg border-t border-soft">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+          <i data-lucide="clipboard-check" class="w-4\.5 h-4\.5 text-navy"></i>
         </div>
         <div class="flex-1">
           <p class="text-sm font-medium text-black">Qualification</p>
-          <p class="text-xs" style="color: #6B7280">Qualifier les demandes en attente</p>
+          <p class="text-xs text-mute">Qualifier les demandes en attente</p>
         </div>
-        <i data-lucide="chevron-right" style="width:16px;height:16px;color:#6B7280"></i>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-mute"></i>
       </a>
-      <a href="{{ url_for('admin.caterers_list') }}" class="flex items-center gap-3 py-3.5 hover:rounded-lg" style="border-top: 1px solid #F3F4F6">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-          <i data-lucide="chef-hat" style="width:18px;height:18px;color:#1A3A52"></i>
+      <a href="{{ url_for('admin.caterers_list') }}" class="flex items-center gap-3 py-3.5 hover:rounded-lg border-t border-soft">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+          <i data-lucide="chef-hat" class="w-4\.5 h-4\.5 text-navy"></i>
         </div>
         <div class="flex-1">
           <p class="text-sm font-medium text-black">Traiteurs</p>
-          <p class="text-xs" style="color: #6B7280">Gerer les traiteurs</p>
+          <p class="text-xs text-mute">Gerer les traiteurs</p>
         </div>
-        <i data-lucide="chevron-right" style="width:16px;height:16px;color:#6B7280"></i>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-mute"></i>
       </a>
-      <a href="{{ url_for('admin.companies_list') }}" class="flex items-center gap-3 py-3.5 hover:rounded-lg" style="border-top: 1px solid #F3F4F6">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-          <i data-lucide="building-2" style="width:18px;height:18px;color:#1A3A52"></i>
+      <a href="{{ url_for('admin.companies_list') }}" class="flex items-center gap-3 py-3.5 hover:rounded-lg border-t border-soft">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+          <i data-lucide="building-2" class="w-4\.5 h-4\.5 text-navy"></i>
         </div>
         <div class="flex-1">
           <p class="text-sm font-medium text-black">Entreprises</p>
-          <p class="text-xs" style="color: #6B7280">Voir les entreprises clientes</p>
+          <p class="text-xs text-mute">Voir les entreprises clientes</p>
         </div>
-        <i data-lucide="chevron-right" style="width:16px;height:16px;color:#6B7280"></i>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-mute"></i>
       </a>
     </div>
   </div>

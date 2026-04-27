@@ -34,23 +34,14 @@ document.addEventListener('DOMContentLoaded', function () {
       var label = document.getElementById('progress-label-' + i);
       var connector = document.getElementById('progress-connector-' + i);
       if (dot) {
-        if (i < currentStep) {
-          dot.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-olive text-white';
-        } else if (i === currentStep) {
-          dot.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-terracotta text-white ring-4 ring-terracotta-100';
-        } else {
-          dot.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-cream-200 text-navy-300';
-        }
+        dot.classList.toggle('step-dot--done', i < currentStep);
+        dot.classList.toggle('step-dot--current', i === currentStep);
       }
       if (label) {
-        label.className = i === currentStep
-          ? 'text-xs font-medium text-terracotta mt-1 text-center'
-          : 'text-xs text-navy-200 mt-1 text-center';
+        label.classList.toggle('step-label--current', i === currentStep);
       }
       if (connector) {
-        connector.className = i < currentStep
-          ? 'flex-1 h-0.5 bg-olive mx-1'
-          : 'flex-1 h-0.5 bg-cream-200 mx-1';
+        connector.classList.toggle('step-connector--done', i < currentStep);
       }
     }
   }

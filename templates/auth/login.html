@@ -3,8 +3,8 @@
 {% block title %}Connexion - Les Traiteurs Engag&#233;s{% endblock %}
 
 {% block public_content %}
-<div class="min-h-screen flex items-center justify-center p-4" style="background-color: #FAF7F2;">
-  <div class="w-full" style="max-width: 28rem;">
+<div class="min-h-screen flex items-center justify-center p-4 bg-cream-page">
+  <div class="w-full max-w-md">
     <!-- Logo -->
     <div class="text-center mb-8">
       <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-12 mx-auto mb-6">
@@ -14,12 +14,12 @@
     {% include "components/flash_messages.html" %}
 
     <!-- Login card -->
-    <div class="bg-white rounded-2xl p-8 shadow-sm" style="border: 1px solid #E5E7EB;">
-      <h1 class="font-display text-2xl font-semibold text-dark mb-1">Connectez-vous</h1>
-      <p class="text-sm mb-6" style="color: #9CA3AF;">Acc&#233;dez &#224; votre espace sur Les Traiteurs Engag&#233;s</p>
+    <div class="bg-white rounded-2xl p-8 shadow-sm border border-default">
+      <h1 class="font-display text-2xl font-semibold text-text mb-1">Connectez-vous</h1>
+      <p class="text-sm mb-6 text-mute-soft">Acc&#233;dez &#224; votre espace sur Les Traiteurs Engag&#233;s</p>
 
       {% if error %}
-      <div class="text-sm px-4 py-3 rounded-xl mb-4" style="color: #FF5455; background: #FFE8E8;">
+      <div class="text-sm px-4 py-3 rounded-xl mb-4 text-coral-red bg-error-light">
         {{ error }}
       </div>
       {% endif %}
@@ -27,18 +27,18 @@
       <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-5">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
-          <label for="email" class="block text-sm font-medium text-dark mb-1.5">Adresse email</label>
+          <label for="email" class="block text-sm font-medium text-text mb-1.5">Adresse email</label>
           <input type="email" id="email" name="email" required autocomplete="email"
-            class="w-full px-4 py-2.5 rounded-xl text-dark text-sm input-coral"
+            class="w-full px-4 py-2.5 rounded-xl text-text text-sm input-coral"
             placeholder="vous@entreprise.fr">
         </div>
         <div>
-          <label for="password" class="block text-sm font-medium text-dark mb-1.5">Mot de passe</label>
+          <label for="password" class="block text-sm font-medium text-text mb-1.5">Mot de passe</label>
           <div class="relative">
             <input type="password" id="password" name="password" required autocomplete="current-password"
-              class="w-full px-4 py-2.5 rounded-xl text-dark text-sm pr-10 input-coral"
+              class="w-full px-4 py-2.5 rounded-xl text-text text-sm pr-10 input-coral"
               placeholder="Votre mot de passe">
-            <button type="button" data-action="toggle-password" data-target="password" class="absolute right-3 top-1/2 -translate-y-1/2" style="color: #9CA3AF;">
+            <button type="button" data-action="toggle-password" data-target="password" class="absolute right-3 top-1/2 -translate-y-1/2 text-mute-soft">
               <i data-lucide="eye" class="w-4 h-4"></i>
             </button>
           </div>
@@ -51,9 +51,9 @@
     </div>
 
     <!-- Signup link -->
-    <p class="text-center text-sm mt-6" style="color: #9CA3AF;">
+    <p class="text-center text-sm mt-6 text-mute-soft">
       Pas encore de compte ?
-      <a href="{{ url_for('auth.signup') }}" class="font-medium transition-colors" style="color: #C4714A;">
+      <a href="{{ url_for('auth.signup') }}" class="font-medium transition-colors text-coral">
         Cr&#233;er un compte
       </a>
     </p>

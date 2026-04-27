@@ -5,27 +5,26 @@
 {% block title %}Demande #{{ qr.id | string | truncate(8, True, '') }} - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
-<main style="background-color: #F5F1E8; min-height: 100vh;">
-  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
+<main class="bg-cream min-h-screen">
 
     <!-- Back button -->
-    <a href="{{ url_for('client.requests_list') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6" style="color: #1A3A52">
-      <i data-lucide="chevron-left" style="width:16px;height:16px"></i> Retour
+    <a href="{{ url_for('client.requests_list') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
     </a>
 
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="font-display font-bold text-4xl" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">
+        <h1 class="font-display font-bold text-4xl text-text">
           {{ meal_type_labels.get(qr.meal_type, qr.meal_type or 'Demande de devis') }}
         </h1>
         <div class="flex items-center gap-3 mt-2">
           {{ status_badge(qr.status) }}
-          <span class="text-xs" style="color: #6B7280">Creee le {{ qr.created_at.strftime('%d/%m/%Y') }}</span>
+          <span class="text-xs text-mute">Creee le {{ qr.created_at.strftime('%d/%m/%Y') }}</span>
         </div>
       </div>
       {% if qr.status in (QuoteRequestStatus.draft, QuoteRequestStatus.pending_review) %}
-      <a href="{{ url_for('client.request_edit', request_id=qr.id) }}" class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2" style="border: 1px solid #1A3A52; color: #1A3A52">
-        <i data-lucide="edit" style="width:16px;height:16px"></i>
+      <a href="{{ url_for('client.request_edit', request_id=qr.id) }}" class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2 border border-navy text-navy">
+        <i data-lucide="edit" class="w-4 h-4"></i>
         Modifier
       </a>
       {% endif %}
@@ -36,33 +35,33 @@
       <!-- Type de service -->
       <div class="bg-white rounded-lg p-6">
         <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="utensils" style="width:16px;height:16px;color:#1A3A52"></i>
-          <h3 class="font-display font-bold text-sm" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Type de service</h3>
+          <i data-lucide="utensils" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">Type de service</h3>
         </div>
-        <p class="text-sm" style="color: #313131">{{ meal_type_labels.get(qr.meal_type, qr.meal_type or '-') }}</p>
+        <p class="text-sm text-text-soft">{{ meal_type_labels.get(qr.meal_type, qr.meal_type or '-') }}</p>
         {% if qr.service_type %}
-        <p class="text-xs mt-1" style="color: #6B7280">{{ qr.service_type }}</p>
+        <p class="text-xs mt-1 text-mute">{{ qr.service_type }}</p>
         {% endif %}
       </div>
 
       <!-- Evenement -->
       <div class="bg-white rounded-lg p-6">
         <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="calendar" style="width:16px;height:16px;color:#1A3A52"></i>
-          <h3 class="font-display font-bold text-sm" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Evenement</h3>
+          <i data-lucide="calendar" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">Evenement</h3>
         </div>
         <div class="flex flex-wrap gap-3">
-          <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F5F1E8">
-            <i data-lucide="calendar" style="width:16px;height:16px;color:#313131"></i>
-            <span class="text-xs font-bold whitespace-nowrap" style="color: #313131">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</span>
+          <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+            <i data-lucide="calendar" class="w-4 h-4 text-text-soft"></i>
+            <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</span>
           </div>
-          <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F5F1E8">
-            <i data-lucide="users" style="width:16px;height:16px;color:#313131"></i>
-            <span class="text-xs font-bold whitespace-nowrap" style="color: #313131">{{ qr.guest_count or '-' }} convives</span>
+          <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+            <i data-lucide="users" class="w-4 h-4 text-text-soft"></i>
+            <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ qr.guest_count or '-' }} convives</span>
           </div>
-          <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F5F1E8">
-            <i data-lucide="map-pin" style="width:16px;height:16px;color:#313131"></i>
-            <span class="text-xs font-bold whitespace-nowrap" style="color: #313131">
+          <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+            <i data-lucide="map-pin" class="w-4 h-4 text-text-soft"></i>
+            <span class="text-xs font-bold whitespace-nowrap text-text-soft">
               {% if qr.event_address %}{{ qr.event_address }}, {% endif %}{{ qr.event_zip_code or '' }} {{ qr.event_city or '' }}
             </span>
           </div>
@@ -72,24 +71,24 @@
       <!-- Budget -->
       <div class="bg-white rounded-lg p-6">
         <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="banknote" style="width:16px;height:16px;color:#1A3A52"></i>
-          <h3 class="font-display font-bold text-sm" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Budget</h3>
+          <i data-lucide="banknote" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">Budget</h3>
         </div>
         <div class="flex gap-6 text-sm">
           {% if qr.budget_global %}
           <div>
-            <span class="text-xs" style="color: #6B7280">Global</span>
-            <p class="font-bold" style="color: #1A1A1A">{{ "%.2f" | format(qr.budget_global | float) }} EUR</p>
+            <span class="text-xs text-mute">Global</span>
+            <p class="font-bold text-text">{{ "%.2f" | format(qr.budget_global | float) }} EUR</p>
           </div>
           {% endif %}
           {% if qr.budget_per_person %}
           <div>
-            <span class="text-xs" style="color: #6B7280">Par personne</span>
-            <p class="font-bold" style="color: #1A1A1A">{{ "%.2f" | format(qr.budget_per_person | float) }} EUR</p>
+            <span class="text-xs text-mute">Par personne</span>
+            <p class="font-bold text-text">{{ "%.2f" | format(qr.budget_per_person | float) }} EUR</p>
           </div>
           {% endif %}
           {% if not qr.budget_global and not qr.budget_per_person %}
-          <p class="text-xs" style="color: #6B7280">Non renseigne</p>
+          <p class="text-xs text-mute">Non renseigne</p>
           {% endif %}
         </div>
       </div>
@@ -106,35 +105,35 @@
       {% set active_diets = dietary_items | selectattr(0) | list %}
       <div class="bg-white rounded-lg p-6">
         <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="leaf" style="width:16px;height:16px;color:#1A3A52"></i>
-          <h3 class="font-display font-bold text-sm" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Regimes alimentaires</h3>
+          <i data-lucide="leaf" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">Regimes alimentaires</h3>
         </div>
         {% if active_diets %}
         <div class="flex flex-wrap gap-2">
           {% for active, count, label in dietary_items %}
           {% if active %}
-          <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F5F1E8">
-            <span class="text-xs font-bold whitespace-nowrap" style="color: #313131">{{ label }}{% if count %} ({{ count }}){% endif %}</span>
+          <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+            <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ label }}{% if count %} ({{ count }}){% endif %}</span>
           </div>
           {% endif %}
           {% endfor %}
         </div>
         {% else %}
-        <p class="text-xs" style="color: #6B7280">Aucun regime particulier</p>
+        <p class="text-xs text-mute">Aucun regime particulier</p>
         {% endif %}
       </div>
 
       <!-- Boissons -->
       <div class="bg-white rounded-lg p-6">
         <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="cup-soda" style="width:16px;height:16px;color:#1A3A52"></i>
-          <h3 class="font-display font-bold text-sm" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Boissons</h3>
+          <i data-lucide="cup-soda" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">Boissons</h3>
         </div>
-        <p class="text-sm" style="color: #313131">
+        <p class="text-sm text-text-soft">
           {% if qr.drinks_alcohol %}Avec alcool{% else %}Sans alcool{% endif %}
         </p>
         {% if qr.drinks_details %}
-        <p class="text-xs mt-1" style="color: #6B7280">{{ qr.drinks_details }}</p>
+        <p class="text-xs mt-1 text-mute">{{ qr.drinks_details }}</p>
         {% endif %}
       </div>
 
@@ -147,22 +146,22 @@
       {% if qr.wants_cleanup %}{% set _ = services_list.append('Nettoyage') %}{% endif %}
       <div class="bg-white rounded-lg p-6">
         <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="concierge-bell" style="width:16px;height:16px;color:#1A3A52"></i>
-          <h3 class="font-display font-bold text-sm" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Services complementaires</h3>
+          <i data-lucide="concierge-bell" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">Services complementaires</h3>
         </div>
         {% if services_list %}
         <div class="flex flex-wrap gap-2">
           {% for svc in services_list %}
-          <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F5F1E8">
-            <span class="text-xs font-bold whitespace-nowrap" style="color: #313131">{{ svc }}</span>
+          <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+            <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ svc }}</span>
           </div>
           {% endfor %}
         </div>
         {% if qr.service_waitstaff_details %}
-        <p class="text-xs mt-2" style="color: #6B7280">{{ qr.service_waitstaff_details }}</p>
+        <p class="text-xs mt-2 text-mute">{{ qr.service_waitstaff_details }}</p>
         {% endif %}
         {% else %}
-        <p class="text-xs" style="color: #6B7280">Aucun service complementaire</p>
+        <p class="text-xs text-mute">Aucun service complementaire</p>
         {% endif %}
       </div>
 
@@ -170,17 +169,17 @@
       {% if qr.message_to_caterer %}
       <div class="bg-white rounded-lg p-6">
         <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="message-circle" style="width:16px;height:16px;color:#1A3A52"></i>
-          <h3 class="font-display font-bold text-sm" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Message aux traiteurs</h3>
+          <i data-lucide="message-circle" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">Message aux traiteurs</h3>
         </div>
-        <p class="text-sm whitespace-pre-line" style="color: #313131">{{ qr.message_to_caterer }}</p>
+        <p class="text-sm whitespace-pre-line text-text-soft">{{ qr.message_to_caterer }}</p>
       </div>
       {% endif %}
     </div>
 
     <!-- Devis recus -->
     <div class="mb-8">
-      <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Devis recus</h2>
+      <h2 class="font-display font-bold text-xl mb-4 text-text">Devis recus</h2>
 
       {% if quotes %}
       <div class="space-y-4">
@@ -188,15 +187,15 @@
         <div class="bg-white rounded-lg p-6">
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-                <i data-lucide="chef-hat" style="width:18px;height:18px;color:#1A3A52"></i>
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+                <i data-lucide="chef-hat" class="w-4\.5 h-4\.5 text-navy"></i>
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-bold" style="color: #1A1A1A">{{ quote.caterer.name }}</span>
+                  <span class="text-sm font-bold text-text">{{ quote.caterer.name }}</span>
                   {{ structure_type_badge(quote.caterer.structure_type) }}
                 </div>
-                <span class="text-xs" style="color: #6B7280">Ref. {{ quote.reference }}</span>
+                <span class="text-xs text-mute">Ref. {{ quote.reference }}</span>
               </div>
             </div>
             {{ status_badge(quote.status) }}
@@ -204,42 +203,42 @@
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
             <div>
-              <span class="text-xs" style="color: #6B7280">Total HT</span>
-              <p class="font-bold" style="color: #1A1A1A">{{ "%.2f" | format(quote.total_amount_ht | float) }} EUR</p>
+              <span class="text-xs text-mute">Total HT</span>
+              <p class="font-bold text-text">{{ "%.2f" | format(quote.total_amount_ht | float) }} EUR</p>
             </div>
             <div>
-              <span class="text-xs" style="color: #6B7280">TTC</span>
+              <span class="text-xs text-mute">TTC</span>
               {% set ttc = (quote.total_amount_ht | float) * 1.1 %}
-              <p class="font-bold" style="color: #1A1A1A">{{ "%.2f" | format(ttc) }} EUR</p>
+              <p class="font-bold text-text">{{ "%.2f" | format(ttc) }} EUR</p>
             </div>
             <div>
-              <span class="text-xs" style="color: #6B7280">Par personne</span>
-              <p class="font-bold" style="color: #1A1A1A">{{ "%.2f" | format(quote.amount_per_person | float) if quote.amount_per_person else '-' }} EUR</p>
+              <span class="text-xs text-mute">Par personne</span>
+              <p class="font-bold text-text">{{ "%.2f" | format(quote.amount_per_person | float) if quote.amount_per_person else '-' }} EUR</p>
             </div>
             <div>
-              <span class="text-xs" style="color: #6B7280">AGEFIPH</span>
-              <p class="font-bold" style="color: #1A1A1A">{{ "%.2f" | format(quote.valorisable_agefiph | float) if quote.valorisable_agefiph else '-' }} EUR</p>
+              <span class="text-xs text-mute">AGEFIPH</span>
+              <p class="font-bold text-text">{{ "%.2f" | format(quote.valorisable_agefiph | float) if quote.valorisable_agefiph else '-' }} EUR</p>
             </div>
           </div>
 
           {% if quote.notes %}
-          <p class="text-xs mb-4" style="color: #6B7280">{{ quote.notes }}</p>
+          <p class="text-xs mb-4 text-mute">{{ quote.notes }}</p>
           {% endif %}
 
           {% if quote.valid_until %}
-          <p class="text-xs mb-4" style="color: #6B7280">Valable jusqu'au {{ quote.valid_until.strftime('%d/%m/%Y') }}</p>
+          <p class="text-xs mb-4 text-mute">Valable jusqu'au {{ quote.valid_until.strftime('%d/%m/%Y') }}</p>
           {% endif %}
 
           {% if quote.status == QuoteStatus.sent %}
-          <div class="flex items-center gap-3 pt-3" style="border-top: 1px solid #F3F4F6">
+          <div class="flex items-center gap-3 pt-3 border-t border-soft">
             <button type="button" data-action="dialog-open" data-target="accept-dialog-{{ quote.id }}"
-              class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
-              <i data-lucide="check" style="width:16px;height:16px"></i>
+              class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white">
+              <i data-lucide="check" class="w-4 h-4"></i>
               Accepter
             </button>
             <button type="button" data-action="dialog-open" data-target="refuse-dialog-{{ quote.id }}"
-              class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #DC2626; color: #FFFFFF">
-              <i data-lucide="x" style="width:16px;height:16px"></i>
+              class="rounded-full text-xs font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-danger text-white">
+              <i data-lucide="x" class="w-4 h-4"></i>
               Refuser
             </button>
           </div>
@@ -247,21 +246,21 @@
           <!-- Accept dialog -->
           <dialog id="accept-dialog-{{ quote.id }}" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
             <div class="p-6">
-              <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Accepter ce devis ?</h3>
-              <p class="text-sm mb-6" style="color: #6B7280">
+              <h3 class="font-display font-bold text-xl mb-2 text-text">Accepter ce devis ?</h3>
+              <p class="text-sm mb-6 text-mute">
                 Vous acceptez le devis de <strong>{{ quote.caterer.name }}</strong> pour un montant de
                 <strong>{{ "%.2f" | format(quote.total_amount_ht | float) }} EUR HT</strong>.
                 Les autres devis seront automatiquement refuses et une commande sera creee.
               </p>
               <div class="flex items-center justify-end gap-3">
                 <button type="button" data-action="dialog-close" data-target="accept-dialog-{{ quote.id }}"
-                  class="rounded-full text-xs font-bold px-4 py-2.5" style="border: 1px solid #1A3A52; color: #1A3A52">
+                  class="rounded-full text-xs font-bold px-4 py-2.5 border border-navy text-navy">
                   Annuler
                 </button>
                 <form method="POST" action="{{ url_for('client.accept_quote', request_id=qr.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="quote_id" value="{{ quote.id }}">
-                  <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">
+                  <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 bg-navy text-white">
                     Confirmer l'acceptation
                   </button>
                 </form>
@@ -272,21 +271,21 @@
           <!-- Refuse dialog -->
           <dialog id="refuse-dialog-{{ quote.id }}" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
             <div class="p-6">
-              <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Refuser ce devis ?</h3>
-              <p class="text-sm mb-4" style="color: #6B7280">
+              <h3 class="font-display font-bold text-xl mb-2 text-text">Refuser ce devis ?</h3>
+              <p class="text-sm mb-4 text-mute">
                 Veuillez indiquer la raison de votre refus a <strong>{{ quote.caterer.name }}</strong>.
               </p>
               <form method="POST" action="{{ url_for('client.refuse_quote', request_id=qr.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="quote_id" value="{{ quote.id }}">
                 <textarea name="refusal_reason" rows="3" required placeholder="Raison du refus..."
-                  class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors resize-none mb-4" style="border-color: #E5E7EB"></textarea>
+                  class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors resize-none mb-4 border-default"></textarea>
                 <div class="flex items-center justify-end gap-3">
                   <button type="button" data-action="dialog-close" data-target="refuse-dialog-{{ quote.id }}"
-                    class="rounded-full text-xs font-bold px-4 py-2.5" style="border: 1px solid #1A3A52; color: #1A3A52">
+                    class="rounded-full text-xs font-bold px-4 py-2.5 border border-navy text-navy">
                     Annuler
                   </button>
-                  <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5" style="background-color: #DC2626; color: #FFFFFF">
+                  <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 bg-danger text-white">
                     Confirmer le refus
                   </button>
                 </div>
@@ -296,9 +295,9 @@
           {% endif %}
 
           {% if quote.status == QuoteStatus.refused and quote.refusal_reason %}
-          <div class="pt-3" style="border-top: 1px solid #F3F4F6">
-            <p class="text-xs" style="color: #6B7280">Raison du refus :</p>
-            <p class="text-sm" style="color: #313131">{{ quote.refusal_reason }}</p>
+          <div class="pt-3 border-t border-soft">
+            <p class="text-xs text-mute">Raison du refus :</p>
+            <p class="text-sm text-text-soft">{{ quote.refusal_reason }}</p>
           </div>
           {% endif %}
         </div>
@@ -307,15 +306,14 @@
       {% else %}
       <!-- Empty state -->
       <div class="bg-white rounded-lg p-12 text-center">
-        <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4" style="background-color: #F0F4F7">
-          <i data-lucide="clock" style="width:24px;height:24px;color:#1A3A52"></i>
+        <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
+          <i data-lucide="clock" class="w-6 h-6 text-navy"></i>
         </div>
-        <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Aucun devis recu</h3>
-        <p class="text-sm" style="color: #6B7280">Les traiteurs seront notifies et pourront vous envoyer leurs propositions.</p>
+        <h3 class="font-display font-bold text-xl mb-2 text-text">Aucun devis recu</h3>
+        <p class="text-sm text-mute">Les traiteurs seront notifies et pourront vous envoyer leurs propositions.</p>
       </div>
       {% endif %}
     </div>
 
-  </div>
 </main>
 {% endblock %}

@@ -10,19 +10,44 @@
   --c-cream-page:  #FAF7F2;   /* page background */
   --c-coral:       #C4714A;
   --c-coral-strong:#E84B3A;
+  --c-coral-red:   #FF5455;   /* notification badge / auth error accent */
+  --c-error-light: #FFE8E8;   /* pale red bg for auth error flash */
+  --c-error-border:#FCA5A5;   /* flash error border */
+  --c-flash-success-bg:  #D1FAE5; /* flash success bg */
+  --c-flash-success-border: #BBF7D0;
+  --c-info-bg:     #E3F4FF;   /* flash info / status 'new' bg */
+  --c-info-border: #BAE6FD;
+  --c-info-fg:     #00AEFF;   /* status 'new' text */
+  --c-pending-bg:  #FFF3CD;   /* status pending/awaiting bg */
+  --c-pending-fg:  #B45309;   /* status pending text */
+  --c-sky-bg:      #E0F2FE;   /* status sent/invoiced bg */
+  --c-sky-fg:      #0284C7;   /* status sent/invoiced text */
+  --c-success-dark:#065F46;   /* status accepted/paid text */
+  --c-purple-bg:   #EDE9FE;   /* status confirmed bg */
+  --c-purple-fg:   #7C3AED;   /* status confirmed text */
   --c-red-cta:     #B70102;   /* landing red button */
+  --c-white-8:     rgba(255, 255, 255, 0.08);
+  --c-white-10:    rgba(255, 255, 255, 0.1);
+  --c-white-12:    rgba(255, 255, 255, 0.12);  /* translucent overlay on dark hero */
+  --c-white-30:    rgba(255, 255, 255, 0.3);
+  --c-white-50:    rgba(255, 255, 255, 0.5);
+  --c-white-60:    rgba(255, 255, 255, 0.6);
+  --c-white-95:    rgba(255, 255, 255, 0.95);
+  --c-cta-blush:   #FFDDDD;   /* landing CTA section pink-blush bg */
 
   /* Text */
   --c-text:        #1A1A1A;
   --c-text-soft:   #313131;
   --c-mute:        #6B7280;
   --c-mute-soft:   #9CA3AF;
+  --c-bronze:      #CD7F32;   /* 3rd-place ranking badge */
   --c-disabled:    #D1D5DB;
 
   /* Surfaces & borders */
   --c-surface:     #FFFFFF;
   --c-border:      #E5E7EB;
   --c-border-soft: #F3F4F6;
+  --c-border-xsoft:#F9FAFB;   /* extra-soft table row separator */
 
   /* Status */
   --c-success:     #22C55E;
@@ -34,6 +59,12 @@
   --c-danger:      #DC2626;
   --c-danger-bg:   #FEF2F2;
   --c-danger-fg:   #DC2626;
+
+  /* Layout */
+  --w-sidebar:        241px;
+  --w-dialog-md:      440px;
+  --h-chat-offset:    220px;     /* client thread chrome offset */
+  --h-chat-offset-sm: 180px;     /* caterer thread chrome offset */
 
   /* Type */
   --font-display:      'Fraunces', serif;
@@ -92,6 +123,42 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
   background: var(--c-navy);
   color: #FFFFFF;
 }
+
+/* Desktop main offset for the fixed sidebar.
+   Set in CSS so the first paint is correct (no slide-in from JS). */
+@media (min-width: 1024px) {
+  #main-content { margin-left: var(--w-sidebar); }
+}
+
+/* Wizard step indicator (semantic component, JS toggles --done / --current) */
+.step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  background: var(--c-cream);
+  color: var(--c-mute);
+  transition: background-color .15s, color .15s;
+}
+.step-dot--done    { background: var(--c-navy);  color: #ffffff; }
+.step-dot--current { background: var(--c-coral); color: #ffffff; }
+
+.step-connector {
+  flex: 1 1 0%;
+  height: 2px;
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
+  background: var(--c-cream);
+  transition: background-color .15s;
+}
+.step-connector--done { background: var(--c-navy); }
+
+.step-label { color: var(--c-mute); transition: color .15s, font-weight .15s; }
+.step-label--current { color: var(--c-coral); font-weight: 600; }
 
 /* Auth inputs — coral focus ring */
 .input-coral {
@@ -153,6 +220,10 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .text-danger     { color: var(--c-danger); }
 .text-success    { color: var(--c-success-fg); }
 .text-warning    { color: var(--c-warning-fg); }
+.text-red-cta    { color: var(--c-red-cta); }
+.text-white-30   { color: var(--c-white-30); }
+.text-white-50   { color: var(--c-white-50); }
+.text-white-60   { color: var(--c-white-60); }
 
 /* Background */
 .bg-cream        { background-color: var(--c-cream); }
@@ -160,16 +231,33 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .bg-navy         { background-color: var(--c-navy); }
 .bg-navy-soft    { background-color: var(--c-navy-soft); }
 .bg-coral        { background-color: var(--c-coral); }
+.bg-mute-soft    { background-color: var(--c-mute-soft); }
+.bg-bronze       { background-color: var(--c-bronze); }
+.bg-success      { background-color: var(--c-success); }
 .bg-success-soft { background-color: var(--c-success-bg); }
+.bg-warning      { background-color: var(--c-warning); }
 .bg-warning-soft { background-color: var(--c-warning-bg); }
 .bg-danger       { background-color: var(--c-danger); }
 .bg-danger-soft  { background-color: var(--c-danger-bg); }
+.bg-coral-strong { background-color: var(--c-coral-strong); }
+.bg-red-cta      { background-color: var(--c-red-cta); }
+.bg-white-8      { background-color: var(--c-white-8); }
+.bg-white-12     { background-color: var(--c-white-12); }
+.bg-white-95     { background-color: var(--c-white-95); }
+.bg-cta-blush    { background-color: var(--c-cta-blush); }
+.bg-text         { background-color: var(--c-text); }
+.bg-border-default { background-color: var(--c-border); }
+.bg-border-soft  { background-color: var(--c-border-soft); }
 
 /* Border */
 .border-default  { border-color: var(--c-border); }
 .border-soft     { border-color: var(--c-border-soft); }
 .border-navy     { border-color: var(--c-navy); }
+.border-xsoft    { border-color: var(--c-border-xsoft); }
+.border-red-cta  { border-color: var(--c-red-cta); }
+.border-white-10 { border-color: var(--c-white-10); }
 .border-2        { border-width: 2px; }
+.border-t-soft   { border-top: 1px solid var(--c-border-soft); }
 
 /* Hover/focus variants */
 .hover\:bg-cream:hover     { background-color: var(--c-cream); }
@@ -182,25 +270,54 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 /* Has-checked variants */
 .has-\[\:checked\]\:bg-navy:has(:checked)      { background-color: var(--c-navy); }
 .has-\[\:checked\]\:bg-navy-soft:has(:checked) { background-color: var(--c-navy-soft); }
+.has-\[\:checked\]\:bg-white:has(:checked)     { background-color: #ffffff; }
+.has-\[\:checked\]\:text-white:has(:checked)   { color: #ffffff; }
 
 /* Stock Tailwind classes the original tailwind.css scan missed */
 .w-3  { width: 0.75rem; }
 .h-3  { height: 0.75rem; }
 .w-12 { width: 3rem; }
+.w-3\.5 { width: 0.875rem; }
+.h-3\.5 { height: 0.875rem; }
+.w-4\.5 { width: 1.125rem; }
+.h-4\.5 { height: 1.125rem; }
+.my-20     { margin-top: 5rem; margin-bottom: 5rem; }
+.py-2\.5   { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.no-underline { text-decoration: none; }
+.w-px       { width: 1px; }
+.opacity-70 { opacity: 0.7; }
+.text-hero  { font-size: 2.625rem; line-height: 1.1; }
 
 /* Notification badge accent (project-specific, was in tailwind.css) */
-.bg-coral-red { background-color: #FF5455; }
+.bg-coral-red   { background-color: var(--c-coral-red); }
+.text-coral-red { color: var(--c-coral-red); }
+.bg-error-light  { background-color: var(--c-error-light); }
+.border-error    { border-color: var(--c-error-border); }
+.bg-flash-success { background-color: var(--c-flash-success-bg); }
+.border-flash-success { border-color: var(--c-flash-success-border); }
+.bg-info         { background-color: var(--c-info-bg); }
+.border-info     { border-color: var(--c-info-border); }
+.text-info       { color: var(--c-info-fg); }
+.bg-pending      { background-color: var(--c-pending-bg); }
+.text-pending    { color: var(--c-pending-fg); }
+.bg-sky          { background-color: var(--c-sky-bg); }
+.text-sky        { color: var(--c-sky-fg); }
+.bg-flash-success-dark { background-color: var(--c-flash-success-bg); }
+.text-success-dark { color: var(--c-success-dark); }
+.bg-purple       { background-color: var(--c-purple-bg); }
+.text-purple     { color: var(--c-purple-fg); }
 
-/* ============================================================
-   Legacy custom — to remove
-   Repatriated from tailwind.css to keep that file regenerable.
-   PR 2's final commit deletes this block once no template
-   references these names.
-   ============================================================ */
-.text-dark { color: var(--c-text); }
-.hover\:bg-\[\#F5F1E8\]:hover { background-color: var(--c-cream); }
-.focus\:border-\[\#1A3A52\]:focus { border-color: var(--c-navy); }
-.has-\[\:checked\]\:bg-\[\#1A3A52\]:has(:checked) { background-color: var(--c-navy); }
-.has-\[\:checked\]\:bg-\[\#F0F4F7\]:has(:checked) { background-color: var(--c-navy-soft); }
-.has-\[\:checked\]\:bg-white:has(:checked) { background-color: #ffffff; }
-.has-\[\:checked\]\:text-white:has(:checked) { color: #ffffff; }
+/* Layout (tokenized layout primitives) */
+.w-sidebar     { width: var(--w-sidebar); }
+.max-w-dialog  { max-width: var(--w-dialog-md); }
+.h-chat        { height: calc(100vh - var(--h-chat-offset)); }
+.h-chat-narrow { height: calc(100vh - var(--h-chat-offset-sm)); }
+
+/* Max-width utility (Tailwind max-w-20 = 5rem) */
+.max-w-20 { max-width: 5rem; }
+
+/* Flex shorthand (Tailwind flex-none = flex: 0 0 auto) */
+.flex-none { flex: none; }
+
+/* Badge sizes */
+.badge-xs { padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4; }

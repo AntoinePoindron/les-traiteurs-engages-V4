@@ -3,59 +3,57 @@
 {% block title %}Parametres entreprise{% endblock %}
 
 {% block content %}
-<main style="background-color: #F5F1E8; min-height: 100vh;">
-  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
+<main class="bg-cream min-h-screen">
 
-    <h1 class="font-display font-bold text-4xl mb-6" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Parametres entreprise</h1>
+    <h1 class="font-display font-bold text-4xl mb-6 text-text">Parametres entreprise</h1>
 
     <div class="max-w-lg">
       <form method="post" action="{{ url_for('client.settings') }}" class="bg-white rounded-lg p-6 space-y-4">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
-          <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Nom de l'entreprise</label>
+          <label class="block text-sm font-bold mb-2 text-text">Nom de l'entreprise</label>
           <input type="text" name="name" value="{{ company.name }}" required
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
         <div>
-          <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">SIRET</label>
+          <label class="block text-sm font-bold mb-2 text-text">SIRET</label>
           <input type="text" name="siret" value="{{ company.siret }}" required maxlength="14" pattern="\d{14}"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
         <div>
-          <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Adresse</label>
+          <label class="block text-sm font-bold mb-2 text-text">Adresse</label>
           <input type="text" name="address" value="{{ company.address or '' }}"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Ville</label>
+            <label class="block text-sm font-bold mb-2 text-text">Ville</label>
             <input type="text" name="city" value="{{ company.city or '' }}"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
           </div>
           <div>
-            <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Code postal</label>
+            <label class="block text-sm font-bold mb-2 text-text">Code postal</label>
             <input type="text" name="zip_code" value="{{ company.zip_code or '' }}" maxlength="10"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
           </div>
         </div>
         <div>
           <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" name="oeth_eligible" value="1" {{ 'checked' if company.oeth_eligible }} style="accent-color: #1A3A52" class="rounded">
-            <span class="text-sm font-bold" style="color: #1A1A1A">Eligible OETH</span>
+            <input type="checkbox" name="oeth_eligible" value="1" {{ 'checked' if company.oeth_eligible }} class="accent-navy rounded">
+            <span class="text-sm font-bold text-text">Eligible OETH</span>
           </label>
         </div>
         <div>
-          <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Budget annuel (EUR)</label>
+          <label class="block text-sm font-bold mb-2 text-text">Budget annuel (EUR)</label>
           <input type="number" name="budget_annual" value="{{ company.budget_annual or '' }}" step="0.01" min="0"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
         <button type="submit"
-          class="rounded-full text-sm font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">
+          class="rounded-full text-sm font-bold px-4 py-2.5 btn-navy">
           Enregistrer
         </button>
       </form>
     </div>
 
-  </div>
 </main>
 {% endblock %}

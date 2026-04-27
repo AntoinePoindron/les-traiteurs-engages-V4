@@ -1,38 +1,37 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import page_header %}
 
 {% block title %}Mon profil{% endblock %}
 
 {% block content %}
-<main style="background-color: #F5F1E8; min-height: 100vh;">
-  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
+<main class="bg-cream min-h-screen">
 
-    <h1 class="font-display font-bold text-4xl mb-6" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Mon profil</h1>
+    {{ page_header("Mon profil") }}
 
     <div class="max-w-lg">
       <form method="post" action="{{ url_for('client.profile') }}" class="bg-white rounded-lg p-6 space-y-4">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
-          <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Prenom</label>
+          <label class="block text-sm font-bold mb-2 text-text">Prenom</label>
           <input type="text" name="first_name" value="{{ user.first_name }}" required
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
         <div>
-          <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Nom</label>
+          <label class="block text-sm font-bold mb-2 text-text">Nom</label>
           <input type="text" name="last_name" value="{{ user.last_name }}" required
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
         <div>
-          <label class="block text-sm font-bold mb-2" style="color: #1A1A1A">Email</label>
+          <label class="block text-sm font-bold mb-2 text-text">Email</label>
           <input type="email" name="email" value="{{ user.email }}" required
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
         <button type="submit"
-          class="rounded-full text-sm font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">
+          class="rounded-full text-sm font-bold px-4 py-2.5 btn-navy">
           Enregistrer
         </button>
       </form>
     </div>
 
-  </div>
 </main>
 {% endblock %}

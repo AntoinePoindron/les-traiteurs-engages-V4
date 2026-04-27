@@ -4,13 +4,12 @@
 {% block title %}Mes demandes - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
-<main style="background-color: #F5F1E8; min-height: 100vh;">
-  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
+<main class="bg-cream min-h-screen">
 
     <div class="flex items-center justify-between mb-6">
-      <h1 class="font-display font-bold text-4xl" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Mes demandes de devis</h1>
-      <a href="{{ url_for('client.requests_new') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
-        <i data-lucide="plus" style="width:16px;height:16px"></i>
+      <h1 class="font-display font-bold text-4xl text-text">Mes demandes de devis</h1>
+      <a href="{{ url_for('client.requests_new') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white">
+        <i data-lucide="plus" class="w-4 h-4"></i>
         Nouvelle demande
       </a>
     </div>
@@ -19,8 +18,7 @@
     <div class="bg-white rounded-lg p-6 flex items-center gap-4 mb-6 overflow-x-auto">
       {% for key, label in tabs.items() %}
       <a href="{{ url_for('client.requests_list', status=key) }}"
-         class="px-3 py-2 rounded-full text-xs font-bold whitespace-nowrap"
-         style="background-color: {{ '#1A3A52' if current_tab == key else '#F5F1E8' }}; color: {{ '#FFFFFF' if current_tab == key else '#1A3A52' }}">
+         class="px-3 py-2 rounded-full text-xs font-bold whitespace-nowrap {% if current_tab == key %}bg-navy text-white{% else %}bg-cream text-navy{% endif %}">
         {{ label }}
       </a>
       {% endfor %}
@@ -29,28 +27,27 @@
     {% if requests %}
     <!-- List items -->
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Demandes</h2>
+      <h2 class="font-display font-bold text-xl mb-4 text-text">Demandes</h2>
       <div>
         {% for qr in requests %}
-        <a href="{{ url_for('client.request_detail', request_id=qr.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-[#F5F1E8] -mx-2 px-2 rounded-lg transition-colors"
-           style="border-top: 1px solid #F3F4F6">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
-            <i data-lucide="grid-2x2" style="width:16px;height:16px;color:#1A3A52"></i>
+        <a href="{{ url_for('client.request_detail', request_id=qr.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+            <i data-lucide="grid-2x2" class="w-4 h-4 text-navy"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ meal_type_labels.get(qr.meal_type, qr.meal_type or 'Demande') }}</p>
+            <p class="text-sm font-bold truncate text-text">{{ meal_type_labels.get(qr.meal_type, qr.meal_type or 'Demande') }}</p>
             <div class="flex items-center gap-3 mt-0.5">
-              <span class="text-xs" style="color: #6B7280">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</span>
-              <span class="text-xs" style="color: #6B7280">{{ qr.guest_count or '-' }} pers.</span>
+              <span class="text-xs text-mute">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</span>
+              <span class="text-xs text-mute">{{ qr.guest_count or '-' }} pers.</span>
               {% if qr.budget_global %}
-              <span class="text-xs" style="color: #6B7280">{{ "%.0f" | format(qr.budget_global | float) }} EUR</span>
+              <span class="text-xs text-mute">{{ "%.0f" | format(qr.budget_global | float) }} EUR</span>
               {% elif qr.budget_per_person %}
-              <span class="text-xs" style="color: #6B7280">{{ "%.0f" | format(qr.budget_per_person | float) }} EUR/pers.</span>
+              <span class="text-xs text-mute">{{ "%.0f" | format(qr.budget_per_person | float) }} EUR/pers.</span>
               {% endif %}
             </div>
           </div>
           {{ status_badge(qr.status) }}
-          <i data-lucide="chevron-right" style="width:16px;height:16px;color:#D1D5DB"></i>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
         </a>
         {% endfor %}
       </div>
@@ -58,18 +55,17 @@
     {% else %}
     <!-- Empty state -->
     <div class="bg-white rounded-lg p-12 text-center">
-      <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4" style="background-color: #F0F4F7">
-        <i data-lucide="file-text" style="width:24px;height:24px;color:#1A3A52"></i>
+      <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
+        <i data-lucide="file-text" class="w-6 h-6 text-navy"></i>
       </div>
-      <h3 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Aucune demande</h3>
-      <p class="text-sm mb-6" style="color: #6B7280">Vous n'avez pas encore cree de demande de devis.</p>
-      <a href="{{ url_for('client.requests_new') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
-        <i data-lucide="plus" style="width:16px;height:16px"></i>
+      <h3 class="font-display font-bold text-xl mb-2 text-text">Aucune demande</h3>
+      <p class="text-sm mb-6 text-mute">Vous n'avez pas encore cree de demande de devis.</p>
+      <a href="{{ url_for('client.requests_new') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white">
+        <i data-lucide="plus" class="w-4 h-4"></i>
         Creer une demande
       </a>
     </div>
     {% endif %}
 
-  </div>
 </main>
 {% endblock %}
