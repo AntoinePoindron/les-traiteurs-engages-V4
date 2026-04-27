@@ -414,7 +414,10 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"))
+    # UNIQUE: au plus un Payment par Order. Le row est créé en phase 1
+    # (DB-only) avant l'appel Stripe ; le retry CLI retrouve les
+    # paiements à finir par `stripe_invoice_id IS NULL` sans dupliquer.
+    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"), unique=True)
     caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"))
     stripe_checkout_session_id: Mapped[str | None] = mapped_column(String(255))
     stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
