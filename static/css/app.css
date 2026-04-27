@@ -1,18 +1,59 @@
-/* Brand palette */
+/* ============================================================
+   Brand tokens — single source of truth for color and type.
+   Any new color is added HERE first.
+   ============================================================ */
 :root {
-  --c-navy: #1A3A52;
-  --c-navy-soft: #F0F4F8;
-  --c-cream: #F5F1E8;
-  --c-coral: #C4714A;
-  --c-coral-strong: #E84B3A;
-  --c-text: #1A1A1A;
-  --c-mute: #6B7280;
-  --c-mute-soft: #9CA3AF;
-  --c-border: #E5E7EB;
+  /* Brand */
+  --c-navy:        #1A3A52;
+  --c-navy-soft:   #F0F4F7;   /* was also #F0F4F8 — typo collapsed */
+  --c-cream:       #F5F1E8;
+  --c-cream-page:  #FAF7F2;   /* page background */
+  --c-coral:       #C4714A;
+  --c-coral-strong:#E84B3A;
+  --c-red-cta:     #B70102;   /* landing red button */
+
+  /* Text */
+  --c-text:        #1A1A1A;
+  --c-text-soft:   #313131;
+  --c-mute:        #6B7280;
+  --c-mute-soft:   #9CA3AF;
+  --c-disabled:    #D1D5DB;
+
+  /* Surfaces & borders */
+  --c-surface:     #FFFFFF;
+  --c-border:      #E5E7EB;
   --c-border-soft: #F3F4F6;
-  --c-success: #22C55E;
-  --c-danger: #DC2626;
+
+  /* Status */
+  --c-success:     #22C55E;
+  --c-success-bg:  #DCFCE7;
+  --c-success-fg:  #16A34A;
+  --c-warning:     #F59E0B;
+  --c-warning-bg:  #FEF3C7;
+  --c-warning-fg:  #D97706;
+  --c-danger:      #DC2626;
+  --c-danger-bg:   #FEF2F2;
+  --c-danger-fg:   #DC2626;
+
+  /* Type */
+  --font-display:      'Fraunces', serif;
+  --font-body:         system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-feat-display: 'SOFT' 0, 'WONK' 1;
 }
+
+/* Base element styles (moved from base.html <style>) */
+html { background-color: var(--c-cream-page); color: var(--c-text); }
+body { font-family: var(--font-body); }
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-display);
+  font-variation-settings: var(--font-feat-display);
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(196, 113, 74, 0.25); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(196, 113, 74, 0.5); }
+* { scrollbar-width: thin; scrollbar-color: rgba(196, 113, 74, 0.25) transparent; }
+button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] { cursor: pointer; }
 
 /* Inputs — base + :focus, replacing inline onfocus/onblur handlers */
 .input-soft {
