@@ -10,6 +10,8 @@
   --c-cream-page:  #FAF7F2;   /* page background */
   --c-coral:       #C4714A;
   --c-coral-strong:#E84B3A;
+  --c-coral-red:   #FF5455;   /* notification badge / auth error accent */
+  --c-error-light: #FFE8E8;   /* pale red bg for auth error flash */
   --c-red-cta:     #B70102;   /* landing red button */
 
   /* Text */
@@ -189,9 +191,9 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .w-12 { width: 3rem; }
 
 /* Notification badge accent (project-specific, was in tailwind.css) */
-.bg-coral-red   { background-color: #FF5455; }
-.text-coral-red { color: #FF5455; }
-.bg-error-light { background-color: #FFE8E8; }
+.bg-coral-red   { background-color: var(--c-coral-red); }
+.text-coral-red { color: var(--c-coral-red); }
+.bg-error-light { background-color: var(--c-error-light); }
 
 /* ============================================================
    Legacy custom — to remove
