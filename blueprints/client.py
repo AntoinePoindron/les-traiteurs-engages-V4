@@ -307,7 +307,6 @@ def request_detail(request_id):
 @login_required
 @role_required("client_admin", "client_user")
 def accept_quote(request_id):
-    user = g.current_user
     form = QuoteAcceptForm()
     if not form.validate_on_submit():
         abort(400)
@@ -317,63 +316,25 @@ def accept_quote(request_id):
         abort(400)
 
     db = get_db()
-    qr = db.execute(
-        select(QuoteRequest).where(
-            QuoteRequest.id == request_id,
-            QuoteRequest.company_id == user.company_id,
+    try:
+        order = workflow.accept_quote(
+            db,
+            request_id=request_id,
+            quote_id=quote_uuid,
+            user=g.current_user,
         )
-    ).scalar_one_or_none()
-    if not qr:
+    except workflow.RequestNotFound:
         abort(404)
-
-    # Only the caterer's own `sent` quotes can be accepted. Without this
-    # filter a client (or a pre-fix-#4 pending user) could "accept" a
-    # draft, refused, or long-expired quote — creating an Order the
-    # caterer never committed to. Audit finding #5 (2026-04-24).
-    accepted_quote = db.execute(
-        select(Quote).where(
-            Quote.id == quote_uuid,
-            Quote.quote_request_id == request_id,
-            Quote.status == QuoteStatus.sent,
-        )
-    ).scalar_one_or_none()
-    if not accepted_quote:
+    except workflow.QuoteNotAvailable:
         flash("Ce devis n'est plus disponible.", "error")
         return redirect(url_for("client.request_detail", request_id=request_id))
-
-    if accepted_quote.valid_until and accepted_quote.valid_until < datetime.date.today():
+    except workflow.QuoteExpired:
         flash("Ce devis a expire.", "error")
         return redirect(url_for("client.request_detail", request_id=request_id))
-
-    accepted_quote.status = QuoteStatus.accepted
-
-    other_quotes = db.execute(
-        select(Quote).where(
-            Quote.quote_request_id == request_id,
-            Quote.id != accepted_quote.id,
-            Quote.status == QuoteStatus.sent,
-        )
-    ).scalars().all()
-    for q in other_quotes:
-        q.status = QuoteStatus.refused
-        q.refusal_reason = "Un autre devis a ete accepte."
-
-    order = Order(
-        quote_id=accepted_quote.id,
-        client_admin_id=user.id,
-        status=OrderStatus.confirmed,
-        delivery_date=qr.event_date,
-        delivery_address=f"{qr.event_address}, {qr.event_zip_code} {qr.event_city}",
-    )
-    db.add(order)
-    db.flush()
-
-    qr.status = QuoteRequestStatus.completed
-    order_id = order.id
     db.commit()
 
     flash("Devis accepte ! La commande a ete creee.", "success")
-    return redirect(url_for("client.order_detail", order_id=order_id))
+    return redirect(url_for("client.order_detail", order_id=order.id))
 
 
 @client_bp.route("/requests/<uuid:request_id>/refuse-quote", methods=["POST"])
