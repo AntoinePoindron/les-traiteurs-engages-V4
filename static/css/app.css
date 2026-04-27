@@ -134,3 +134,58 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .btn-red:hover {
   background: #8B0001;
 }
+
+/* ============================================================
+   Brand utilities (token-backed)
+   Mirror Tailwind's API but resolve to brand tokens.
+   These live HERE, not in tailwind.css, so tailwind.css
+   stays regenerable.
+   ============================================================ */
+
+/* Text */
+.text-text       { color: var(--c-text); }
+.text-text-soft  { color: var(--c-text-soft); }
+.text-mute       { color: var(--c-mute); }
+.text-mute-soft  { color: var(--c-mute-soft); }
+.text-disabled   { color: var(--c-disabled); }
+.text-navy       { color: var(--c-navy); }
+.text-coral      { color: var(--c-coral); }
+.text-danger     { color: var(--c-danger); }
+.text-success    { color: var(--c-success-fg); }
+.text-warning    { color: var(--c-warning-fg); }
+
+/* Background */
+.bg-cream        { background-color: var(--c-cream); }
+.bg-cream-page   { background-color: var(--c-cream-page); }
+.bg-navy         { background-color: var(--c-navy); }
+.bg-navy-soft    { background-color: var(--c-navy-soft); }
+.bg-coral        { background-color: var(--c-coral); }
+.bg-success-soft { background-color: var(--c-success-bg); }
+.bg-warning-soft { background-color: var(--c-warning-bg); }
+.bg-danger       { background-color: var(--c-danger); }
+.bg-danger-soft  { background-color: var(--c-danger-bg); }
+
+/* Border */
+.border-default  { border-color: var(--c-border); }
+.border-soft     { border-color: var(--c-border-soft); }
+.border-navy     { border-color: var(--c-navy); }
+.border-2        { border-width: 2px; }
+
+/* Hover/focus variants */
+.hover\:bg-cream:hover     { background-color: var(--c-cream); }
+.hover\:bg-navy-soft:hover { background-color: var(--c-navy-soft); }
+.focus\:border-navy:focus  { border-color: var(--c-navy); }
+
+/* Form accent */
+.accent-navy { accent-color: var(--c-navy); }
+
+/* Has-checked variants */
+.has-\[\:checked\]\:bg-navy:has(:checked)      { background-color: var(--c-navy); }
+.has-\[\:checked\]\:bg-navy-soft:has(:checked) { background-color: var(--c-navy-soft); }
+
+/* Stock Tailwind classes the original tailwind.css scan missed */
+.w-3 { width: 0.75rem; }
+.h-3 { height: 0.75rem; }
+
+/* Notification badge accent (project-specific, was in tailwind.css) */
+.bg-coral-red { background-color: #FF5455; }
