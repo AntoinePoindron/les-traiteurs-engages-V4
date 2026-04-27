@@ -184,8 +184,9 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .has-\[\:checked\]\:bg-navy-soft:has(:checked) { background-color: var(--c-navy-soft); }
 
 /* Stock Tailwind classes the original tailwind.css scan missed */
-.w-3 { width: 0.75rem; }
-.h-3 { height: 0.75rem; }
+.w-3  { width: 0.75rem; }
+.h-3  { height: 0.75rem; }
+.w-12 { width: 3rem; }
 
 /* Notification badge accent (project-specific, was in tailwind.css) */
 .bg-coral-red { background-color: #FF5455; }
