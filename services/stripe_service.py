@@ -15,16 +15,7 @@ from typing import Any
 import stripe
 
 import config
-from models import (
-    Caterer,
-    CommissionInvoice,
-    Invoice,
-    Order,
-    OrderStatus,
-    Payment,
-    PaymentStatus,
-)
-from services.quotes import calculate_quote_totals, derive_invoice_reference
+from models import Caterer
 
 CENTS_PER_EURO = Decimal("100")
 
@@ -139,7 +130,7 @@ def get_or_create_customer(session, user) -> str:
     return customer.id
 
 
-def _create_or_get_tax_rate(percentage: Decimal, description: str) -> str:
+def create_or_get_tax_rate(percentage: Decimal, description: str) -> str:
     """Find or create a Stripe TaxRate matching the given percentage.
 
     The previous in-process cache (`_tax_rate_cache`) was per-worker and would
@@ -160,150 +151,6 @@ def _create_or_get_tax_rate(percentage: Decimal, description: str) -> str:
         jurisdiction="FR",
     )
     return new_rate.id
-
-
-def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
-    """Generate and send a Stripe invoice for a delivered order."""
-    quote = order.quote
-    caterer = quote.caterer
-    client_user = order.client_admin
-
-    line_dicts = [
-        {
-            "section": ln.section,
-            "description": ln.description or "",
-            "quantity": float(ln.quantity),
-            "unit_price_ht": float(ln.unit_price_ht),
-            "tva_rate": float(ln.tva_rate),
-        }
-        for ln in quote.lines
-    ]
-    totals = calculate_quote_totals(line_dicts, quote.quote_request.guest_count)
-
-    customer_id = get_or_create_customer(session, client_user)
-
-    platform_fee_ht = totals["platform_fee_ht"]
-    platform_fee_tva = totals["platform_fee_tva"]
-    platform_fee_ttc_cents = _to_cents(platform_fee_ht + platform_fee_tva)
-
-    invoice_ref = derive_invoice_reference(quote.reference)
-
-    invoice = stripe.Invoice.create(
-        customer=customer_id,
-        collection_method="send_invoice",
-        days_until_due=30,
-        transfer_data={"destination": caterer.stripe_account_id},
-        application_fee_amount=platform_fee_ttc_cents,
-        metadata={
-            "order_id": str(order.id),
-            "invoice_reference": invoice_ref,
-        },
-        custom_fields=[
-            {"name": "Traiteur", "value": caterer.name},
-            {"name": "SIRET", "value": caterer.siret or ""},
-        ],
-        idempotency_key=f"invoice-order-{order.id}",
-    )
-
-    tva_grouped: dict[str, dict] = {}
-    for ln in quote.lines:
-        tva_rate = str(ln.tva_rate)
-        if tva_rate not in tva_grouped:
-            tva_grouped[tva_rate] = {"amount_ht": Decimal("0"), "descriptions": []}
-        line_ht = ln.quantity * ln.unit_price_ht
-        tva_grouped[tva_rate]["amount_ht"] += line_ht
-        tva_grouped[tva_rate]["descriptions"].append(ln.description or "")
-
-    for tva_rate_str, group in tva_grouped.items():
-        tva_pct = Decimal(tva_rate_str)
-        tax_rate_id = _create_or_get_tax_rate(tva_pct, f"TVA {tva_rate_str}%")
-        amount_cents = _to_cents(group["amount_ht"])
-        desc = ", ".join(d for d in group["descriptions"] if d)
-        stripe.InvoiceItem.create(
-            customer=customer_id,
-            invoice=invoice.id,
-            amount=amount_cents,
-            currency="eur",
-            description=desc or "Prestation traiteur",
-            tax_rates=[tax_rate_id],
-        )
-
-    # Platform fee line: 5% HT + 20% TVA
-    fee_tax_rate_id = _create_or_get_tax_rate(Decimal("20"), "TVA 20%")
-    fee_ht_cents = _to_cents(platform_fee_ht)
-    stripe.InvoiceItem.create(
-        customer=customer_id,
-        invoice=invoice.id,
-        amount=fee_ht_cents,
-        currency="eur",
-        description="Frais de mise en relation",
-        tax_rates=[fee_tax_rate_id],
-    )
-
-    stripe.Invoice.finalize_invoice(invoice.id)
-    sent = stripe.Invoice.send_invoice(invoice.id)
-    hosted_url = sent.get("hosted_invoice_url", "") or ""
-
-    order.stripe_invoice_id = invoice.id
-    order.stripe_hosted_invoice_url = hosted_url
-    order.status = OrderStatus.invoiced
-
-    amounts = split_invoice_amounts(
-        total_ttc=totals["total_ttc"],
-        fee_ht=platform_fee_ht,
-        fee_tva=platform_fee_tva,
-    )
-
-    payment = Payment(
-        order_id=order.id,
-        caterer_id=caterer.id,
-        stripe_invoice_id=invoice.id,
-        status=PaymentStatus.pending,
-        amount_total_cents=amounts.invoice_total_cents,
-        application_fee_cents=amounts.application_fee_cents,
-        amount_to_caterer_cents=amounts.amount_to_caterer_cents,
-    )
-    session.add(payment)
-
-    total_ht = totals["total_ht"]
-    total_tva = totals["total_tva"]
-    # Single-rate weighted average; if base is zero we have no rate to report
-    # rather than fabricate one. Mixed-rate quotes need a richer model later.
-    avg_tva_rate = (total_tva / total_ht).quantize(Decimal("0.0001")) if total_ht else None
-
-    invoice_record = Invoice(
-        order_id=order.id,
-        caterer_id=caterer.id,
-        reference=invoice_ref,
-        amount_ht=total_ht,
-        tva_rate=avg_tva_rate,
-        amount_ttc=total_ttc,
-        valorisable_agefiph=totals["valorisable_agefiph"],
-        esat_mention=f"Structure {caterer.structure_type}" if caterer.structure_type else None,
-    )
-    session.add(invoice_record)
-
-    # invoice_number is assigned by Postgres via DEFAULT nextval(commission_invoice_number_seq)
-    # — closes the previous max(...)+1 race condition (French fiscal compliance).
-    commission_client = CommissionInvoice(
-        order_id=order.id,
-        party="client",
-        amount_ht=platform_fee_ht,
-        tva_rate=Decimal("0.20"),
-        amount_ttc=platform_fee_ht + platform_fee_tva,
-    )
-    session.add(commission_client)
-
-    commission_caterer = CommissionInvoice(
-        order_id=order.id,
-        party="caterer",
-        amount_ht=platform_fee_ht,
-        tva_rate=Decimal("0.20"),
-        amount_ttc=platform_fee_ht + platform_fee_tva,
-    )
-    session.add(commission_caterer)
-
-    return invoice
 
 
 def verify_webhook_signature(payload: bytes | str, sig_header: str, secret: str):

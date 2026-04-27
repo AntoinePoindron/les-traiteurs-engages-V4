@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import click
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
 from sqlalchemy import func, select, text
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -131,6 +132,17 @@ def create_app():
         except Exception:
             pass
         return render_template("errors/500.html"), 500
+
+    @app.cli.command("retry-pending-invoices")
+    def retry_pending_invoices_cmd():
+        """Réessaye l'envoi Stripe pour les Payment en attente.
+
+        À déclencher périodiquement (cron ~10 min) :
+        `docker compose exec -T app flask retry-pending-invoices`.
+        """
+        from services import billing
+        success, failed = billing.retry_pending_invoices(get_db())
+        click.echo(f"Retry done: {success} succeeded, {failed} failed.")
 
     @app.route("/health")
     def health():

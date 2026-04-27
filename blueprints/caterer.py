@@ -21,7 +21,9 @@ from models import (
     QuoteStatus,
     User,
 )
-from services import workflow
+import stripe
+
+from services import billing, workflow
 from services.quotes import (
     calculate_quote_totals, generate_quote_reference, lines_from_dicts,
 )
@@ -29,7 +31,6 @@ from services.uploads import save_upload
 from services.stripe_service import (
     create_account_link,
     create_connect_account,
-    create_invoice_for_order,
     get_account,
 )
 
@@ -433,16 +434,29 @@ def order_deliver(order_id):
         order = workflow.mark_delivered(db, order_id=order_id, caterer=caterer)
     except workflow.OrderNotFound:
         abort(404)
-    if caterer.stripe_account_id and caterer.stripe_charges_enabled:
-        try:
-            create_invoice_for_order(db, order)
-            flash("Commande livree et facture Stripe generee.", "success")
-        except Exception:
-            logger.exception("Stripe invoice creation failed for order %s", order_id)
-            flash("Commande marquee comme livree. Erreur lors de la generation de la facture Stripe.", "warning")
-    else:
+
+    if not (caterer.stripe_account_id and caterer.stripe_charges_enabled):
+        db.commit()
         flash("Commande marquee comme livree.", "success")
+        return redirect(url_for("caterer.order_detail", order_id=order_id))
+
+    # Phase 1 : persister l'intent local (Payment + Invoice + Commissions)
+    # AVANT tout appel Stripe. Si Stripe échoue ensuite, on a une trace
+    # locale rejouable par le retry CLI.
+    payment = billing.queue_invoice(db, order=order)
     db.commit()
+
+    # Phase 2 : envoi Stripe avec idempotency_key. Tout échec laisse le
+    # Payment en `pending` sans `stripe_invoice_id` ; le CLI rattrapera.
+    try:
+        billing.send_stripe_invoice(db, payment=payment)
+        db.commit()
+        flash("Commande livree et facture Stripe envoyee.", "success")
+    except stripe.StripeError:
+        logger.exception("Stripe send failed for payment %s; will retry via CLI", payment.id)
+        db.rollback()
+        flash("Commande livree. Facture en attente d'envoi (sera reessayee).", "warning")
+
     return redirect(url_for("caterer.order_detail", order_id=order_id))
 
 
