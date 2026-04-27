@@ -124,6 +124,36 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
   color: #FFFFFF;
 }
 
+/* Wizard step indicator (semantic component, JS toggles --done / --current) */
+.step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  background: var(--c-cream);
+  color: var(--c-mute);
+  transition: background-color .15s, color .15s;
+}
+.step-dot--done    { background: var(--c-navy);  color: #ffffff; }
+.step-dot--current { background: var(--c-coral); color: #ffffff; }
+
+.step-connector {
+  flex: 1 1 0%;
+  height: 2px;
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
+  background: var(--c-cream);
+  transition: background-color .15s;
+}
+.step-connector--done { background: var(--c-navy); }
+
+.step-label { color: var(--c-mute); transition: color .15s, font-weight .15s; }
+.step-label--current { color: var(--c-coral); font-weight: 600; }
+
 /* Auth inputs — coral focus ring */
 .input-coral {
   border: 1px solid var(--c-border);
