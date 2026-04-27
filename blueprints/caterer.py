@@ -21,6 +21,7 @@ from models import (
     QuoteStatus,
     User,
 )
+from services import workflow
 from services.quotes import (
     calculate_quote_totals, generate_quote_reference, lines_from_dicts,
 )
@@ -367,49 +368,16 @@ def quote_update(qr_id, q_id):
 @login_required
 @role_required("caterer")
 def quote_send(qr_id, q_id):
-    caterer = g.current_user.caterer
     db = get_db()
-    quote = db.scalar(
-        select(Quote)
-        .where(Quote.id == q_id)
-        .where(Quote.caterer_id == caterer.id)
-        .where(Quote.quote_request_id == qr_id)
-        .where(Quote.status == QuoteStatus.draft)
-    )
-    if not quote:
+    try:
+        workflow.submit_quote(
+            db,
+            request_id=qr_id,
+            quote_id=q_id,
+            caterer=g.current_user.caterer,
+        )
+    except workflow.QuoteNotFound:
         abort(404)
-    qrc = db.scalar(
-        select(QuoteRequestCaterer)
-        .where(QuoteRequestCaterer.quote_request_id == qr_id)
-        .where(QuoteRequestCaterer.caterer_id == caterer.id)
-    )
-    if not qrc:
-        abort(404)
-
-    quote.status = QuoteStatus.sent
-    qrc.status = QRCStatus.responded
-    qrc.responded_at = datetime.utcnow()
-
-    transmitted_count = db.scalar(
-        select(func.count(QuoteRequestCaterer.id))
-        .where(QuoteRequestCaterer.quote_request_id == qr_id)
-        .where(QuoteRequestCaterer.status == QRCStatus.transmitted_to_client)
-    )
-
-    if transmitted_count < 3:
-        qrc.status = QRCStatus.transmitted_to_client
-        qrc.response_rank = transmitted_count + 1
-
-        if transmitted_count + 1 == 3:
-            remaining = db.scalars(
-                select(QuoteRequestCaterer)
-                .where(QuoteRequestCaterer.quote_request_id == qr_id)
-                .where(QuoteRequestCaterer.status == QRCStatus.selected)
-                .where(QuoteRequestCaterer.caterer_id != caterer.id)
-            ).all()
-            for r in remaining:
-                r.status = QRCStatus.closed
-
     db.commit()
 
     flash("Devis envoye au client.", "success")
