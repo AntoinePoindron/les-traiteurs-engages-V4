@@ -12,6 +12,19 @@
   --c-coral-strong:#E84B3A;
   --c-coral-red:   #FF5455;   /* notification badge / auth error accent */
   --c-error-light: #FFE8E8;   /* pale red bg for auth error flash */
+  --c-error-border:#FCA5A5;   /* flash error border */
+  --c-flash-success-bg:  #D1FAE5; /* flash success bg */
+  --c-flash-success-border: #BBF7D0;
+  --c-info-bg:     #E3F4FF;   /* flash info / status 'new' bg */
+  --c-info-border: #BAE6FD;
+  --c-info-fg:     #00AEFF;   /* status 'new' text */
+  --c-pending-bg:  #FFF3CD;   /* status pending/awaiting bg */
+  --c-pending-fg:  #B45309;   /* status pending text */
+  --c-sky-bg:      #E0F2FE;   /* status sent/invoiced bg */
+  --c-sky-fg:      #0284C7;   /* status sent/invoiced text */
+  --c-success-dark:#065F46;   /* status accepted/paid text */
+  --c-purple-bg:   #EDE9FE;   /* status confirmed bg */
+  --c-purple-fg:   #7C3AED;   /* status confirmed text */
   --c-red-cta:     #B70102;   /* landing red button */
   --c-white-8:     rgba(255, 255, 255, 0.08);
   --c-white-10:    rgba(255, 255, 255, 0.1);
@@ -234,7 +247,21 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 /* Notification badge accent (project-specific, was in tailwind.css) */
 .bg-coral-red   { background-color: var(--c-coral-red); }
 .text-coral-red { color: var(--c-coral-red); }
-.bg-error-light { background-color: var(--c-error-light); }
+.bg-error-light  { background-color: var(--c-error-light); }
+.border-error    { border-color: var(--c-error-border); }
+.bg-flash-success { background-color: var(--c-flash-success-bg); }
+.border-flash-success { border-color: var(--c-flash-success-border); }
+.bg-info         { background-color: var(--c-info-bg); }
+.border-info     { border-color: var(--c-info-border); }
+.text-info       { color: var(--c-info-fg); }
+.bg-pending      { background-color: var(--c-pending-bg); }
+.text-pending    { color: var(--c-pending-fg); }
+.bg-sky          { background-color: var(--c-sky-bg); }
+.text-sky        { color: var(--c-sky-fg); }
+.bg-flash-success-dark { background-color: var(--c-flash-success-bg); }
+.text-success-dark { color: var(--c-success-dark); }
+.bg-purple       { background-color: var(--c-purple-bg); }
+.text-purple     { color: var(--c-purple-fg); }
 
 /* ============================================================
    Legacy custom — to remove

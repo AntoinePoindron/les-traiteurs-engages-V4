@@ -9,11 +9,11 @@
 } %}
 
 {% if size == 'sm' %}
-<span class="inline-flex items-center font-bold whitespace-nowrap" style="background-color: #DCFCE7; color: #16A34A; padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4;">
+<span class="inline-flex items-center font-bold whitespace-nowrap bg-success-soft text-success" style="padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4;">
   {{ labels.get(type_str, type_str) }}
 </span>
 {% else %}
-<span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold whitespace-nowrap" style="background-color: #DCFCE7; color: #16A34A;">
+<span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold whitespace-nowrap bg-success-soft text-success">
   {{ labels.get(type_str, type_str) }}
 </span>
 {% endif %}

@@ -2,31 +2,30 @@
 {% set status_str = status.value if status is not string else status %}
 
 {% set badge_map = {
-  'new': {'bg': '#E3F4FF', 'color': '#00AEFF', 'label': 'Nouvelle'},
-  'pending': {'bg': '#FFF3CD', 'color': '#B45309', 'label': 'En attente'},
-  'sent': {'bg': '#E0F2FE', 'color': '#0284C7', 'label': 'Devis envoy\u00e9'},
-  'devis_envoye': {'bg': '#E0F2FE', 'color': '#0284C7', 'label': 'Devis envoy\u00e9'},
-  'accepted': {'bg': '#D1FAE5', 'color': '#065F46', 'label': 'Commande cr\u00e9\u00e9e'},
-  'refused': {'bg': '#FEE2E2', 'color': '#DC2626', 'label': 'Refus\u00e9'},
-  'expired': {'bg': '#F3F4F6', 'color': '#6B7280', 'label': 'Expir\u00e9'},
-  'confirmed': {'bg': '#EDE9FE', 'color': '#7C3AED', 'label': '\u00c0 venir'},
-  'delivered': {'bg': '#DCFCE7', 'color': '#16A34A', 'label': 'Livr\u00e9e'},
-  'invoiced': {'bg': '#E0F2FE', 'color': '#0284C7', 'label': 'Factur\u00e9e'},
-  'paid': {'bg': '#D1FAE5', 'color': '#065F46', 'label': 'Pay\u00e9e'},
-  'disputed': {'bg': '#FEE2E2', 'color': '#DC2626', 'label': 'Litige'},
-  'submitted': {'bg': '#F0F4F8', 'color': '#1A3A52', 'label': 'Soumise'},
-  'awaiting_quotes': {'bg': '#FFF3CD', 'color': '#B45309', 'label': 'En attente de devis'},
-  'quotes_received': {'bg': '#E3F4FF', 'color': '#0284C7', 'label': 'Devis re\u00e7u(s)'},
-  'quote_accepted': {'bg': '#D1FAE5', 'color': '#065F46', 'label': 'Commande cr\u00e9\u00e9e'},
-  'completed': {'bg': '#D1FAE5', 'color': '#065F46', 'label': 'Termin\u00e9e'},
-  'cancelled': {'bg': '#F3F4F6', 'color': '#6B7280', 'label': 'Annul\u00e9e'},
-  'quotes_refused': {'bg': '#FEE2E2', 'color': '#DC2626', 'label': 'Devis refus\u00e9'},
+  'new':             {'classes': 'bg-info text-info',                   'label': 'Nouvelle'},
+  'pending':         {'classes': 'bg-pending text-pending',             'label': 'En attente'},
+  'sent':            {'classes': 'bg-sky text-sky',                     'label': 'Devis envoyé'},
+  'devis_envoye':    {'classes': 'bg-sky text-sky',                     'label': 'Devis envoyé'},
+  'accepted':        {'classes': 'bg-flash-success text-success-dark',  'label': 'Commande créée'},
+  'refused':         {'classes': 'bg-danger-soft text-danger',          'label': 'Refusé'},
+  'expired':         {'classes': 'bg-border-soft text-mute',            'label': 'Expiré'},
+  'confirmed':       {'classes': 'bg-purple text-purple',               'label': 'À venir'},
+  'delivered':       {'classes': 'bg-success-soft text-success',        'label': 'Livrée'},
+  'invoiced':        {'classes': 'bg-sky text-sky',                     'label': 'Facturée'},
+  'paid':            {'classes': 'bg-flash-success text-success-dark',  'label': 'Payée'},
+  'disputed':        {'classes': 'bg-danger-soft text-danger',          'label': 'Litige'},
+  'submitted':       {'classes': 'bg-navy-soft text-navy',              'label': 'Soumise'},
+  'awaiting_quotes': {'classes': 'bg-pending text-pending',             'label': 'En attente de devis'},
+  'quotes_received': {'classes': 'bg-info text-sky',                    'label': 'Devis reçu(s)'},
+  'quote_accepted':  {'classes': 'bg-flash-success text-success-dark',  'label': 'Commande créée'},
+  'completed':       {'classes': 'bg-flash-success text-success-dark',  'label': 'Terminée'},
+  'cancelled':       {'classes': 'bg-border-soft text-mute',            'label': 'Annulée'},
+  'quotes_refused':  {'classes': 'bg-danger-soft text-danger',          'label': 'Devis refusé'},
 } %}
 
-{% set badge = badge_map.get(status_str, {'bg': '#F3F4F6', 'color': '#6B7280', 'label': status_str}) %}
+{% set badge = badge_map.get(status_str, {'classes': 'bg-border-soft text-mute', 'label': status_str}) %}
 
-<span class="inline-flex w-fit items-center justify-center px-2 py-1 rounded text-xs font-bold whitespace-nowrap"
-  style="background-color: {{ badge.bg }}; color: {{ badge.color }};">
+<span class="inline-flex w-fit items-center justify-center px-2 py-1 rounded text-xs font-bold whitespace-nowrap {{ badge.classes }}">
   {{ badge.label }}
 </span>
 {% endmacro %}
