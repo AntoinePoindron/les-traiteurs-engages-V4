@@ -5,8 +5,8 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Demandes recues</h1>
-  <p class="text-xs mt-1" style="color: #6B7280">Demandes de devis qui vous ont ete transmises</p>
+  <h1 class="font-display font-bold text-3xl text-black">Demandes recues</h1>
+  <p class="text-xs mt-1 text-mute">Demandes de devis qui vous ont ete transmises</p>
 </div>
 
 <div class="flex flex-wrap gap-2 mb-6">
@@ -20,12 +20,7 @@
   {% for value, label in statuses %}
   <a href="{{ url_for('caterer.requests_list', status=value) if value else url_for('caterer.requests_list') }}"
      class="px-4 py-2 rounded-full text-sm font-bold transition-colors
-     {% if status_filter == value or (not status_filter and not value) %}
-     text-white
-     {% else %}
-     hover:opacity-80
-     {% endif %}"
-     style="{% if status_filter == value or (not status_filter and not value) %}background-color:#1A3A52;color:white{% else %}background-color:#F5F1E8;color:#1A3A52{% endif %}">
+     {% if status_filter == value or (not status_filter and not value) %}bg-navy text-white{% else %}bg-cream text-navy hover:opacity-80{% endif %}">
     {{ label }}
   </a>
   {% endfor %}
@@ -36,36 +31,36 @@
   <div>
     {% for qrc in qrcs %}
     {% set qr = qrc.quote_request %}
-    <a href="{{ url_for('caterer.request_detail', qr_id=qr.id) }}" class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg transition-colors hover:bg-[#F5F1E8]" style="border-top: 1px solid #F3F4F6">
-      <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
-        <i data-lucide="grid-2x2" style="width:16px;height:16px;color:#1A3A52"></i>
+    <a href="{{ url_for('caterer.request_detail', qr_id=qr.id) }}" class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg transition-colors hover:bg-[#F5F1E8] border-t border-soft">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+        <i data-lucide="grid-2x2" class="w-4 h-4 text-navy"></i>
       </div>
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ qr.company.name }}</p>
+        <p class="text-sm font-bold truncate text-text">{{ qr.company.name }}</p>
         <div class="flex items-center gap-3 mt-0.5">
-          <span class="text-xs" style="color: #6B7280">{{ qr.meal_type.value if qr.meal_type else 'Prestation' }}</span>
-          <span class="text-xs" style="color: #6B7280">{{ qr.guest_count or '?' }} convives</span>
-          <span class="text-xs" style="color: #6B7280">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else 'Date non definie' }}</span>
+          <span class="text-xs text-mute">{{ qr.meal_type.value if qr.meal_type else 'Prestation' }}</span>
+          <span class="text-xs text-mute">{{ qr.guest_count or '?' }} convives</span>
+          <span class="text-xs text-mute">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else 'Date non definie' }}</span>
           {% if qr.event_city %}
-          <span class="text-xs" style="color: #6B7280">{{ qr.event_city }} {{ qr.event_zip_code or '' }}</span>
+          <span class="text-xs text-mute">{{ qr.event_city }} {{ qr.event_zip_code or '' }}</span>
           {% endif %}
         </div>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         {% if qr.budget_per_person %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">{{ "%.2f"|format(qr.budget_per_person) }} &euro;/pers</span>
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">{{ "%.2f"|format(qr.budget_per_person) }} &euro;/pers</span>
         {% endif %}
         {{ status_badge(qrc.status) }}
       </div>
-      <i data-lucide="chevron-right" style="width:16px;height:16px;color:#D1D5DB"></i>
+      <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
     </a>
     {% endfor %}
   </div>
 </div>
 {% else %}
 <div class="bg-white rounded-lg p-12 text-center">
-  <i data-lucide="inbox" style="width:48px;height:48px;color:#D1D5DB" class="mx-auto mb-4"></i>
-  <p class="text-sm" style="color: #6B7280">Aucune demande pour le moment.</p>
+  <i data-lucide="inbox" class="w-12 h-12 text-disabled mx-auto mb-4"></i>
+  <p class="text-sm text-mute">Aucune demande pour le moment.</p>
 </div>
 {% endif %}
 

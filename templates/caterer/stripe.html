@@ -4,20 +4,20 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Paiements Stripe</h1>
-  <p class="text-xs mt-1" style="color: #6B7280">Gerez votre compte de paiement pour recevoir vos virements</p>
+  <h1 class="font-display font-bold text-3xl text-black">Paiements Stripe</h1>
+  <p class="text-xs mt-1 text-mute">Gerez votre compte de paiement pour recevoir vos virements</p>
 </div>
 
 <div class="max-w-2xl">
   <div class="bg-white rounded-lg p-6">
     {% if not caterer.stripe_account_id %}
     <div class="flex items-start gap-4">
-      <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-        <i data-lucide="credit-card" style="width:18px;height:18px;color:#1A3A52"></i>
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+        <i data-lucide="credit-card" class="w-4.5 h-4.5 text-navy"></i>
       </div>
       <div>
-        <h2 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Connecter votre compte Stripe</h2>
-        <p class="text-sm mb-4" style="color: #6B7280">
+        <h2 class="font-display font-bold text-xl mb-2 text-text">Connecter votre compte Stripe</h2>
+        <p class="text-sm mb-4 text-mute">
           Pour recevoir les paiements de vos prestations, vous devez connecter un compte Stripe.
           La plateforme utilise Stripe Connect pour gerer les virements de maniere securisee.
           L'inscription prend environ 5 minutes.
@@ -25,8 +25,8 @@
         <form method="POST" action="{{ url_for('caterer.stripe_onboard') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit"
-                  class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
-            <i data-lucide="link" style="width:16px;height:16px"></i>
+                  class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors bg-navy">
+            <i data-lucide="link" class="w-4 h-4"></i>
             Connecter mon compte Stripe
           </button>
         </form>
@@ -35,30 +35,30 @@
 
     {% elif not caterer.stripe_charges_enabled or not caterer.stripe_payouts_enabled %}
     <div class="flex items-start gap-4">
-      <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #FEF3C7">
-        <i data-lucide="alert-triangle" style="width:18px;height:18px;color:#D97706"></i>
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-warning-soft">
+        <i data-lucide="alert-triangle" class="w-4.5 h-4.5 text-warning"></i>
       </div>
       <div>
-        <h2 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Verification en cours</h2>
-        <p class="text-sm mb-4" style="color: #6B7280">
+        <h2 class="font-display font-bold text-xl mb-2 text-text">Verification en cours</h2>
+        <p class="text-sm mb-4 text-mute">
           Votre compte Stripe est connecte mais la verification n'est pas encore complete.
           Veuillez completer les informations requises pour activer les paiements.
         </p>
         <div class="flex flex-wrap gap-2 mb-4">
-          <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: {% if caterer.stripe_charges_enabled %}#F5F1E8{% else %}#FEF3C7{% endif %}; color: {% if caterer.stripe_charges_enabled %}#313131{% else %}#D97706{% endif %}">
-            <span class="w-2 h-2 rounded-full" style="background-color: {% if caterer.stripe_charges_enabled %}#22C55E{% else %}#D97706{% endif %}"></span>
+          <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold {% if caterer.stripe_charges_enabled %}bg-cream text-text-soft{% else %}bg-warning-soft text-warning{% endif %}">
+            <span class="w-2 h-2 rounded-full {% if caterer.stripe_charges_enabled %}bg-success{% else %}bg-warning{% endif %}"></span>
             Paiements par carte {% if caterer.stripe_charges_enabled %}actif{% else %}en attente{% endif %}
           </span>
-          <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: {% if caterer.stripe_payouts_enabled %}#F5F1E8{% else %}#FEF3C7{% endif %}; color: {% if caterer.stripe_payouts_enabled %}#313131{% else %}#D97706{% endif %}">
-            <span class="w-2 h-2 rounded-full" style="background-color: {% if caterer.stripe_payouts_enabled %}#22C55E{% else %}#D97706{% endif %}"></span>
+          <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold {% if caterer.stripe_payouts_enabled %}bg-cream text-text-soft{% else %}bg-warning-soft text-warning{% endif %}">
+            <span class="w-2 h-2 rounded-full {% if caterer.stripe_payouts_enabled %}bg-success{% else %}bg-warning{% endif %}"></span>
             Virements {% if caterer.stripe_payouts_enabled %}actif{% else %}en attente{% endif %}
           </span>
         </div>
         <form method="POST" action="{{ url_for('caterer.stripe_onboard') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit"
-                  class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors" style="background-color: #1A3A52">
-            <i data-lucide="external-link" style="width:16px;height:16px"></i>
+                  class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors bg-navy">
+            <i data-lucide="external-link" class="w-4 h-4"></i>
             Completer la verification
           </button>
         </form>
@@ -67,27 +67,27 @@
 
     {% else %}
     <div class="flex items-start gap-4">
-      <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F0F4F7">
-        <i data-lucide="check-circle" style="width:18px;height:18px;color:#22C55E"></i>
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+        <i data-lucide="check-circle" class="w-4.5 h-4.5 text-success"></i>
       </div>
       <div>
-        <h2 class="font-display font-bold text-xl mb-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Compte Stripe connecte</h2>
-        <p class="text-sm mb-4" style="color: #6B7280">
+        <h2 class="font-display font-bold text-xl mb-2 text-text">Compte Stripe connecte</h2>
+        <p class="text-sm mb-4 text-mute">
           Votre compte est actif et pret a recevoir des paiements.
           Les virements sont effectues automatiquement apres chaque prestation payee.
         </p>
         <div class="flex flex-wrap gap-2 mb-4">
-          <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-            <span class="w-2 h-2 rounded-full" style="background-color: #22C55E"></span>
+          <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+            <span class="w-2 h-2 rounded-full bg-success"></span>
             Paiements par carte actif
           </span>
-          <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold" style="background-color: #F5F1E8; color: #313131">
-            <span class="w-2 h-2 rounded-full" style="background-color: #22C55E"></span>
+          <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+            <span class="w-2 h-2 rounded-full bg-success"></span>
             Virements actif
           </span>
         </div>
-        <p class="text-xs" style="color: #6B7280">
-          Identifiant Stripe : <code class="px-1.5 py-0.5 rounded text-xs" style="background-color: #F5F1E8; color: #313131">{{ caterer.stripe_account_id }}</code>
+        <p class="text-xs text-mute">
+          Identifiant Stripe : <code class="px-1.5 py-0.5 rounded text-xs bg-cream text-text-soft">{{ caterer.stripe_account_id }}</code>
           {% if caterer.stripe_onboarded_at %}
           &mdash; connecte le {{ caterer.stripe_onboarded_at.strftime('%d/%m/%Y') }}
           {% endif %}

@@ -5,69 +5,69 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="font-display font-bold text-3xl text-black" style="font-variation-settings: 'SOFT' 0, 'WONK' 1">Mon profil traiteur</h1>
-  <div class="flex items-center gap-2 mt-1">{{ structure_type_badge(caterer.structure_type) }} <span class="text-xs" style="color: #6B7280">{{ caterer.siret }}</span></div>
+  <h1 class="font-display font-bold text-3xl text-black">Mon profil traiteur</h1>
+  <div class="flex items-center gap-2 mt-1">{{ structure_type_badge(caterer.structure_type) }} <span class="text-xs text-mute">{{ caterer.siret }}</span></div>
 </div>
 
 <form method="POST" action="{{ url_for('caterer.profile_save') }}" class="space-y-6 max-w-3xl">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Informations</h2>
+    <h2 class="font-display font-bold text-xl mb-4 text-text">Informations</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <label for="name" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Nom de la structure</label>
+        <label for="name" class="block text-sm font-bold mb-1 text-text">Nom de la structure</label>
         <input type="text" id="name" name="name" value="{{ caterer.name }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
       </div>
       <div>
-        <label for="specialties" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Specialites (separees par des virgules)</label>
+        <label for="specialties" class="block text-sm font-bold mb-1 text-text">Specialites (separees par des virgules)</label>
         <input type="text" id="specialties" name="specialties" value="{{ (caterer.specialties or [])|join(', ') }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
       </div>
       <div class="md:col-span-2">
-        <label for="description" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Description</label>
+        <label for="description" class="block text-sm font-bold mb-1 text-text">Description</label>
         <textarea id="description" name="description" rows="4" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">{{ caterer.description or '' }}</textarea>
       </div>
     </div>
   </div>
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Capacite</h2>
+    <h2 class="font-display font-bold text-xl mb-4 text-text">Capacite</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <label for="capacity_min" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Minimum couverts</label>
+        <label for="capacity_min" class="block text-sm font-bold mb-1 text-text">Minimum couverts</label>
         <input type="number" id="capacity_min" name="capacity_min" value="{{ caterer.capacity_min or '' }}" min="1" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
       </div>
       <div>
-        <label for="capacity_max" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Maximum couverts</label>
+        <label for="capacity_max" class="block text-sm font-bold mb-1 text-text">Maximum couverts</label>
         <input type="number" id="capacity_max" name="capacity_max" value="{{ caterer.capacity_max or '' }}" min="1" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
       </div>
     </div>
   </div>
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Livraison</h2>
+    <h2 class="font-display font-bold text-xl mb-4 text-text">Livraison</h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
-        <label for="address" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Adresse</label>
+        <label for="address" class="block text-sm font-bold mb-1 text-text">Adresse</label>
         <input type="text" id="address" name="address" value="{{ caterer.address or '' }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
       </div>
       <div>
-        <label for="city" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Ville</label>
+        <label for="city" class="block text-sm font-bold mb-1 text-text">Ville</label>
         <input type="text" id="city" name="city" value="{{ caterer.city or '' }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
       </div>
       <div>
-        <label for="zip_code" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Code postal</label>
+        <label for="zip_code" class="block text-sm font-bold mb-1 text-text">Code postal</label>
         <input type="text" id="zip_code" name="zip_code" value="{{ caterer.zip_code or '' }}" maxlength="5" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
       </div>
     </div>
     <div class="mt-4">
-      <label for="delivery_radius_km" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Rayon de livraison (km)</label>
+      <label for="delivery_radius_km" class="block text-sm font-bold mb-1 text-text">Rayon de livraison (km)</label>
       <input type="number" id="delivery_radius_km" name="delivery_radius_km" value="{{ caterer.delivery_radius_km or '' }}" min="1" class="w-48 px-3 py-2.5 rounded-lg text-sm input-soft">
     </div>
   </div>
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Regimes alimentaires proposes</h2>
+    <h2 class="font-display font-bold text-xl mb-4 text-text">Regimes alimentaires proposes</h2>
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
       {% set dietary_options = [
         ('dietary_vegetarian', 'Vegetarien', caterer.dietary_vegetarian),
@@ -78,25 +78,25 @@
         ('dietary_lactose_free', 'Sans lactose', caterer.dietary_lactose_free),
       ] %}
       {% for name, label, checked in dietary_options %}
-      <label class="flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors hover:bg-[#F5F1E8]" style="border: 1px solid #E5E7EB">
-        <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} class="w-4 h-4 rounded" style="accent-color: #1A3A52">
-        <span class="text-sm" style="color: #1A1A1A">{{ label }}</span>
+      <label class="flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors hover:bg-[#F5F1E8] border border-default">
+        <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} class="w-4 h-4 rounded accent-navy">
+        <span class="text-sm text-text">{{ label }}</span>
       </label>
       {% endfor %}
     </div>
   </div>
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Configuration des services</h2>
+    <h2 class="font-display font-bold text-xl mb-4 text-text">Configuration des services</h2>
     <div>
-      <label for="service_config" class="block text-sm font-bold mb-1" style="color: #1A1A1A">Configuration JSON</label>
+      <label for="service_config" class="block text-sm font-bold mb-1 text-text">Configuration JSON</label>
       <textarea id="service_config" name="service_config" rows="4" class="w-full px-3 py-2.5 rounded-lg text-sm font-mono input-soft">{{ caterer.service_config|tojson(indent=2) if caterer.service_config else '{}' }}</textarea>
-      <p class="text-xs mt-1" style="color: #6B7280">Types de prestations proposees (dejeuner, diner, cocktail, etc.)</p>
+      <p class="text-xs mt-1 text-mute">Types de prestations proposees (dejeuner, diner, cocktail, etc.)</p>
     </div>
   </div>
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Photos</h2>
+    <h2 class="font-display font-bold text-xl mb-4 text-text">Photos</h2>
     {% if caterer.photos %}
     <div class="grid grid-cols-3 gap-3 mb-4">
       {% for photo in caterer.photos %}
@@ -104,12 +104,12 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="text-sm" style="color: #6B7280">Aucune photo ajoutee pour le moment.</p>
+    <p class="text-sm text-mute">Aucune photo ajoutee pour le moment.</p>
     {% endif %}
   </div>
 
   <div class="flex justify-end">
-    <button type="submit" class="rounded-full text-white text-sm font-bold px-4 py-2.5 transition-colors" style="background-color: #1A3A52">
+    <button type="submit" class="rounded-full text-white text-sm font-bold px-4 py-2.5 transition-colors bg-navy">
       Enregistrer
     </button>
   </div>
