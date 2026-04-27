@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Page introuvable{% endblock %}
 {% block content %}
-<div style="max-width:520px;margin:80px auto;text-align:center;padding:32px">
-  <h1 class="font-display" style="font-size:42px;color:#1A3A52;margin-bottom:12px">404</h1>
-  <p style="color:#6B7280;margin-bottom:24px">Cette page n&rsquo;existe pas ou a &eacute;t&eacute; d&eacute;plac&eacute;e.</p>
+<div class="max-w-lg mx-auto my-20 text-center p-8">
+  <h1 class="font-display text-navy mb-3" style="font-size:42px">404</h1>
+  <p class="text-mute mb-6">Cette page n&rsquo;existe pas ou a &eacute;t&eacute; d&eacute;plac&eacute;e.</p>
   <a href="{{ url_for('landing') }}"
-     style="display:inline-block;background:#1A3A52;color:#FFF;padding:10px 20px;border-radius:9999px;text-decoration:none;font-weight:bold;font-size:14px">
+     class="inline-block bg-navy text-white px-5 py-2.5 rounded-full font-bold text-sm no-underline">
     Retour &agrave; l&rsquo;accueil
   </a>
 </div>
 {% endblock %}
 {% block public_content %}
-<div style="max-width:520px;margin:80px auto;text-align:center;padding:32px">
-  <h1 class="font-display" style="font-size:42px;color:#1A3A52;margin-bottom:12px">404</h1>
-  <p style="color:#6B7280;margin-bottom:24px">Cette page n&rsquo;existe pas ou a &eacute;t&eacute; d&eacute;plac&eacute;e.</p>
+<div class="max-w-lg mx-auto my-20 text-center p-8">
+  <h1 class="font-display text-navy mb-3" style="font-size:42px">404</h1>
+  <p class="text-mute mb-6">Cette page n&rsquo;existe pas ou a &eacute;t&eacute; d&eacute;plac&eacute;e.</p>
   <a href="{{ url_for('landing') }}"
-     style="display:inline-block;background:#1A3A52;color:#FFF;padding:10px 20px;border-radius:9999px;text-decoration:none;font-weight:bold;font-size:14px">
+     class="inline-block bg-navy text-white px-5 py-2.5 rounded-full font-bold text-sm no-underline">
     Retour &agrave; l&rsquo;accueil
   </a>
 </div>

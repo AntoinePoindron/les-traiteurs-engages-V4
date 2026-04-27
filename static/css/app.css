@@ -13,6 +13,8 @@
   --c-coral-red:   #FF5455;   /* notification badge / auth error accent */
   --c-error-light: #FFE8E8;   /* pale red bg for auth error flash */
   --c-red-cta:     #B70102;   /* landing red button */
+  --c-white-12:    rgba(255, 255, 255, 0.12);  /* translucent overlay on dark hero */
+  --c-white-60:    rgba(255, 255, 255, 0.6);
 
   /* Text */
   --c-text:        #1A1A1A;
@@ -155,6 +157,8 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .text-danger     { color: var(--c-danger); }
 .text-success    { color: var(--c-success-fg); }
 .text-warning    { color: var(--c-warning-fg); }
+.text-red-cta    { color: var(--c-red-cta); }
+.text-white-60   { color: var(--c-white-60); }
 
 /* Background */
 .bg-cream        { background-color: var(--c-cream); }
@@ -166,6 +170,8 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .bg-warning-soft { background-color: var(--c-warning-bg); }
 .bg-danger       { background-color: var(--c-danger); }
 .bg-danger-soft  { background-color: var(--c-danger-bg); }
+.bg-red-cta      { background-color: var(--c-red-cta); }
+.bg-white-12     { background-color: var(--c-white-12); }
 
 /* Border */
 .border-default  { border-color: var(--c-border); }
@@ -189,6 +195,9 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .w-3  { width: 0.75rem; }
 .h-3  { height: 0.75rem; }
 .w-12 { width: 3rem; }
+.my-20     { margin-top: 5rem; margin-bottom: 5rem; }
+.py-2\.5   { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.no-underline { text-decoration: none; }
 
 /* Notification badge accent (project-specific, was in tailwind.css) */
 .bg-coral-red   { background-color: var(--c-coral-red); }
