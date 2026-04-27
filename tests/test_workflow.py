@@ -18,6 +18,7 @@ import pytest
 
 from models import (
     Caterer,
+    CatererStructureType,
     Company,
     Order,
     OrderStatus,
@@ -336,3 +337,163 @@ def test_reject_quote_request_marks_cancelled_with_reason(session):
 def test_reject_unknown_request_raises_not_found(session):
     with pytest.raises(workflow.RequestNotFound):
         workflow.reject_quote_request(session, request_id=uuid.uuid4(), reason=None)
+
+
+# --- submit_quote (3-responder rule) -------------------------------------
+
+
+def _seed_qr_with_qrcs_and_drafts(
+    s, *, n_caterers: int, prior_transmitted: int = 0
+) -> tuple[uuid.UUID, list[Caterer], list[uuid.UUID]]:
+    """Crée un QR avec n caterers en `selected` (chacun avec un draft Quote).
+    `prior_transmitted` répondants antérieurs sont déjà en `transmitted_to_client`.
+    """
+    from sqlalchemy import select
+
+    acme = s.scalar(select(Company).where(Company.siret == "12345678901234"))
+    alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+
+    qr = QuoteRequest(
+        company_id=acme.id,
+        user_id=alice.id,
+        guest_count=10,
+        status=QuoteRequestStatus.sent_to_caterers,
+        event_address="1 rue Test",
+        event_city="Paris",
+        event_zip_code="75001",
+        event_date=_dt.date.today() + _dt.timedelta(days=30),
+    )
+    s.add(qr)
+    s.flush()
+
+    caterers: list[Caterer] = []
+    quote_ids: list[uuid.UUID] = []
+    for i in range(n_caterers):
+        c = Caterer(
+            name=f"Caterer {i} {uuid.uuid4().hex[:6]}",
+            siret=f"77{uuid.uuid4().hex[:12]}",
+            structure_type=CatererStructureType.ESAT,
+            invoice_prefix=f"C{i}{uuid.uuid4().hex[:4]}",
+            is_validated=True,
+        )
+        s.add(c)
+        s.flush()
+        caterers.append(c)
+
+        if i < prior_transmitted:
+            qrc_status = QRCStatus.transmitted_to_client
+            rank = i + 1
+        else:
+            qrc_status = QRCStatus.selected
+            rank = None
+        qrc = QuoteRequestCaterer(
+            quote_request_id=qr.id,
+            caterer_id=c.id,
+            status=qrc_status,
+            response_rank=rank,
+        )
+        s.add(qrc)
+
+        q = Quote(
+            quote_request_id=qr.id,
+            caterer_id=c.id,
+            reference=f"DEVIS-C{i}-{uuid.uuid4().hex[:8]}",
+            total_amount_ht=Decimal("100"),
+            status=QuoteStatus.draft,
+        )
+        s.add(q)
+        s.flush()
+        quote_ids.append(q.id)
+    return qr.id, caterers, quote_ids
+
+
+def test_submit_quote_first_responder_becomes_rank_1(session):
+    from sqlalchemy import select
+
+    qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(session, n_caterers=3)
+
+    workflow.submit_quote(session, request_id=qr_id, quote_id=qids[0], caterer=caterers[0])
+
+    quote = session.scalar(select(Quote).where(Quote.id == qids[0]))
+    qrc = session.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+        .where(QuoteRequestCaterer.caterer_id == caterers[0].id)
+    )
+    assert quote.status == QuoteStatus.sent
+    assert qrc.status == QRCStatus.transmitted_to_client
+    assert qrc.response_rank == 1
+
+
+def test_submit_quote_third_responder_closes_others(session):
+    from sqlalchemy import select
+
+    qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(
+        session, n_caterers=4, prior_transmitted=2,
+    )
+    # Le 3e caterer (index 2) est encore en `selected` ; il soumet.
+    workflow.submit_quote(session, request_id=qr_id, quote_id=qids[2], caterer=caterers[2])
+
+    qrc_third = session.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.caterer_id == caterers[2].id)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+    )
+    qrc_fourth = session.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.caterer_id == caterers[3].id)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+    )
+    assert qrc_third.status == QRCStatus.transmitted_to_client
+    assert qrc_third.response_rank == 3
+    assert qrc_fourth.status == QRCStatus.closed
+
+
+def test_submit_quote_fourth_responder_after_lockout_stays_responded(session):
+    """Si 3 transmitted existent déjà, le répondant suivant reste en
+    `responded` mais n'est pas transmis (pas de rank)."""
+    from sqlalchemy import select
+
+    qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(
+        session, n_caterers=4, prior_transmitted=3,
+    )
+    # Forcer le 4e à être encore `selected` (pas transmitted) pour pouvoir soumettre.
+    qrc4 = session.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.caterer_id == caterers[3].id)
+    )
+    qrc4.status = QRCStatus.selected
+    session.flush()
+
+    workflow.submit_quote(session, request_id=qr_id, quote_id=qids[3], caterer=caterers[3])
+
+    qrc4 = session.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.caterer_id == caterers[3].id)
+    )
+    assert qrc4.status == QRCStatus.responded
+    assert qrc4.response_rank is None
+
+
+def test_submit_unknown_quote_raises(session):
+    qr_id, caterers, _ = _seed_qr_with_qrcs_and_drafts(session, n_caterers=1)
+
+    with pytest.raises(workflow.QuoteNotFound):
+        workflow.submit_quote(
+            session,
+            request_id=qr_id,
+            quote_id=uuid.uuid4(),
+            caterer=caterers[0],
+        )
+
+
+def test_submit_quote_for_other_caterer_raises(session):
+    qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(session, n_caterers=2)
+
+    with pytest.raises(workflow.QuoteNotFound):
+        workflow.submit_quote(
+            session,
+            request_id=qr_id,
+            quote_id=qids[0],
+            caterer=caterers[1],
+        )

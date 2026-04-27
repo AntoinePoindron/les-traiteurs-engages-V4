@@ -17,6 +17,7 @@ import uuid
 from sqlalchemy import func, select
 
 from models import (
+    Caterer,
     Order,
     OrderStatus,
     QRCStatus,
@@ -216,3 +217,69 @@ def reject_quote_request(
         raise RequestNotFound
     qr.status = QuoteRequestStatus.cancelled
     qr.message_to_caterer = reason or ""
+
+
+def submit_quote(
+    db,
+    *,
+    request_id: uuid.UUID,
+    quote_id: uuid.UUID,
+    caterer: Caterer,
+) -> Quote:
+    """Le traiteur soumet un devis : flip Quote→sent, QRC→responded.
+
+    Règle des 3 premiers répondants :
+    - tant que <3 QRC sont en `transmitted_to_client`, le devis est transmis
+      au client et `response_rank` enregistré (1, 2 ou 3) ;
+    - le 3e répondant déclenche la fermeture des QRC `selected` restants.
+    Au-delà : le QRC reste en `responded` mais n'est pas transmis.
+
+    Lève QuoteNotFound (devis introuvable, mauvais caterer, ou pas en `draft`).
+    Note : la fonction n'utilise pas encore `SELECT … FOR UPDATE` ; la
+    sérialisation des répondants concurrents est ajoutée dans un commit suivant.
+    """
+    quote = db.scalar(
+        select(Quote).where(
+            Quote.id == quote_id,
+            Quote.caterer_id == caterer.id,
+            Quote.quote_request_id == request_id,
+            Quote.status == QuoteStatus.draft,
+        )
+    )
+    if not quote:
+        raise QuoteNotFound
+
+    qrc = db.scalar(
+        select(QuoteRequestCaterer).where(
+            QuoteRequestCaterer.quote_request_id == request_id,
+            QuoteRequestCaterer.caterer_id == caterer.id,
+        )
+    )
+    if not qrc:
+        raise QuoteNotFound
+
+    quote.status = QuoteStatus.sent
+    qrc.status = QRCStatus.responded
+    qrc.responded_at = datetime.datetime.utcnow()
+
+    transmitted = db.scalar(
+        select(func.count(QuoteRequestCaterer.id))
+        .where(QuoteRequestCaterer.quote_request_id == request_id)
+        .where(QuoteRequestCaterer.status == QRCStatus.transmitted_to_client)
+    )
+
+    if transmitted < 3:
+        qrc.status = QRCStatus.transmitted_to_client
+        qrc.response_rank = transmitted + 1
+        if transmitted + 1 == 3:
+            remaining = db.scalars(
+                select(QuoteRequestCaterer)
+                .where(QuoteRequestCaterer.quote_request_id == request_id)
+                .where(QuoteRequestCaterer.status == QRCStatus.selected)
+                .where(QuoteRequestCaterer.caterer_id != caterer.id)
+            ).all()
+            for r in remaining:
+                r.status = QRCStatus.closed
+
+    db.flush()
+    return quote
