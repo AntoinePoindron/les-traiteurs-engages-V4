@@ -567,3 +567,109 @@ def test_concurrent_submit_only_one_becomes_rank_3(app):
             cleanup.close()
 
 
+# --- mark_delivered -------------------------------------------------------
+
+
+def _seed_confirmed_order(s) -> tuple[uuid.UUID, Caterer]:
+    """Crée un Caterer + QR + Quote(accepted) + Order(confirmed). Retourne
+    (order_id, caterer)."""
+    from sqlalchemy import select
+
+    acme = s.scalar(select(Company).where(Company.siret == "12345678901234"))
+    alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+
+    caterer = Caterer(
+        name=f"Caterer Deliver {uuid.uuid4().hex[:6]}",
+        siret=f"66{uuid.uuid4().hex[:12]}",
+        structure_type=CatererStructureType.ESAT,
+        invoice_prefix=f"D{uuid.uuid4().hex[:5]}",
+        is_validated=True,
+    )
+    s.add(caterer)
+    s.flush()
+
+    qr = QuoteRequest(
+        company_id=acme.id,
+        user_id=alice.id,
+        guest_count=10,
+        status=QuoteRequestStatus.completed,
+        event_address="1 rue Test",
+        event_city="Paris",
+        event_zip_code="75001",
+        event_date=_dt.date.today() + _dt.timedelta(days=30),
+    )
+    s.add(qr)
+    s.flush()
+
+    quote = Quote(
+        quote_request_id=qr.id,
+        caterer_id=caterer.id,
+        reference=f"DEVIS-DLV-{uuid.uuid4().hex[:8]}",
+        total_amount_ht=Decimal("100"),
+        status=QuoteStatus.accepted,
+    )
+    s.add(quote)
+    s.flush()
+
+    order = Order(
+        quote_id=quote.id,
+        client_admin_id=alice.id,
+        status=OrderStatus.confirmed,
+        delivery_date=_dt.date.today() + _dt.timedelta(days=14),
+        delivery_address="1 rue Test, 75001 Paris",
+    )
+    s.add(order)
+    s.flush()
+    return order.id, caterer
+
+
+def test_mark_delivered_flips_status(session):
+    from sqlalchemy import select
+
+    order_id, caterer = _seed_confirmed_order(session)
+    workflow.mark_delivered(session, order_id=order_id, caterer=caterer)
+    session.flush()
+
+    order = session.scalar(select(Order).where(Order.id == order_id))
+    assert order.status == OrderStatus.delivered
+
+
+def test_mark_delivered_already_delivered_raises(session):
+    from sqlalchemy import select
+
+    order_id, caterer = _seed_confirmed_order(session)
+    order = session.scalar(select(Order).where(Order.id == order_id))
+    order.status = OrderStatus.delivered
+    session.flush()
+
+    with pytest.raises(workflow.OrderNotFound):
+        workflow.mark_delivered(session, order_id=order_id, caterer=caterer)
+
+
+def test_mark_delivered_for_other_caterer_raises(session):
+    from sqlalchemy import select
+
+    order_id, _ = _seed_confirmed_order(session)
+    intruder = Caterer(
+        name=f"Intruder {uuid.uuid4().hex[:6]}",
+        siret=f"55{uuid.uuid4().hex[:12]}",
+        structure_type=CatererStructureType.EA,
+        invoice_prefix=f"I{uuid.uuid4().hex[:5]}",
+        is_validated=True,
+    )
+    session.add(intruder)
+    session.flush()
+
+    with pytest.raises(workflow.OrderNotFound):
+        workflow.mark_delivered(session, order_id=order_id, caterer=intruder)
+
+
+def test_mark_delivered_unknown_order_raises(session):
+    from sqlalchemy import select
+
+    _, caterer = _seed_confirmed_order(session)
+
+    with pytest.raises(workflow.OrderNotFound):
+        workflow.mark_delivered(session, order_id=uuid.uuid4(), caterer=caterer)
+
+

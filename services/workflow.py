@@ -55,6 +55,11 @@ class NoMatchingCaterers(WorkflowError):
     """Aucun traiteur compatible trouvé pour la demande (admin)."""
 
 
+class OrderNotFound(WorkflowError):
+    """La commande n'existe pas, n'appartient pas au caterer, ou n'est
+    plus en statut `confirmed`."""
+
+
 def refuse_quote(
     db,
     *,
@@ -292,3 +297,31 @@ def submit_quote(
 
     db.flush()
     return quote
+
+
+def mark_delivered(
+    db,
+    *,
+    order_id: uuid.UUID,
+    caterer: Caterer,
+) -> Order:
+    """Le traiteur passe la commande de `confirmed` à `delivered`.
+
+    Préserve à l'identique la surface du handler `caterer.order_deliver` :
+    seules les commandes en `confirmed` du caterer authentifié transitionnent.
+    Le déclenchement de la facturation Stripe reste côté handler pour
+    cette PR ; il sera découplé en deux phases dans la PR B.
+
+    Lève OrderNotFound.
+    """
+    order = db.scalar(
+        select(Order)
+        .join(Quote, Order.quote_id == Quote.id)
+        .where(Order.id == order_id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(Order.status == OrderStatus.confirmed)
+    )
+    if not order:
+        raise OrderNotFound
+    order.status = OrderStatus.delivered
+    return order
