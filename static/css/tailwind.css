@@ -1,6 +1,10 @@
 /*
  * Static Tailwind CSS for Les Traiteurs Engages
  * Generated from template class scan — replaces cdn.tailwindcss.com
+ *
+ * DO NOT HAND-EDIT. Custom utilities and components live in app.css.
+ * To regenerate: re-scan templates for class= attributes and rebuild
+ * this file from a fresh Tailwind output.
  */
 
 /* ============================================================
@@ -488,7 +492,6 @@ img, video {
 
 .text-white { color: #ffffff; }
 .text-black { color: #000000; }
-.text-dark { color: #1A1A1A; }
 
 .text-green-700 { color: #15803d; }
 .text-green-800 { color: #166534; }
@@ -506,7 +509,6 @@ img, video {
 .bg-white { background-color: #ffffff; }
 .bg-black { background-color: #000000; }
 .bg-black\/50 { background-color: rgb(0 0 0 / 0.5); }
-.bg-coral-red { background-color: #FF5455; }
 
 .bg-red-500 { background-color: #ef4444; }
 .bg-green-100 { background-color: #dcfce7; }
@@ -662,7 +664,6 @@ img, video {
    21. Hover variants
    ============================================================ */
 
-.hover\:bg-\[\#F5F1E8\]:hover { background-color: #F5F1E8; }
 .hover\:bg-gray-100:hover { background-color: #f3f4f6; }
 .hover\:opacity-70:hover { opacity: 0.7; }
 .hover\:opacity-80:hover { opacity: 0.8; }
@@ -674,17 +675,11 @@ img, video {
    22. Focus variants
    ============================================================ */
 
-.focus\:border-\[\#1A3A52\]:focus { border-color: #1A3A52; }
 .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
 
 /* ============================================================
    23. has-[:checked] variants (modern CSS)
    ============================================================ */
-
-.has-\[\:checked\]\:bg-\[\#1A3A52\]:has(:checked) { background-color: #1A3A52; }
-.has-\[\:checked\]\:bg-\[\#F0F4F7\]:has(:checked) { background-color: #F0F4F7; }
-.has-\[\:checked\]\:bg-white:has(:checked) { background-color: #ffffff; }
-.has-\[\:checked\]\:text-white:has(:checked) { color: #ffffff; }
 
 /* ============================================================
    24. Backdrop variants (dialog)
@@ -748,11 +743,3 @@ img, video {
 @media (min-width: 1280px) {
   .xl\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-
-/* ============================================================
-   29. Arbitrary value classes used in templates
-   ============================================================ */
-
-/* hover:bg-[#F5F1E8] — already in hover section */
-/* focus:border-[#1A3A52] — already in focus section */
-/* has-[:checked] — already above */

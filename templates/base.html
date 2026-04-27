@@ -10,24 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/tailwind.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-  <style>
-    html { background-color: #FAF7F2; color: #1A1A1A; }
-    body { font-family: system-ui, sans-serif; }
-    h1, h2, h3, h4, h5, h6, .font-display {
-      font-family: 'Fraunces', serif;
-      font-variation-settings: 'SOFT' 0, 'WONK' 1;
-    }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #C4714A40; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #C4714A80; }
-    * { scrollbar-width: thin; scrollbar-color: #C4714A40 transparent; }
-    button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] { cursor: pointer; }
-  </style>
   <script src="https://unpkg.com/lucide@latest"></script>
   {% block head %}{% endblock %}
 </head>
-<body class="min-h-screen" style="background-color: #F5F1E8;">
+<body class="min-h-screen bg-cream">
   {% if g.current_user %}
   <!-- Mobile topbar -->
   <div class="fixed top-0 left-0 right-0 h-14 bg-white z-40 flex items-center px-4 lg:hidden" style="border-bottom: 1px solid #F3F4F6;">
