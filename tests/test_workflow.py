@@ -19,6 +19,8 @@ import pytest
 from models import (
     Caterer,
     Company,
+    Order,
+    OrderStatus,
     Quote,
     QuoteRequest,
     QuoteRequestStatus,
@@ -157,3 +159,93 @@ def test_refuse_unknown_quote_raises_quote_not_found(session):
             user=alice,
             reason=None,
         )
+
+
+# --- accept_quote ---------------------------------------------------------
+
+
+def _set_valid_until(s, quote_id: uuid.UUID, valid_until: _dt.date | None) -> None:
+    from sqlalchemy import select
+
+    quote = s.scalar(select(Quote).where(Quote.id == quote_id))
+    quote.valid_until = valid_until
+    s.flush()
+
+
+def test_accept_quote_creates_order_and_refuses_peers(session):
+    from sqlalchemy import select
+
+    qr_id, qids = _seed_qr_with_quotes(session, statuses=[QuoteStatus.sent, QuoteStatus.sent])
+    _set_valid_until(session, qids[0], _dt.date.today() + _dt.timedelta(days=7))
+    alice = session.scalar(select(User).where(User.email == "alice@test.local"))
+
+    order = workflow.accept_quote(
+        session,
+        request_id=qr_id,
+        quote_id=qids[0],
+        user=alice,
+    )
+    session.flush()
+
+    accepted = session.scalar(select(Quote).where(Quote.id == qids[0]))
+    peer = session.scalar(select(Quote).where(Quote.id == qids[1]))
+    qr = session.scalar(select(QuoteRequest).where(QuoteRequest.id == qr_id))
+    assert accepted.status == QuoteStatus.accepted
+    assert peer.status == QuoteStatus.refused
+    assert peer.refusal_reason == "Un autre devis a ete accepte."
+    assert qr.status == QuoteRequestStatus.completed
+    assert order.status == OrderStatus.confirmed
+    assert order.quote_id == qids[0]
+
+
+def test_accept_draft_quote_raises_not_available(session):
+    from sqlalchemy import select
+
+    qr_id, qids = _seed_qr_with_quotes(session, statuses=[QuoteStatus.draft])
+    alice = session.scalar(select(User).where(User.email == "alice@test.local"))
+
+    with pytest.raises(workflow.QuoteNotAvailable):
+        workflow.accept_quote(session, request_id=qr_id, quote_id=qids[0], user=alice)
+    assert session.scalar(select(Order).where(Order.quote_id == qids[0])) is None
+
+
+def test_accept_refused_quote_raises_not_available(session):
+    from sqlalchemy import select
+
+    qr_id, qids = _seed_qr_with_quotes(session, statuses=[QuoteStatus.refused])
+    alice = session.scalar(select(User).where(User.email == "alice@test.local"))
+
+    with pytest.raises(workflow.QuoteNotAvailable):
+        workflow.accept_quote(session, request_id=qr_id, quote_id=qids[0], user=alice)
+
+
+def test_accept_expired_quote_raises_expired(session):
+    from sqlalchemy import select
+
+    qr_id, qids = _seed_qr_with_quotes(session, statuses=[QuoteStatus.sent])
+    _set_valid_until(session, qids[0], _dt.date.today() - _dt.timedelta(days=1))
+    alice = session.scalar(select(User).where(User.email == "alice@test.local"))
+
+    with pytest.raises(workflow.QuoteExpired):
+        workflow.accept_quote(session, request_id=qr_id, quote_id=qids[0], user=alice)
+    assert session.scalar(select(Order).where(Order.quote_id == qids[0])) is None
+
+
+def test_accept_quote_for_other_company_raises_request_not_found(session):
+    qr_id, qids = _seed_qr_with_quotes(session, statuses=[QuoteStatus.sent])
+
+    other_co = Company(name="Other Co Test 2", siret=f"88{uuid.uuid4().hex[:12]}")
+    session.add(other_co)
+    session.flush()
+    intruder = User(
+        email=f"intruder2-{uuid.uuid4()}@test.local",
+        password_hash="x",
+        first_name="I", last_name="N",
+        role=UserRole.client_admin,
+        company_id=other_co.id,
+    )
+    session.add(intruder)
+    session.flush()
+
+    with pytest.raises(workflow.RequestNotFound):
+        workflow.accept_quote(session, request_id=qr_id, quote_id=qids[0], user=intruder)
