@@ -35,6 +35,17 @@ Eliminate the proliferation of inline `style="…"` attributes across the Jinja 
 - 4 Jinja partials exist in `templates/components/`: `confirm_dialog.html`, `flash_messages.html`, `status_badge.html`, `structure_type_badge.html`.
 - CSP allows `'unsafe-inline'` for styles (`app.py:28`), so inline `style=""` works today — but the project's recent direction (commit `2640ea0`, `47a8576`) has been to remove inline JS and tighten CSP. This refactor is the consistent next step for styles.
 
+## File ownership rule
+
+Two CSS files, two distinct responsibilities. Mixing them is what got us into the current mess.
+
+- **`static/css/tailwind.css`** — framework output. Pristine, regenerable. Never hand-edited. The header comment in the file already advertises this intent (`Generated from template class scan — replaces cdn.tailwindcss.com`). Any existing custom rules someone slipped in there are pollution and get repatriated to `app.css` as part of PR 1.
+- **`static/css/app.css`** — everything custom. Tokens (`:root`), token-backed utilities (`.text-mute`, `.bg-navy`, etc.), component classes (`.btn-navy`, `.input-soft`, …), and any temporary supplements for stock Tailwind classes the original scan missed. One file owns everything that can change because of *us* (vs. because of Tailwind).
+
+Load order in `base.html` is unchanged: `tailwind.css` then `app.css`. Custom utilities therefore win specificity ties against any same-named framework class, which is what we want.
+
+**Future payoff:** after this refactor lands, regenerating `tailwind.css` from a fresh template class scan is a clean wholesale replace with no merge work. Today it isn't.
+
 ## Architecture: three layers
 
 The refactored styling system has three layers, each with one job:
@@ -49,11 +60,12 @@ The refactored styling system has three layers, each with one job:
                           │ var(--c-…)
                           │
 ┌──────────────────────────────────────────────────────────┐
-│  Layer 2 — Utilities (static/css/tailwind.css)           │
+│  Layer 2 — Utilities (static/css/app.css custom block)   │
 │  Token-backed utility classes: text-mute, bg-navy,       │
 │  border-soft, etc. Mirror of Tailwind's API.             │
-│  Plus existing component classes in app.css:             │
+│  PLUS existing component classes already in app.css:     │
 │  .btn-navy, .input-soft, .sidebar-link, …                │
+│  tailwind.css stays untouched (framework output).        │
 └──────────────────────────────────────────────────────────┘
                           ▲
                           │ class="…"
@@ -140,13 +152,16 @@ Update existing component classes in `app.css` to consume tokens (already mostly
 
 ---
 
-## Layer 2 — Utility layer (`static/css/tailwind.css`)
+## Layer 2 — Utility layer (`static/css/app.css`)
 
-**Add** a new section at the end of `tailwind.css`:
+**Append** a new section to `app.css` (NOT `tailwind.css` — see "File ownership rule" above):
 
 ```css
 /* ============================================================
-   30. Brand utilities (token-backed)
+   Brand utilities (token-backed)
+   These mirror Tailwind's API but resolve to brand tokens.
+   Live here, not in tailwind.css, so tailwind.css stays
+   regenerable.
    ============================================================ */
 
 /* Text */
@@ -177,7 +192,7 @@ Update existing component classes in `app.css` to consume tokens (already mostly
 .border-soft     { border-color: var(--c-border-soft); }
 .border-navy     { border-color: var(--c-navy); }
 
-/* Hover/focus variants (replace existing arbitrary-value escapes) */
+/* Hover/focus variants */
 .hover\:bg-cream:hover     { background-color: var(--c-cream); }
 .hover\:bg-navy-soft:hover { background-color: var(--c-navy-soft); }
 .focus\:border-navy:focus  { border-color: var(--c-navy); }
@@ -185,24 +200,49 @@ Update existing component classes in `app.css` to consume tokens (already mostly
 /* Form accent (replaces inline style="accent-color: #1A3A52") */
 .accent-navy { accent-color: var(--c-navy); }
 
-/* Has-checked variants (replaces existing arbitrary-value escapes) */
+/* Has-checked variants */
 .has-\[\:checked\]\:bg-navy:has(:checked)      { background-color: var(--c-navy); }
 .has-\[\:checked\]\:bg-navy-soft:has(:checked) { background-color: var(--c-navy-soft); }
 
-/* Icon size additions (for inline width:Npx;height:Npx that have no current utility) */
-.w-3 { width: 0.75rem; }   /* 12px */
+/* Stock Tailwind classes the original scan missed
+   (delete once tailwind.css is regenerated) */
+.w-3 { width: 0.75rem; }
 .h-3 { height: 0.75rem; }
 ```
 
-**Remove** from `tailwind.css` (now superseded):
-- `.text-dark { color: #1A1A1A }` → replaced by `.text-text`.
-- `.hover\:bg-\[\#F5F1E8\]` → replaced by `.hover\:bg-cream`.
-- `.focus\:border-\[\#1A3A52\]` → replaced by `.focus\:border-navy`.
-- `.has-\[\:checked\]\:bg-\[\#1A3A52\]`, `.has-\[\:checked\]\:bg-\[\#F0F4F7\]` → replaced by `.has-\[\:checked\]\:bg-navy`, `.has-\[\:checked\]\:bg-navy-soft`.
+**Repatriate from `tailwind.css` into `app.css`** (move, don't duplicate). These were custom additions that polluted the framework file:
 
-The hard-coded `.bg-coral-red { #FF5455 }` (notification badge) **stays** — it's a distinct accent color, not the brand coral. Worth keeping isolated.
+- `.text-dark { color: #1A1A1A }`
+- `.hover\:bg-\[\#F5F1E8\]:hover { background-color: #F5F1E8 }`
+- `.focus\:border-\[\#1A3A52\]:focus { border-color: #1A3A52 }`
+- `.has-\[\:checked\]\:bg-\[\#1A3A52\]:has(:checked) { background-color: #1A3A52 }`
+- `.has-\[\:checked\]\:bg-\[\#F0F4F7\]:has(:checked) { background-color: #F0F4F7 }`
+- `.has-\[\:checked\]\:bg-white:has(:checked) { background-color: #ffffff }`
+- `.has-\[\:checked\]\:text-white:has(:checked) { color: #ffffff }`
 
-**Remove** the `<style>` block from `base.html` entirely (its content moves to `app.css` per Layer 1). Remove inline `style="background-color: #F5F1E8;"` from `<body>` (replaced by the `bg-cream-page` style applied to `html` in `app.css`, plus class on `<body>` if needed).
+They land in a clearly-marked block in `app.css`:
+
+```css
+/* ============================================================
+   Legacy custom — to remove
+   These were previously inside tailwind.css. Repatriated here
+   so tailwind.css stays regenerable. PR 2's final commit
+   deletes this block once no template references these names.
+   ============================================================ */
+.text-dark { color: var(--c-text); }
+.hover\:bg-\[\#F5F1E8\]:hover { background-color: var(--c-cream); }
+.focus\:border-\[\#1A3A52\]:focus { border-color: var(--c-navy); }
+.has-\[\:checked\]\:bg-\[\#1A3A52\]:has(:checked) { background-color: var(--c-navy); }
+.has-\[\:checked\]\:bg-\[\#F0F4F7\]:has(:checked) { background-color: var(--c-navy-soft); }
+.has-\[\:checked\]\:bg-white:has(:checked) { background-color: #ffffff; }
+.has-\[\:checked\]\:text-white:has(:checked) { color: #ffffff; }
+```
+
+Note: when repatriating, switch the hex literals to `var(--c-…)` — the rule still resolves to the same color, but now there's no hex outside Layer 1.
+
+**`tailwind.css` after PR 1:** all custom rules removed. Header comment updated to: `Generated from template class scan — replaces cdn.tailwindcss.com. Do not hand-edit; custom utilities live in app.css.` The hard-coded `.bg-coral-red { #FF5455 }` (notification badge accent, distinct from brand coral) is the only borderline case — also moved to `app.css` since it's project-specific.
+
+**`base.html` cleanup:** remove the `<style>` block entirely (content moved to `app.css` per Layer 1). Remove inline `style="background-color: #F5F1E8;"` from `<body>` (handled by `bg-cream-page` rule on `html`).
 
 ---
 
@@ -307,8 +347,16 @@ The PR-2 sweep is dominated by mechanical 1:1 replacements. Driving table:
 Additive only. After this PR, the running app should look pixel-identical because nothing yet consumes the new utilities/components.
 
 Scope:
-1. `static/css/app.css`: replace `:root` with consolidated token set. Add `html`/`body`/`h1-h6`/scrollbar/`button` rules moved from `base.html`. Update existing component classes to consume tokens where they currently hard-code hex.
-2. `static/css/tailwind.css`: append the new "Brand utilities" section. Do NOT yet remove the legacy `text-dark` / arbitrary-value escapes (templates still use them — they'll be cleaned up at the end of PR 2). Add `w-3`/`h-3`.
+1. `static/css/app.css`:
+   - Replace `:root` with the consolidated token set.
+   - Add `html`/`body`/`h1-h6`/scrollbar/`button` rules moved from `base.html`.
+   - Append the new **"Brand utilities (token-backed)"** block.
+   - Append the **"Legacy custom — to remove"** block holding the rules repatriated from `tailwind.css` (templates still use these names — they'll be cleaned up at the end of PR 2).
+   - Add `w-3`/`h-3` and `.bg-coral-red` (also repatriated).
+   - Update existing component classes to consume tokens where they currently hard-code hex.
+2. `static/css/tailwind.css`:
+   - **Remove** the seven custom rules (`.text-dark`, the four arbitrary-hex hover/focus/has-checked escapes, `.has-\[\:checked\]\:bg-white`, `.has-\[\:checked\]\:text-white`) and `.bg-coral-red`. They now live in `app.css`.
+   - Update header comment to declare regenerable status and direct authors to `app.css` for custom rules.
 3. `templates/components/ui.html`: new file with the seven macros + leading docstring documenting usage and the table-row/header conventions.
 4. `base.html`: remove the `<style>` block (its content lives in `app.css` now). Remove the inline `style="background-color: #F5F1E8;"` from `<body>` (handled by `bg-cream-page` on `html`). This is the only template change in PR 1, and it has zero visual effect.
 
@@ -328,7 +376,7 @@ One commit per area to keep the diff scannable:
 4. `caterer/`.
 5. `admin/`.
 6. `components/` (`status_badge.html`, etc.) — adopt new utilities; many already only use classes.
-7. **Final commit:** delete now-unused legacy classes from `tailwind.css`: `.text-dark`, `.hover\:bg-\[\#F5F1E8\]`, `.focus\:border-\[\#1A3A52\]`, `.has-\[\:checked\]\:bg-\[\#1A3A52\]`, `.has-\[\:checked\]\:bg-\[\#F0F4F7\]`. Confirmed unused via grep.
+7. **Final commit:** delete the entire "Legacy custom — to remove" block from `app.css` (`.text-dark`, the arbitrary-hex hover/focus/has-checked escapes). Confirmed unused via grep before deletion. `tailwind.css` is unchanged in PR 2.
 
 Per-area workflow:
 1. Pre-capture: open the area's main pages in dev, take a screenshot for baseline.
