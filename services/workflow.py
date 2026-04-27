@@ -19,12 +19,15 @@ from sqlalchemy import func, select
 from models import (
     Order,
     OrderStatus,
+    QRCStatus,
     Quote,
     QuoteRequest,
+    QuoteRequestCaterer,
     QuoteRequestStatus,
     QuoteStatus,
     User,
 )
+from services.matching import find_matching_caterers
 
 
 class WorkflowError(Exception):
@@ -45,6 +48,10 @@ class QuoteNotAvailable(WorkflowError):
 
 class QuoteExpired(WorkflowError):
     """La date de validité du devis est dépassée."""
+
+
+class NoMatchingCaterers(WorkflowError):
+    """Aucun traiteur compatible trouvé pour la demande (admin)."""
 
 
 def refuse_quote(
@@ -157,3 +164,55 @@ def accept_quote(
 
     qr.status = QuoteRequestStatus.completed
     return order
+
+
+def approve_quote_request(
+    db,
+    *,
+    request_id: uuid.UUID,
+) -> list[QuoteRequestCaterer]:
+    """Qualification admin : matche les traiteurs compatibles, crée les QRC
+    en `selected`, passe la demande en `sent_to_caterers`.
+
+    Le contrôle d'autorisation reste côté handler (`@role_required("super_admin")`).
+
+    Lève RequestNotFound, NoMatchingCaterers.
+    """
+    qr = db.get(QuoteRequest, request_id)
+    if not qr:
+        raise RequestNotFound
+
+    matches = find_matching_caterers(db, qr)
+    if not matches:
+        raise NoMatchingCaterers
+
+    qrcs: list[QuoteRequestCaterer] = []
+    for caterer, _distance in matches:
+        qrc = QuoteRequestCaterer(
+            quote_request_id=qr.id,
+            caterer_id=caterer.id,
+            status=QRCStatus.selected,
+        )
+        db.add(qrc)
+        qrcs.append(qrc)
+
+    qr.status = QuoteRequestStatus.sent_to_caterers
+    db.flush()
+    return qrcs
+
+
+def reject_quote_request(
+    db,
+    *,
+    request_id: uuid.UUID,
+    reason: str | None,
+) -> None:
+    """Rejet admin d'une demande de devis. Stocke la raison sur la demande.
+
+    Lève RequestNotFound.
+    """
+    qr = db.get(QuoteRequest, request_id)
+    if not qr:
+        raise RequestNotFound
+    qr.status = QuoteRequestStatus.cancelled
+    qr.message_to_caterer = reason or ""

@@ -21,8 +21,10 @@ from models import (
     Company,
     Order,
     OrderStatus,
+    QRCStatus,
     Quote,
     QuoteRequest,
+    QuoteRequestCaterer,
     QuoteRequestStatus,
     QuoteStatus,
     User,
@@ -249,3 +251,88 @@ def test_accept_quote_for_other_company_raises_request_not_found(session):
 
     with pytest.raises(workflow.RequestNotFound):
         workflow.accept_quote(session, request_id=qr_id, quote_id=qids[0], user=intruder)
+
+
+# --- approve_quote_request / reject_quote_request -------------------------
+
+
+def _seed_pending_review_qr(s, *, with_geo: bool) -> uuid.UUID:
+    """QR en pending_review. `with_geo=True` met lat/lng pour permettre le matching."""
+    from sqlalchemy import select
+
+    acme = s.scalar(select(Company).where(Company.siret == "12345678901234"))
+    alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+    qr = QuoteRequest(
+        company_id=acme.id,
+        user_id=alice.id,
+        guest_count=10,
+        status=QuoteRequestStatus.pending_review,
+        event_address="1 rue Test",
+        event_city="Paris",
+        event_zip_code="75001",
+        event_date=_dt.date.today() + _dt.timedelta(days=30),
+        event_latitude=48.8566 if with_geo else None,
+        event_longitude=2.3522 if with_geo else None,
+    )
+    s.add(qr)
+    s.flush()
+    return qr.id
+
+
+def test_approve_quote_request_dispatches_to_matching_caterers(session):
+    from sqlalchemy import select
+
+    qr_id = _seed_pending_review_qr(session, with_geo=True)
+    # Aligne le caterer seedé avec la demande pour qu'il soit matché.
+    caterer = session.scalar(select(Caterer).where(Caterer.siret == "98765432109876"))
+    caterer.latitude = 48.8566
+    caterer.longitude = 2.3522
+    caterer.delivery_radius_km = 50
+    session.flush()
+
+    qrcs = workflow.approve_quote_request(session, request_id=qr_id)
+    session.flush()
+
+    assert len(qrcs) >= 1
+    qr = session.scalar(select(QuoteRequest).where(QuoteRequest.id == qr_id))
+    assert qr.status == QuoteRequestStatus.sent_to_caterers
+    persisted = session.scalars(
+        select(QuoteRequestCaterer).where(QuoteRequestCaterer.quote_request_id == qr_id)
+    ).all()
+    assert len(persisted) == len(qrcs)
+    assert all(q.status == QRCStatus.selected for q in persisted)
+
+
+def test_approve_quote_request_with_no_matches_raises(session):
+    from sqlalchemy import select
+
+    qr_id = _seed_pending_review_qr(session, with_geo=False)
+
+    with pytest.raises(workflow.NoMatchingCaterers):
+        workflow.approve_quote_request(session, request_id=qr_id)
+
+    qr = session.scalar(select(QuoteRequest).where(QuoteRequest.id == qr_id))
+    assert qr.status == QuoteRequestStatus.pending_review
+
+
+def test_approve_unknown_request_raises_not_found(session):
+    with pytest.raises(workflow.RequestNotFound):
+        workflow.approve_quote_request(session, request_id=uuid.uuid4())
+
+
+def test_reject_quote_request_marks_cancelled_with_reason(session):
+    from sqlalchemy import select
+
+    qr_id = _seed_pending_review_qr(session, with_geo=True)
+
+    workflow.reject_quote_request(session, request_id=qr_id, reason="hors zone")
+    session.flush()
+
+    qr = session.scalar(select(QuoteRequest).where(QuoteRequest.id == qr_id))
+    assert qr.status == QuoteRequestStatus.cancelled
+    assert qr.message_to_caterer == "hors zone"
+
+
+def test_reject_unknown_request_raises_not_found(session):
+    with pytest.raises(workflow.RequestNotFound):
+        workflow.reject_quote_request(session, request_id=uuid.uuid4(), reason=None)
