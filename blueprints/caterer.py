@@ -429,16 +429,10 @@ def order_detail(order_id):
 def order_deliver(order_id):
     caterer = g.current_user.caterer
     db = get_db()
-    order = db.scalar(
-        select(Order)
-        .join(Quote, Order.quote_id == Quote.id)
-        .where(Order.id == order_id)
-        .where(Quote.caterer_id == caterer.id)
-        .where(Order.status == OrderStatus.confirmed)
-    )
-    if not order:
+    try:
+        order = workflow.mark_delivered(db, order_id=order_id, caterer=caterer)
+    except workflow.OrderNotFound:
         abort(404)
-    order.status = OrderStatus.delivered
     if caterer.stripe_account_id and caterer.stripe_charges_enabled:
         try:
             create_invoice_for_order(db, order)
