@@ -90,3 +90,33 @@ static/             CSS, JS, uploaded files
 - `GET /api/notifications` -- Unread notifications
 - `POST /api/notifications/<id>/read` -- Mark notification as read
 - `POST /api/webhooks/stripe` -- Stripe webhook receiver
+
+## Stripe billing — two-phase commit
+
+Order delivery splits Stripe invoicing into two committed phases so a
+crash between Stripe and our DB cannot leave a customer billed without
+a local trace:
+
+1. **Phase 1** (`services.billing.queue_invoice`): persist a `Payment`,
+   `Invoice` and `CommissionInvoice` rows locally. No Stripe call.
+2. **Phase 2** (`services.billing.send_stripe_invoice`): create the
+   Stripe invoice with `idempotency_key=f"payment-{payment.id}"`,
+   finalize, send, link the id back. Idempotent — a retry after partial
+   failure reuses the same Stripe invoice rather than duplicating it.
+
+If Phase 2 fails (network glitch, Stripe outage, DB commit error after
+the SDK call), the `Payment` row stays at `status=pending` with
+`stripe_invoice_id IS NULL`. The retry CLI picks these up:
+
+```bash
+docker compose exec -T app flask retry-pending-invoices
+```
+
+Suggested cron (every 10 minutes):
+
+```cron
+*/10 * * * * cd /path/to/traiteurs && docker compose exec -T app flask retry-pending-invoices
+```
+
+The CLI selects only payments older than 2 minutes to avoid stepping on
+in-flight HTTP requests that just haven't committed Phase 2 yet.
