@@ -189,3 +189,17 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 
 /* Notification badge accent (project-specific, was in tailwind.css) */
 .bg-coral-red { background-color: #FF5455; }
+
+/* ============================================================
+   Legacy custom — to remove
+   Repatriated from tailwind.css to keep that file regenerable.
+   PR 2's final commit deletes this block once no template
+   references these names.
+   ============================================================ */
+.text-dark { color: var(--c-text); }
+.hover\:bg-\[\#F5F1E8\]:hover { background-color: var(--c-cream); }
+.focus\:border-\[\#1A3A52\]:focus { border-color: var(--c-navy); }
+.has-\[\:checked\]\:bg-\[\#1A3A52\]:has(:checked) { background-color: var(--c-navy); }
+.has-\[\:checked\]\:bg-\[\#F0F4F7\]:has(:checked) { background-color: var(--c-navy-soft); }
+.has-\[\:checked\]\:bg-white:has(:checked) { background-color: #ffffff; }
+.has-\[\:checked\]\:text-white:has(:checked) { color: #ffffff; }
