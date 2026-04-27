@@ -318,6 +318,9 @@ def quote_update(qr_id, q_id):
     )
     if not quote:
         abort(404)
+    if quote.status != QuoteStatus.draft:
+        flash("Ce devis a déjà été envoyé et ne peut plus être modifié.", "error")
+        return redirect(url_for("caterer.request_detail", qr_id=qr_id))
     qr = quote.quote_request
     qrc = db.scalar(
         select(QuoteRequestCaterer)
