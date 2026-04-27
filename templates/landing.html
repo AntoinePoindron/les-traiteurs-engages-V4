@@ -4,7 +4,7 @@
 
 {% block public_content %}
 <!-- Fixed header -->
-<header class="fixed top-0 left-0 right-0 z-30 backdrop-blur-md" style="background: rgba(255,255,255,0.95); height: 56px;">
+<header class="fixed top-0 left-0 right-0 z-30 backdrop-blur-md bg-white-95 h-14">
   <div class="max-w-6xl mx-auto px-4 h-full flex items-center justify-between">
     <div class="flex items-center gap-3">
       <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-8">
@@ -45,12 +45,12 @@
           <p class="font-display text-3xl font-bold text-navy">{{ caterer_count or 0 }}</p>
           <p class="text-sm text-mute">Traiteurs</p>
         </div>
-        <div style="width: 1px; height: 40px; background: #E5E7EB;"></div>
+        <div class="w-px h-10 bg-border-default"></div>
         <div>
           <p class="font-display text-3xl font-bold text-navy">{{ company_count or 0 }}</p>
           <p class="text-sm text-mute">Entreprises</p>
         </div>
-        <div style="width: 1px; height: 40px; background: #E5E7EB;"></div>
+        <div class="w-px h-10 bg-border-default"></div>
         <div>
           <p class="font-display text-3xl font-bold text-navy">{{ order_count or 0 }}</p>
           <p class="text-sm text-mute">Commandes</p>
@@ -69,22 +69,22 @@
         <div class="absolute top-8 left-4 w-48 h-32 rounded-2xl shadow-lg overflow-hidden bg-cream">
           <div class="p-4">
             <div class="text-3xl mb-2">&#127858;</div>
-            <div class="h-2 rounded" style="background: #E5E7EB; width: 80%;"></div>
-            <div class="h-2 rounded mt-2" style="background: #E5E7EB; width: 60%;"></div>
+            <div class="h-2 rounded bg-border-default" style="width: 80%;"></div>
+            <div class="h-2 rounded mt-2 bg-border-default" style="width: 60%;"></div>
           </div>
         </div>
         <div class="absolute bottom-8 right-4 w-48 h-32 rounded-2xl shadow-lg overflow-hidden bg-white">
           <div class="p-4">
             <div class="text-3xl mb-2">&#127869;</div>
-            <div class="h-2 rounded" style="background: #E5E7EB; width: 70%;"></div>
-            <div class="h-2 rounded mt-2" style="background: #E5E7EB; width: 50%;"></div>
+            <div class="h-2 rounded bg-border-default" style="width: 70%;"></div>
+            <div class="h-2 rounded mt-2 bg-border-default" style="width: 50%;"></div>
           </div>
         </div>
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-28 rounded-2xl shadow-lg overflow-hidden bg-white">
           <div class="p-4">
             <div class="text-3xl mb-2">&#129367;</div>
-            <div class="h-2 rounded" style="background: #E5E7EB; width: 90%;"></div>
-            <div class="h-2 rounded mt-2" style="background: #E5E7EB; width: 40%;"></div>
+            <div class="h-2 rounded bg-border-default" style="width: 90%;"></div>
+            <div class="h-2 rounded mt-2 bg-border-default" style="width: 40%;"></div>
           </div>
         </div>
       </div>
@@ -140,21 +140,21 @@
     <h2 class="font-display text-3xl font-bold text-white text-center mb-4">Bient&#244;t disponible</h2>
     <p class="text-center mb-14 text-white-60">De nouvelles fonctionnalit&#233;s arrivent pour am&#233;liorer votre exp&#233;rience.</p>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="rounded-xl p-6" style="background: rgba(255,255,255,0.08);">
+      <div class="rounded-xl p-6 bg-white-8">
         <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-4 bg-white-12">
           <i data-lucide="calendar" class="w-5 h-5 text-white"></i>
         </div>
         <h3 class="font-display text-base font-semibold text-white mb-2">Planning int&#233;gr&#233;</h3>
         <p class="text-sm text-white-60">G&#233;rez vos &#233;v&#233;nements et livraisons depuis un calendrier centralis&#233;.</p>
       </div>
-      <div class="rounded-xl p-6" style="background: rgba(255,255,255,0.08);">
+      <div class="rounded-xl p-6 bg-white-8">
         <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-4 bg-white-12">
           <i data-lucide="star" class="w-5 h-5 text-white"></i>
         </div>
         <h3 class="font-display text-base font-semibold text-white mb-2">Avis et notations</h3>
         <p class="text-sm text-white-60">&#201;valuez vos prestations pour aider la communaut&#233; &#224; faire les meilleurs choix.</p>
       </div>
-      <div class="rounded-xl p-6" style="background: rgba(255,255,255,0.08);">
+      <div class="rounded-xl p-6 bg-white-8">
         <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-4 bg-white-12">
           <i data-lucide="repeat" class="w-5 h-5 text-white"></i>
         </div>
@@ -178,18 +178,17 @@
 </section>
 
 <!-- CTA -->
-<section class="py-20 px-4" style="background-color: #FFDDDD;">
+<section class="py-20 px-4 bg-cta-blush">
   <div class="max-w-3xl mx-auto text-center">
     <h2 class="font-display text-3xl font-bold mb-4 text-red-cta">Pr&#234;t &#224; vous engager ?</h2>
-    <p class="mb-8 text-red-cta" style="opacity: 0.7;">Rejoignez la plateforme et valorisez votre engagement social.</p>
+    <p class="mb-8 text-red-cta opacity-70">Rejoignez la plateforme et valorisez votre engagement social.</p>
     <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
       <a href="{{ url_for('auth.signup') }}"
         class="w-full sm:w-auto px-8 py-3.5 font-medium rounded-xl text-center btn-red">
         Je suis une entreprise
       </a>
       <a href="{{ url_for('auth.signup') }}"
-        class="w-full sm:w-auto px-8 py-3.5 font-medium rounded-xl transition-colors text-center"
-        style="background-color: white; color: #B70102; border: 2px solid #B70102;">
+        class="w-full sm:w-auto px-8 py-3.5 font-medium rounded-xl transition-colors text-center bg-white text-red-cta border-2 border-red-cta">
         Je suis un traiteur
       </a>
     </div>
@@ -197,16 +196,16 @@
 </section>
 
 <!-- Footer -->
-<footer class="py-10 px-4" style="background-color: #1A1A1A;">
+<footer class="py-10 px-4 bg-text">
   <div class="max-w-5xl mx-auto">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-8 brightness-0 invert">
       </div>
-      <p class="text-sm" style="color: rgba(255,255,255,0.5);">Marketplace B2B pour la restauration inclusive</p>
+      <p class="text-sm text-white-50">Marketplace B2B pour la restauration inclusive</p>
     </div>
-    <div class="mt-6 pt-6" style="border-top: 1px solid rgba(255,255,255,0.1);">
-      <p class="text-xs text-center" style="color: rgba(255,255,255,0.3);">&#169; {{ 2026 }} Les Traiteurs Engag&#233;s. Tous droits r&#233;serv&#233;s.</p>
+    <div class="mt-6 pt-6 border-t border-white-10">
+      <p class="text-xs text-center text-white-30">&#169; {{ 2026 }} Les Traiteurs Engag&#233;s. Tous droits r&#233;serv&#233;s.</p>
     </div>
   </div>
 </footer>

@@ -13,8 +13,14 @@
   --c-coral-red:   #FF5455;   /* notification badge / auth error accent */
   --c-error-light: #FFE8E8;   /* pale red bg for auth error flash */
   --c-red-cta:     #B70102;   /* landing red button */
+  --c-white-8:     rgba(255, 255, 255, 0.08);
+  --c-white-10:    rgba(255, 255, 255, 0.1);
   --c-white-12:    rgba(255, 255, 255, 0.12);  /* translucent overlay on dark hero */
+  --c-white-30:    rgba(255, 255, 255, 0.3);
+  --c-white-50:    rgba(255, 255, 255, 0.5);
   --c-white-60:    rgba(255, 255, 255, 0.6);
+  --c-white-95:    rgba(255, 255, 255, 0.95);
+  --c-cta-blush:   #FFDDDD;   /* landing CTA section pink-blush bg */
 
   /* Text */
   --c-text:        #1A1A1A;
@@ -158,6 +164,8 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .text-success    { color: var(--c-success-fg); }
 .text-warning    { color: var(--c-warning-fg); }
 .text-red-cta    { color: var(--c-red-cta); }
+.text-white-30   { color: var(--c-white-30); }
+.text-white-50   { color: var(--c-white-50); }
 .text-white-60   { color: var(--c-white-60); }
 
 /* Background */
@@ -171,12 +179,19 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .bg-danger       { background-color: var(--c-danger); }
 .bg-danger-soft  { background-color: var(--c-danger-bg); }
 .bg-red-cta      { background-color: var(--c-red-cta); }
+.bg-white-8      { background-color: var(--c-white-8); }
 .bg-white-12     { background-color: var(--c-white-12); }
+.bg-white-95     { background-color: var(--c-white-95); }
+.bg-cta-blush    { background-color: var(--c-cta-blush); }
+.bg-text         { background-color: var(--c-text); }
+.bg-border-default { background-color: var(--c-border); }
 
 /* Border */
 .border-default  { border-color: var(--c-border); }
 .border-soft     { border-color: var(--c-border-soft); }
 .border-navy     { border-color: var(--c-navy); }
+.border-red-cta  { border-color: var(--c-red-cta); }
+.border-white-10 { border-color: var(--c-white-10); }
 .border-2        { border-width: 2px; }
 
 /* Hover/focus variants */
@@ -198,6 +213,9 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .my-20     { margin-top: 5rem; margin-bottom: 5rem; }
 .py-2\.5   { padding-top: 0.625rem; padding-bottom: 0.625rem; }
 .no-underline { text-decoration: none; }
+.w-px       { width: 1px; }
+.opacity-70 { opacity: 0.7; }
+.text-hero  { font-size: 2.625rem; line-height: 1.1; }
 
 /* Notification badge accent (project-specific, was in tailwind.css) */
 .bg-coral-red   { background-color: var(--c-coral-red); }
