@@ -1,0 +1,104 @@
+{#
+  UI macros — reusable building blocks for templates.
+
+  Usage:
+    {% from "components/ui.html" import card, page_header, empty_state, form_field, form_textarea, form_select, stat_tile, section_heading, table_wrapper %}
+
+  Conventions:
+    - Macros use only token-backed utility classes (text-mute, bg-navy, border-soft, …) defined in static/css/app.css.
+    - Macros never write hex literals.
+    - For table_wrapper: head row is `<thead class="bg-cream">` with `<th class="text-left text-xs uppercase tracking-wider text-mute font-semibold px-4 py-3">`; body rows are `<tr class="border-t border-soft">`.
+#}
+
+{% macro card(class="") %}
+  <div class="bg-white rounded-2xl border border-soft p-6 {{ class }}">
+    {{ caller() }}
+  </div>
+{% endmacro %}
+
+{% macro page_header(title, subtitle=None) %}
+  <header class="mb-8 flex items-start justify-between gap-4">
+    <div>
+      <h1 class="font-display text-3xl font-bold text-text">{{ title }}</h1>
+      {% if subtitle %}<p class="mt-2 text-mute">{{ subtitle }}</p>{% endif %}
+    </div>
+    {% if caller %}<div class="flex items-center gap-2">{{ caller() }}</div>{% endif %}
+  </header>
+{% endmacro %}
+
+{% macro empty_state(icon, title, body=None) %}
+  <div class="text-center py-16">
+    <i data-lucide="{{ icon }}" class="w-12 h-12 mx-auto text-disabled"></i>
+    <h3 class="font-display text-lg font-semibold text-text mt-4">{{ title }}</h3>
+    {% if body %}<p class="text-mute mt-2">{{ body }}</p>{% endif %}
+    {% if caller %}<div class="mt-6">{{ caller() }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro form_field(label, name, type="text", value="", required=False, help=None, error=None, placeholder="") %}
+  <div class="mb-4">
+    <label for="{{ name }}" class="block text-sm font-medium text-text mb-1.5">
+      {{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}
+    </label>
+    <input type="{{ type }}" id="{{ name }}" name="{{ name }}" value="{{ value }}"
+           {% if required %}required{% endif %}
+           {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+           class="input-soft w-full rounded-lg px-3 py-2.5 text-sm text-text">
+    {% if help %}<p class="mt-1 text-xs text-mute">{{ help }}</p>{% endif %}
+    {% if error %}<p class="mt-1 text-xs text-danger">{{ error }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro form_textarea(label, name, value="", rows=4, required=False, help=None, error=None, placeholder="") %}
+  <div class="mb-4">
+    <label for="{{ name }}" class="block text-sm font-medium text-text mb-1.5">
+      {{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}
+    </label>
+    <textarea id="{{ name }}" name="{{ name }}" rows="{{ rows }}"
+              {% if required %}required{% endif %}
+              {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+              class="input-soft w-full rounded-lg px-3 py-2.5 text-sm text-text resize-none">{{ value }}</textarea>
+    {% if help %}<p class="mt-1 text-xs text-mute">{{ help }}</p>{% endif %}
+    {% if error %}<p class="mt-1 text-xs text-danger">{{ error }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro form_select(label, name, options, selected="", required=False, help=None, error=None) %}
+  {# options is a list of (value, label) tuples #}
+  <div class="mb-4">
+    <label for="{{ name }}" class="block text-sm font-medium text-text mb-1.5">
+      {{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}
+    </label>
+    <select id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %}
+            class="input-soft w-full rounded-lg px-3 py-2.5 text-sm text-text">
+      {% for value, opt_label in options %}
+        <option value="{{ value }}" {% if value == selected %}selected{% endif %}>{{ opt_label }}</option>
+      {% endfor %}
+    </select>
+    {% if help %}<p class="mt-1 text-xs text-mute">{{ help }}</p>{% endif %}
+    {% if error %}<p class="mt-1 text-xs text-danger">{{ error }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro stat_tile(label, value, icon=None, tone="navy") %}
+  {% set tone_bg = {"navy": "bg-navy-soft", "cream": "bg-cream", "white": "bg-white"}[tone] %}
+  <div class="{{ tone_bg }} rounded-2xl p-5 border border-soft">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-xs uppercase tracking-wider text-mute font-semibold">{{ label }}</span>
+      {% if icon %}<i data-lucide="{{ icon }}" class="w-4 h-4 text-navy"></i>{% endif %}
+    </div>
+    <div class="font-display text-3xl font-bold text-text">{{ value }}</div>
+  </div>
+{% endmacro %}
+
+{% macro section_heading(label) %}
+  <h2 class="text-xs uppercase tracking-wider text-mute font-semibold mb-3">{{ label }}</h2>
+{% endmacro %}
+
+{% macro table_wrapper(class="") %}
+  <div class="bg-white rounded-2xl border border-soft overflow-hidden {{ class }}">
+    <div class="overflow-x-auto">
+      {{ caller() }}
+    </div>
+  </div>
+{% endmacro %}
