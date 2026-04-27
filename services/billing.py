@@ -34,6 +34,7 @@ from models import (
     PaymentStatus,
 )
 from services.quotes import calculate_quote_totals, derive_invoice_reference
+from services.stripe_service import create_or_get_tax_rate, get_or_create_customer
 
 logger = logging.getLogger(__name__)
 
@@ -119,41 +120,6 @@ def queue_invoice(db, *, order: Order) -> Payment:
     return payment
 
 
-def _create_or_get_tax_rate(percentage: Decimal, description: str) -> str:
-    """Trouve ou crée un Stripe TaxRate FR pour le taux donné. Mêmes
-    sémantiques que `services.stripe_service._create_or_get_tax_rate`."""
-    pct_str = str(percentage)
-    existing = stripe.TaxRate.list(active=True, limit=100)
-    for rate in existing.auto_paging_iter():
-        if str(rate.percentage) == pct_str and rate.country == "FR":
-            return rate.id
-    new_rate = stripe.TaxRate.create(
-        display_name="TVA",
-        description=description,
-        percentage=pct_str,
-        inclusive=False,
-        country="FR",
-        jurisdiction="FR",
-    )
-    return new_rate.id
-
-
-def _get_or_create_customer(db, user) -> str:
-    """Renvoie l'id Stripe Customer pour `user`, en le créant si besoin.
-    Mute `user.stripe_customer_id` ; le caller doit commit."""
-    if user.stripe_customer_id:
-        return user.stripe_customer_id
-    customer = stripe.Customer.create(
-        email=user.email,
-        name=f"{user.first_name} {user.last_name}",
-        metadata={"user_id": str(user.id)},
-        idempotency_key=f"customer-user-{user.id}",
-    )
-    user.stripe_customer_id = customer.id
-    db.add(user)
-    return customer.id
-
-
 def send_stripe_invoice(db, *, payment: Payment) -> None:
     """Phase 2 : crée la facture Stripe correspondant au Payment et lie l'id.
 
@@ -181,7 +147,7 @@ def send_stripe_invoice(db, *, payment: Payment) -> None:
     platform_fee_ht = totals["platform_fee_ht"]
     fee_ttc_cents = payment.application_fee_cents
 
-    customer_id = _get_or_create_customer(db, client_user)
+    customer_id = get_or_create_customer(db, client_user)
 
     invoice = stripe.Invoice.create(
         customer=customer_id,
@@ -211,7 +177,7 @@ def send_stripe_invoice(db, *, payment: Payment) -> None:
         tva_grouped[key]["descriptions"].append(ln.description or "")
 
     for tva_rate_str, group in tva_grouped.items():
-        tax_rate_id = _create_or_get_tax_rate(Decimal(tva_rate_str), f"TVA {tva_rate_str}%")
+        tax_rate_id = create_or_get_tax_rate(Decimal(tva_rate_str), f"TVA {tva_rate_str}%")
         stripe.InvoiceItem.create(
             customer=customer_id,
             invoice=invoice.id,
@@ -221,7 +187,7 @@ def send_stripe_invoice(db, *, payment: Payment) -> None:
             tax_rates=[tax_rate_id],
         )
 
-    fee_tax_rate_id = _create_or_get_tax_rate(Decimal("20"), "TVA 20%")
+    fee_tax_rate_id = create_or_get_tax_rate(Decimal("20"), "TVA 20%")
     stripe.InvoiceItem.create(
         customer=customer_id,
         invoice=invoice.id,

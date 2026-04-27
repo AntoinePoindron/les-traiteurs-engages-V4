@@ -1,8 +1,10 @@
 """Tests pour `services.billing` — facturation Stripe en deux phases.
 
-Phase 1 (`queue_invoice`) : pure DB, aucun appel Stripe. C'est ce que
-tests dans ce fichier couvrent. Phase 2 (`send_stripe_invoice`) sera
-testée séparément avec des mocks Stripe.
+Phase 1 (`queue_invoice`) : pure DB, aucun appel Stripe. Phase 2
+(`send_stripe_invoice`) : Stripe mocké. Imports lazy comme dans
+`test_workflow.py` pour ne pas figer `config.DATABASE_URL` à la
+collection (sinon `database.engine` pointe sur la DB de dev avant que
+conftest ne switch sur `traiteurs_test`).
 """
 import datetime as _dt
 import uuid
@@ -27,7 +29,6 @@ from models import (
     QuoteStatus,
     User,
 )
-from services import billing
 
 
 @pytest.fixture
@@ -109,6 +110,7 @@ def _seed_delivered_order_with_lines(s) -> Order:
 
 
 def test_queue_invoice_creates_payment_invoice_and_commissions(session):
+    from services import billing
     """Phase 1 : un Payment + Invoice + 2 CommissionInvoice côté DB.
     Aucun appel Stripe."""
     from sqlalchemy import select
@@ -145,6 +147,7 @@ def test_queue_invoice_creates_payment_invoice_and_commissions(session):
 
 
 def test_queue_invoice_is_idempotent_via_unique_order_id(session):
+    from services import billing
     """Un second appel pour la même Order lève IntegrityError au flush
     via `UNIQUE(payments.order_id)` — c'est l'idempotence DB-only.
     Le caller doit rollback et récupérer le Payment existant."""
@@ -163,6 +166,7 @@ def test_queue_invoice_is_idempotent_via_unique_order_id(session):
 
 
 def test_queue_invoice_does_not_call_stripe(session, monkeypatch):
+    from services import billing
     """Garde-fou : la Phase 1 ne doit AUCUN appel Stripe."""
     import stripe
 
@@ -240,6 +244,7 @@ def _install_stripe_mocks(monkeypatch, captured: dict):
 
 
 def test_send_stripe_invoice_links_id_and_marks_invoiced(session, monkeypatch):
+    from services import billing
     from sqlalchemy import select
 
     captured: dict = {}
@@ -271,6 +276,7 @@ def test_send_stripe_invoice_links_id_and_marks_invoiced(session, monkeypatch):
 
 
 def test_send_stripe_invoice_is_noop_if_already_sent(session, monkeypatch):
+    from services import billing
     captured: dict = {}
     _install_stripe_mocks(monkeypatch, captured)
 
