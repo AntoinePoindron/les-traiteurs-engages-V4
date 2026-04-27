@@ -4,7 +4,6 @@
 
 {% block content %}
 <main class="bg-cream min-h-screen">
-  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
     <!-- Back button -->
     <a href="{{ url_for('client.requests_list') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
@@ -18,11 +17,11 @@
     <div class="bg-white rounded-lg p-4 mb-6">
       <div class="flex items-center justify-between">
         {% for i in range(1, 8) %}
-        <div class="flex flex-col items-center" style="min-width: 0; flex: 0 0 auto;">
+        <div class="flex flex-col items-center min-w-0 flex-none">
           <div id="progress-dot-{{ i }}" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-cream text-mute">
             {{ i }}
           </div>
-          <span id="progress-label-{{ i }}" class="text-xs mt-1 text-center hidden sm:block text-mute" style="max-width: 80px;">
+          <span id="progress-label-{{ i }}" class="max-w-20 text-xs mt-1 text-center hidden sm:block text-mute">
             {% if i == 1 %}Service{% elif i == 2 %}Evenement{% elif i == 3 %}Budget{% elif i == 4 %}Regimes{% elif i == 5 %}Boissons{% elif i == 6 %}Services{% elif i == 7 %}Recapitulatif{% endif %}
           </span>
         </div>
@@ -477,7 +476,6 @@
       </div>
 
     </form>
-  </div>
 </main>
 {% endblock %}
 

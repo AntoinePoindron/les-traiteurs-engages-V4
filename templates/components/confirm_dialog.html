@@ -1,6 +1,6 @@
 {% macro confirm_dialog(id, title, message, action_url, action_label="Confirmer", destructive=False) %}
 <div id="{{ id }}" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50" data-backdrop-dismiss>
-  <div class="bg-white rounded-xl shadow-2xl w-full p-6" style="max-width: 440px;">
+  <div class="max-w-dialog bg-white rounded-xl shadow-2xl w-full p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-display text-lg font-bold text-text">{{ title }}</h3>
       <button type="button" data-action="dialog-close" data-target="{{ id }}"

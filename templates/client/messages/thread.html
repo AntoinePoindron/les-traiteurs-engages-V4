@@ -2,14 +2,13 @@
 {% block title %}Conversation avec {{ other_user.first_name }} {{ other_user.last_name }} — Les Traiteurs Engages{% endblock %}
 {% block content %}
 <main class="bg-cream min-h-screen">
-  <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
     <!-- Back button -->
     <a href="{{ url_for('client.messages') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
       <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
     </a>
 
-    <div class="bg-white rounded-lg flex flex-col" style="height: calc(100vh - 220px);">
+    <div class="h-chat bg-white rounded-lg flex flex-col">
       <!-- Header -->
       <div class="px-6 py-4 flex items-center gap-3 border-b border-soft">
         <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
@@ -38,7 +37,6 @@
       </form>
     </div>
 
-  </div>
 </main>
 {% endblock %}
 {% block scripts %}

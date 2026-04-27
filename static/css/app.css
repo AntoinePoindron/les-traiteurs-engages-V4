@@ -60,6 +60,12 @@
   --c-danger-bg:   #FEF2F2;
   --c-danger-fg:   #DC2626;
 
+  /* Layout */
+  --w-sidebar:        241px;
+  --w-dialog-md:      440px;
+  --h-chat-offset:    220px;     /* client thread chrome offset */
+  --h-chat-offset-sm: 180px;     /* caterer thread chrome offset */
+
   /* Type */
   --font-display:      'Fraunces', serif;
   --font-body:         system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -264,3 +270,18 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .text-success-dark { color: var(--c-success-dark); }
 .bg-purple       { background-color: var(--c-purple-bg); }
 .text-purple     { color: var(--c-purple-fg); }
+
+/* Layout (tokenized layout primitives) */
+.w-sidebar     { width: var(--w-sidebar); }
+.max-w-dialog  { max-width: var(--w-dialog-md); }
+.h-chat        { height: calc(100vh - var(--h-chat-offset)); }
+.h-chat-narrow { height: calc(100vh - var(--h-chat-offset-sm)); }
+
+/* Max-width utility (Tailwind max-w-20 = 5rem) */
+.max-w-20 { max-width: 5rem; }
+
+/* Flex shorthand (Tailwind flex-none = flex: 0 0 auto) */
+.flex-none { flex: none; }
+
+/* Badge sizes */
+.badge-xs { padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4; }

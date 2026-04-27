@@ -27,7 +27,7 @@
   <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" data-action="toggle-mobile-menu"></div>
 
   <!-- Sidebar -->
-  <aside id="sidebar" class="fixed left-0 top-0 h-full bg-white z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0 border-r border-soft" style="width: 241px;">
+  <aside id="sidebar" class="w-sidebar fixed left-0 top-0 h-full bg-white z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0 border-r border-soft">
     <!-- Logo -->
     <div class="p-4 flex items-center gap-3">
       <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-10">
@@ -173,7 +173,7 @@
   </aside>
 
   <!-- Main content -->
-  <main id="main-content" class="min-h-screen transition-all duration-300 pt-14 lg:pt-0" style="margin-left: 0;">
+  <main id="main-content" class="min-h-screen transition-all duration-300 pt-14 lg:pt-0">
     <div class="p-6 max-w-7xl mx-auto">
       {% include "components/flash_messages.html" %}
       {% block content %}{% endblock %}
