@@ -497,3 +497,73 @@ def test_submit_quote_for_other_caterer_raises(session):
             quote_id=qids[0],
             caterer=caterers[1],
         )
+
+
+def test_concurrent_submit_only_one_becomes_rank_3(app):
+    """Deux répondants concurrents alors que `transmitted == 2` :
+    le `SELECT … FOR UPDATE` sérialise, exactement un atteint rank=3,
+    l'autre voit `transmitted == 3` et reste en `responded` sans rank.
+    """
+    import concurrent.futures
+    import threading
+
+    from sqlalchemy import delete, select
+
+    from database import session_factory
+
+    setup = session_factory()
+    qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(
+        setup, n_caterers=4, prior_transmitted=2,
+    )
+    setup.commit()
+    caterer_ids = [c.id for c in caterers]
+    submit_pairs = [(qids[2], caterer_ids[2]), (qids[3], caterer_ids[3])]
+    setup.close()
+
+    barrier = threading.Barrier(2)
+
+    def _submit(quote_id, caterer_id):
+        s = session_factory()
+        try:
+            cat = s.scalar(select(Caterer).where(Caterer.id == caterer_id))
+            barrier.wait(timeout=5)
+            workflow.submit_quote(
+                s, request_id=qr_id, quote_id=quote_id, caterer=cat,
+            )
+            s.commit()
+        finally:
+            s.close()
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+            futures = [ex.submit(_submit, q, c) for q, c in submit_pairs]
+            for f in futures:
+                f.result(timeout=10)
+
+        check = session_factory()
+        try:
+            from sqlalchemy import func
+            rank3_count = check.scalar(
+                select(func.count(QuoteRequestCaterer.id))
+                .where(QuoteRequestCaterer.quote_request_id == qr_id)
+                .where(QuoteRequestCaterer.response_rank == 3)
+            )
+            assert rank3_count == 1, f"expected exactly one rank=3, got {rank3_count}"
+        finally:
+            check.close()
+    finally:
+        # Cleanup : ce test commit, donc on doit nettoyer manuellement.
+        cleanup = session_factory()
+        try:
+            cleanup.execute(delete(Quote).where(Quote.quote_request_id == qr_id))
+            cleanup.execute(delete(QuoteRequestCaterer).where(
+                QuoteRequestCaterer.quote_request_id == qr_id,
+            ))
+            cleanup.execute(delete(QuoteRequest).where(QuoteRequest.id == qr_id))
+            for cid in caterer_ids:
+                cleanup.execute(delete(Caterer).where(Caterer.id == cid))
+            cleanup.commit()
+        finally:
+            cleanup.close()
+
+

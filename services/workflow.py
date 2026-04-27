@@ -234,10 +234,19 @@ def submit_quote(
     - le 3e répondant déclenche la fermeture des QRC `selected` restants.
     Au-delà : le QRC reste en `responded` mais n'est pas transmis.
 
+    Sérialisation : `SELECT ... FOR UPDATE` sur la QR pose un verrou
+    exclusif jusqu'au commit, ce qui empêche deux répondants simultanés
+    d'atteindre tous les deux le rang 3.
+
     Lève QuoteNotFound (devis introuvable, mauvais caterer, ou pas en `draft`).
-    Note : la fonction n'utilise pas encore `SELECT … FOR UPDATE` ; la
-    sérialisation des répondants concurrents est ajoutée dans un commit suivant.
     """
+    # Verrou exclusif pour sérialiser les répondants concurrents.
+    db.execute(
+        select(QuoteRequest.id)
+        .where(QuoteRequest.id == request_id)
+        .with_for_update()
+    )
+
     quote = db.scalar(
         select(Quote).where(
             Quote.id == quote_id,
