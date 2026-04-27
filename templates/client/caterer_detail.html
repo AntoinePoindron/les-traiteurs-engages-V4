@@ -3,17 +3,17 @@
 {% block title %}{{ caterer.name }} - Catalogue{% endblock %}
 
 {% block content %}
-<main style="background-color: #F5F1E8; min-height: 100vh;">
+<main class="bg-cream min-h-screen">
   <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
     <!-- Back button -->
-    <a href="{{ url_for('client.search') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6" style="color: #1A3A52">
-      <i data-lucide="chevron-left" style="width:16px;height:16px"></i> Retour
+    <a href="{{ url_for('client.search') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
     </a>
 
     <!-- Hero / Photos -->
     <div class="bg-white rounded-lg overflow-hidden mb-6">
-      <div class="h-64 flex items-center justify-center" style="background-color: #F5F1E8">
+      <div class="h-64 flex items-center justify-center bg-cream">
         {% if caterer.photos and caterer.photos|length > 0 %}
         <div class="flex w-full h-full overflow-x-auto snap-x snap-mandatory">
           {% for photo in caterer.photos %}
@@ -22,8 +22,8 @@
         </div>
         {% else %}
         <div class="text-center">
-          <i data-lucide="chef-hat" style="width:64px;height:64px;color:#D1D5DB"></i>
-          <p class="text-xs mt-2" style="color: #6B7280">Pas de photos</p>
+          <i data-lucide="chef-hat" class="w-16 h-16 text-disabled"></i>
+          <p class="text-xs mt-2 text-mute">Pas de photos</p>
         </div>
         {% endif %}
       </div>
@@ -35,27 +35,27 @@
         <div class="bg-white rounded-lg p-6">
           <div class="flex items-start justify-between gap-4 mb-4">
             <div>
-              <h1 class="font-display font-bold text-4xl" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">{{ caterer.name }}</h1>
+              <h1 class="font-display font-bold text-4xl text-text">{{ caterer.name }}</h1>
               <div class="flex items-center gap-1 mt-1">
-                <i data-lucide="map-pin" style="width:12px;height:12px;color:#6B7280"></i>
-                <span class="text-xs" style="color: #6B7280">{{ caterer.city or 'Non renseigne' }}{% if caterer.zip_code %} ({{ caterer.zip_code }}){% endif %}</span>
+                <i data-lucide="map-pin" class="w-3 h-3 text-mute"></i>
+                <span class="text-xs text-mute">{{ caterer.city or 'Non renseigne' }}{% if caterer.zip_code %} ({{ caterer.zip_code }}){% endif %}</span>
               </div>
             </div>
             {% from "components/structure_type_badge.html" import structure_type_badge %}
             {{ structure_type_badge(caterer.structure_type) }}
           </div>
           {% if caterer.description %}
-          <p class="text-sm leading-relaxed" style="color: #313131">{{ caterer.description }}</p>
+          <p class="text-sm leading-relaxed text-text-soft">{{ caterer.description }}</p>
           {% endif %}
         </div>
 
         {% if caterer.specialties %}
         <div class="bg-white rounded-lg p-6">
-          <h2 class="font-display font-bold text-xl mb-3" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Specialites</h2>
+          <h2 class="font-display font-bold text-xl mb-3 text-text">Specialites</h2>
           <div class="flex flex-wrap gap-2">
             {% for s in caterer.specialties %}
-            <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F5F1E8">
-              <span class="text-xs font-bold whitespace-nowrap" style="color: #313131">{{ s }}</span>
+            <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+              <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ s }}</span>
             </div>
             {% endfor %}
           </div>
@@ -64,7 +64,7 @@
 
         <!-- Dietary flags -->
         <div class="bg-white rounded-lg p-6">
-          <h2 class="font-display font-bold text-xl mb-3" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Options alimentaires</h2>
+          <h2 class="font-display font-bold text-xl mb-3 text-text">Options alimentaires</h2>
           <div class="flex flex-wrap gap-2">
             {% set diet_pills = [("vegetarian", "Vegetarien", "bg-green-100 text-green-700"), ("vegan", "Vegan", "bg-emerald-100 text-emerald-700"), ("halal", "Halal", "bg-blue-100 text-blue-700"), ("casher", "Casher", "bg-purple-100 text-purple-700"), ("gluten_free", "Sans gluten", "bg-amber-100 text-amber-700"), ("lactose_free", "Sans lactose", "bg-pink-100 text-pink-700")] %}
             {% set ns = namespace(found=false) %}
@@ -75,7 +75,7 @@
             {% endif %}
             {% endfor %}
             {% if not ns.found %}
-            <p class="text-xs" style="color: #6B7280">Aucune option renseignee.</p>
+            <p class="text-xs text-mute">Aucune option renseignee.</p>
             {% endif %}
           </div>
         </div>
@@ -83,12 +83,12 @@
         <!-- Service types -->
         {% if caterer.service_config %}
         <div class="bg-white rounded-lg p-6">
-          <h2 class="font-display font-bold text-xl mb-3" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Types de prestations</h2>
+          <h2 class="font-display font-bold text-xl mb-3 text-text">Types de prestations</h2>
           <div class="flex flex-wrap gap-2">
             {% for key, val in caterer.service_config.items() %}
             {% if val %}
-            <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F5F1E8">
-              <span class="text-xs font-bold whitespace-nowrap" style="color: #313131">{{ meal_type_labels.get(key, key) }}</span>
+            <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+              <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ meal_type_labels.get(key, key) }}</span>
             </div>
             {% endif %}
             {% endfor %}
@@ -100,32 +100,32 @@
       <!-- Sidebar -->
       <div class="space-y-4">
         <div class="bg-white rounded-lg p-6">
-          <h2 class="font-display font-bold text-xl mb-4" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Informations</h2>
+          <h2 class="font-display font-bold text-xl mb-4 text-text">Informations</h2>
           <dl class="space-y-3">
             {% if caterer.capacity_min or caterer.capacity_max %}
             <div>
-              <dt class="text-xs" style="color: #6B7280">Capacite</dt>
-              <dd class="text-sm font-bold" style="color: #1A1A1A">{{ caterer.capacity_min or '?' }} - {{ caterer.capacity_max or '?' }} couverts</dd>
+              <dt class="text-xs text-mute">Capacite</dt>
+              <dd class="text-sm font-bold text-text">{{ caterer.capacity_min or '?' }} - {{ caterer.capacity_max or '?' }} couverts</dd>
             </div>
             {% endif %}
             {% if caterer.delivery_radius_km %}
             <div>
-              <dt class="text-xs" style="color: #6B7280">Rayon de livraison</dt>
-              <dd class="text-sm font-bold" style="color: #1A1A1A">{{ caterer.delivery_radius_km }} km</dd>
+              <dt class="text-xs text-mute">Rayon de livraison</dt>
+              <dd class="text-sm font-bold text-text">{{ caterer.delivery_radius_km }} km</dd>
             </div>
             {% endif %}
             {% if caterer.address %}
             <div>
-              <dt class="text-xs" style="color: #6B7280">Adresse</dt>
-              <dd class="text-sm font-bold" style="color: #1A1A1A">{{ caterer.address }}</dd>
+              <dt class="text-xs text-mute">Adresse</dt>
+              <dd class="text-sm font-bold text-text">{{ caterer.address }}</dd>
             </div>
             {% endif %}
           </dl>
         </div>
 
         <a href="{{ url_for('client.requests_new') }}"
-          class="block text-center rounded-full text-sm font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">
-          <i data-lucide="send" style="width:16px;height:16px" class="inline mr-1"></i>
+          class="block text-center rounded-full text-sm font-bold px-4 py-2.5 btn-navy">
+          <i data-lucide="send" class="w-4 h-4 inline mr-1"></i>
           Demander un devis
         </a>
       </div>

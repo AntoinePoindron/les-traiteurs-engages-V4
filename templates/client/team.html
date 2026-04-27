@@ -1,39 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Equipe — Les Traiteurs Engages{% endblock %}
 {% block content %}
-<main style="background-color: #F5F1E8; min-height: 100vh;">
+<main class="bg-cream min-h-screen">
   <div style="padding: 54px 24px 48px; max-width: 1020px; margin: 0 auto;">
 
-    <h1 class="font-display font-bold text-4xl mb-6" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">Gestion de l'equipe</h1>
+    <h1 class="font-display font-bold text-4xl mb-6 text-text">Gestion de l'equipe</h1>
 
     <!-- Demandes en attente -->
     {% if pending_users %}
     <div class="mb-8">
       <div class="bg-white rounded-lg p-6">
-        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">
-          <i data-lucide="user-check" style="width:18px;height:18px;color:#DC2626"></i>
+        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2 text-text">
+          <i data-lucide="user-check" class="w-[18px] h-[18px] text-danger"></i>
           Demandes en attente
         </h2>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {% for pu in pending_users %}
-          <div class="p-4 rounded-lg" style="border: 1px solid #F3F4F6">
+          <div class="p-4 rounded-lg border border-soft">
             <div class="flex items-center gap-3 mb-3">
-              <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
-                <span class="text-xs font-bold" style="color: #1A3A52">{{ pu.first_name[0] }}{{ pu.last_name[0] }}</span>
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+                <span class="text-xs font-bold text-navy">{{ pu.first_name[0] }}{{ pu.last_name[0] }}</span>
               </div>
               <div>
-                <p class="text-sm font-bold" style="color: #1A1A1A">{{ pu.first_name }} {{ pu.last_name }}</p>
-                <p class="text-xs" style="color: #6B7280">{{ pu.email }}</p>
+                <p class="text-sm font-bold text-text">{{ pu.first_name }} {{ pu.last_name }}</p>
+                <p class="text-xs text-mute">{{ pu.email }}</p>
               </div>
             </div>
             <div class="flex gap-2">
               <form method="POST" action="{{ url_for('client.team_approve', user_id=pu.id) }}" class="flex-1">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="w-full rounded-full text-xs font-bold py-2.5" style="background-color: #1A3A52; color: #FFFFFF">Approuver</button>
+                <button type="submit" class="w-full rounded-full text-xs font-bold py-2.5 btn-navy">Approuver</button>
               </form>
               <form method="POST" action="{{ url_for('client.team_reject', user_id=pu.id) }}" class="flex-1">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="w-full rounded-full text-xs font-bold py-2.5" style="background-color: #DC2626; color: #FFFFFF">Rejeter</button>
+                <button type="submit" class="w-full rounded-full text-xs font-bold py-2.5 bg-danger text-white">Rejeter</button>
               </form>
             </div>
           </div>
@@ -46,61 +46,61 @@
     <!-- Services -->
     <div class="mb-6">
       <div class="bg-white rounded-lg p-6">
-        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">
-          <i data-lucide="folders" style="width:18px;height:18px;color:#1A3A52"></i>
+        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2 text-text">
+          <i data-lucide="folders" class="w-[18px] h-[18px] text-navy"></i>
           Services
         </h2>
 
         {% if services %}
         <div class="space-y-3 mb-4">
           {% for s in services %}
-          <div class="p-4 rounded-lg" style="border: 1px solid #F3F4F6">
+          <div class="p-4 rounded-lg border border-soft">
             <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-bold" style="color: #1A1A1A">{{ s.name }}</h3>
+              <h3 class="text-sm font-bold text-text">{{ s.name }}</h3>
               <div class="flex items-center gap-2">
                 <button type="button" data-action="toggle-hidden" data-target="edit-service-{{ s.id }}"
-                        class="hover:opacity-70 transition-opacity" style="color: #6B7280">
-                  <i data-lucide="pencil" style="width:16px;height:16px"></i>
+                        class="hover:opacity-70 transition-opacity text-mute">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
                 </button>
                 <form method="POST" action="{{ url_for('client.team_service_delete', service_id=s.id) }}" class="inline">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="hover:opacity-70 transition-opacity" style="color: #DC2626"
+                  <button type="submit" class="hover:opacity-70 transition-opacity text-danger"
                           data-action="confirm-submit" data-confirm="Supprimer ce service ?">
-                    <i data-lucide="trash-2" style="width:16px;height:16px"></i>
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
                   </button>
                 </form>
               </div>
             </div>
-            {% if s.description %}<p class="text-xs mb-1" style="color: #6B7280">{{ s.description }}</p>{% endif %}
-            {% if s.annual_budget %}<p class="text-xs font-bold" style="color: #1A3A52">Budget annuel : {{ "%.2f"|format(s.annual_budget) }} EUR</p>{% endif %}
+            {% if s.description %}<p class="text-xs mb-1 text-mute">{{ s.description }}</p>{% endif %}
+            {% if s.annual_budget %}<p class="text-xs font-bold text-navy">Budget annuel : {{ "%.2f"|format(s.annual_budget) }} EUR</p>{% endif %}
 
-            <form id="edit-service-{{ s.id }}" method="POST" action="{{ url_for('client.team_service_edit', service_id=s.id) }}" class="hidden mt-3 pt-3 space-y-2" style="border-top: 1px solid #F3F4F6">
+            <form id="edit-service-{{ s.id }}" method="POST" action="{{ url_for('client.team_service_edit', service_id=s.id) }}" class="hidden mt-3 pt-3 space-y-2 border-t-soft">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="text" name="name" value="{{ s.name }}" placeholder="Nom"
-                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <input type="text" name="description" value="{{ s.description or '' }}" placeholder="Description"
-                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <input type="number" name="annual_budget" value="{{ s.annual_budget or '' }}" placeholder="Budget annuel" step="0.01"
-                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
-              <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">Enregistrer</button>
+                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+              <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 btn-navy">Enregistrer</button>
             </form>
           </div>
           {% endfor %}
         </div>
         {% endif %}
 
-        <div class="p-4 rounded-lg" style="background-color: #F5F1E8">
-          <h3 class="text-sm font-bold mb-3" style="color: #1A1A1A">Ajouter un service</h3>
+        <div class="p-4 rounded-lg bg-cream">
+          <h3 class="text-sm font-bold mb-3 text-text">Ajouter un service</h3>
           <form method="POST" action="{{ url_for('client.team_service_create') }}" class="space-y-2">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="name" placeholder="Nom du service" required
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <input type="text" name="description" placeholder="Description (optionnel)"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <input type="number" name="annual_budget" placeholder="Budget annuel (optionnel)" step="0.01"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
-            <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
-              <i data-lucide="plus" style="width:16px;height:16px"></i> Ajouter
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+            <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2 btn-navy">
+              <i data-lucide="plus" class="w-4 h-4"></i> Ajouter
             </button>
           </form>
         </div>
@@ -110,105 +110,104 @@
     <!-- Employes -->
     <div class="mb-6">
       <div class="bg-white rounded-lg p-6">
-        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2" style="color: #1A1A1A; font-variation-settings: 'SOFT' 0, 'WONK' 1">
-          <i data-lucide="users" style="width:18px;height:18px;color:#1A3A52"></i>
+        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2 text-text">
+          <i data-lucide="users" class="w-[18px] h-[18px] text-navy"></i>
           Employes
         </h2>
 
         {% if employees %}
         <div class="mb-4">
           {% for e in employees %}
-          <div class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg"
-               style="border-top: 1px solid #F3F4F6">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #F5F1E8">
-              <span class="text-xs font-bold" style="color: #1A3A52">{{ e.first_name[0] }}{{ e.last_name[0] }}</span>
+          <div class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg border-t-soft">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+              <span class="text-xs font-bold text-navy">{{ e.first_name[0] }}{{ e.last_name[0] }}</span>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-bold truncate" style="color: #1A1A1A">{{ e.first_name }} {{ e.last_name }}</p>
+              <p class="text-sm font-bold truncate text-text">{{ e.first_name }} {{ e.last_name }}</p>
               <div class="flex items-center gap-3 mt-0.5">
-                <span class="text-xs" style="color: #6B7280">{{ e.email }}</span>
+                <span class="text-xs text-mute">{{ e.email }}</span>
                 {% if e.position %}
-                <span class="text-xs" style="color: #6B7280">{{ e.position }}</span>
+                <span class="text-xs text-mute">{{ e.position }}</span>
                 {% endif %}
                 {% if e.service %}
-                <span class="text-xs font-bold" style="color: #1A3A52">{{ e.service.name }}</span>
+                <span class="text-xs font-bold text-navy">{{ e.service.name }}</span>
                 {% endif %}
               </div>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               {% if e.invited_at %}
-              <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F5F1E8">
-                <span class="text-xs font-bold whitespace-nowrap" style="color: #313131">Invitee {{ e.invited_at.strftime('%d/%m/%Y') }}</span>
+              <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+                <span class="text-xs font-bold whitespace-nowrap text-text-soft">Invitee {{ e.invited_at.strftime('%d/%m/%Y') }}</span>
               </div>
               {% elif e.user_id %}
-              <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color: #F0F4F7">
-                <span class="text-xs font-bold whitespace-nowrap" style="color: #1A3A52">Compte lie</span>
+              <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-navy-soft">
+                <span class="text-xs font-bold whitespace-nowrap text-navy">Compte lie</span>
               </div>
               {% else %}
               <form method="POST" action="{{ url_for('client.team_employee_invite', employee_id=e.id) }}" class="inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="text-xs font-bold hover:opacity-70 transition-opacity" style="color: #1A3A52">Inviter</button>
+                <button type="submit" class="text-xs font-bold hover:opacity-70 transition-opacity text-navy">Inviter</button>
               </form>
               {% endif %}
               <button type="button" data-action="toggle-hidden" data-target="edit-emp-{{ e.id }}"
-                      class="hover:opacity-70 transition-opacity" style="color: #6B7280">
-                <i data-lucide="pencil" style="width:16px;height:16px"></i>
+                      class="hover:opacity-70 transition-opacity text-mute">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
               </button>
               <form method="POST" action="{{ url_for('client.team_employee_delete', employee_id=e.id) }}" class="inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="hover:opacity-70 transition-opacity" style="color: #DC2626"
+                <button type="submit" class="hover:opacity-70 transition-opacity text-danger"
                         data-action="confirm-submit" data-confirm="Supprimer cet employe ?">
-                  <i data-lucide="trash-2" style="width:16px;height:16px"></i>
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </form>
             </div>
           </div>
-          <div id="edit-emp-{{ e.id }}" class="hidden p-4 rounded-lg mb-2" style="background-color: #F5F1E8">
+          <div id="edit-emp-{{ e.id }}" class="hidden p-4 rounded-lg mb-2 bg-cream">
             <form method="POST" action="{{ url_for('client.team_employee_edit', employee_id=e.id) }}" class="flex flex-wrap gap-2 items-end">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="text" name="first_name" value="{{ e.first_name }}" placeholder="Prenom"
-                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <input type="text" name="last_name" value="{{ e.last_name }}" placeholder="Nom"
-                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <input type="email" name="email" value="{{ e.email }}" placeholder="Email"
-                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <input type="text" name="position" value="{{ e.position or '' }}" placeholder="Poste"
-                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <select name="service_id"
-                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+                class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
                 <option value="">Aucun service</option>
                 {% for s in services %}
                 <option value="{{ s.id }}" {% if e.service_id == s.id %}selected{% endif %}>{{ s.name }}</option>
                 {% endfor %}
               </select>
-              <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5" style="background-color: #1A3A52; color: #FFFFFF">Enregistrer</button>
+              <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 btn-navy">Enregistrer</button>
             </form>
           </div>
           {% endfor %}
         </div>
         {% endif %}
 
-        <div class="p-4 rounded-lg" style="background-color: #F5F1E8">
-          <h3 class="text-sm font-bold mb-3" style="color: #1A1A1A">Ajouter un employe</h3>
+        <div class="p-4 rounded-lg bg-cream">
+          <h3 class="text-sm font-bold mb-3 text-text">Ajouter un employe</h3>
           <form method="POST" action="{{ url_for('client.team_employee_create') }}" class="flex flex-wrap gap-2 items-end">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="first_name" placeholder="Prenom" required
-              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <input type="text" name="last_name" placeholder="Nom" required
-              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <input type="email" name="email" placeholder="Email" required
-              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <input type="text" name="position" placeholder="Poste (optionnel)"
-              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <select name="service_id"
-              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-[#1A3A52] transition-colors" style="border-color: #E5E7EB">
+              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <option value="">Aucun service</option>
               {% for s in services %}
               <option value="{{ s.id }}">{{ s.name }}</option>
               {% endfor %}
             </select>
-            <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2" style="background-color: #1A3A52; color: #FFFFFF">
-              <i data-lucide="plus" style="width:16px;height:16px"></i> Ajouter
+            <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2 btn-navy">
+              <i data-lucide="plus" class="w-4 h-4"></i> Ajouter
             </button>
           </form>
         </div>

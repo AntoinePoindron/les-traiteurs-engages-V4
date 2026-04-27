@@ -185,6 +185,7 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .bg-cta-blush    { background-color: var(--c-cta-blush); }
 .bg-text         { background-color: var(--c-text); }
 .bg-border-default { background-color: var(--c-border); }
+.bg-border-soft  { background-color: var(--c-border-soft); }
 
 /* Border */
 .border-default  { border-color: var(--c-border); }
@@ -193,6 +194,7 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .border-red-cta  { border-color: var(--c-red-cta); }
 .border-white-10 { border-color: var(--c-white-10); }
 .border-2        { border-width: 2px; }
+.border-t-soft   { border-top: 1px solid var(--c-border-soft); }
 
 /* Hover/focus variants */
 .hover\:bg-cream:hover     { background-color: var(--c-cream); }
@@ -210,6 +212,8 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .w-3  { width: 0.75rem; }
 .h-3  { height: 0.75rem; }
 .w-12 { width: 3rem; }
+.w-4\.5 { width: 1.125rem; }
+.h-4\.5 { height: 1.125rem; }
 .my-20     { margin-top: 5rem; margin-bottom: 5rem; }
 .py-2\.5   { padding-top: 0.625rem; padding-bottom: 0.625rem; }
 .no-underline { text-decoration: none; }
