@@ -176,3 +176,111 @@ def test_queue_invoice_does_not_call_stripe(session, monkeypatch):
     order = _seed_delivered_order_with_lines(session)
     billing.queue_invoice(session, order=order)
     session.flush()
+
+
+# --- send_stripe_invoice (phase 2) -----------------------------------------
+
+
+class _FakeStripeObject(dict):
+    """dict avec accès attribut + .get() — modélise grossièrement un
+    StripeObject pour les besoins des tests."""
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError as e:
+            raise AttributeError(name) from e
+
+
+class _FakeIterable:
+    def __init__(self, items):
+        self._items = items
+    def auto_paging_iter(self):
+        return iter(self._items)
+
+
+def _install_stripe_mocks(monkeypatch, captured: dict):
+    """Mocke les 4 endpoints Stripe utilisés par send_stripe_invoice.
+    Stocke les kwargs dans `captured` pour assertions."""
+    import stripe
+
+    def _customer_create(**kwargs):
+        captured.setdefault("customer_create", []).append(kwargs)
+        return _FakeStripeObject(id="cus_test_123")
+
+    def _tax_rate_list(**kwargs):
+        return _FakeIterable([])  # forcer la création
+
+    def _tax_rate_create(**kwargs):
+        captured.setdefault("tax_rate_create", []).append(kwargs)
+        return _FakeStripeObject(id=f"txr_{kwargs.get('percentage')}", percentage=kwargs.get("percentage"), country="FR")
+
+    def _invoice_create(**kwargs):
+        captured.setdefault("invoice_create", []).append(kwargs)
+        return _FakeStripeObject(id="in_test_abc")
+
+    def _invoice_item_create(**kwargs):
+        captured.setdefault("invoice_item_create", []).append(kwargs)
+        return _FakeStripeObject(id="ii_test")
+
+    def _invoice_finalize(invoice_id):
+        captured.setdefault("invoice_finalize", []).append(invoice_id)
+        return _FakeStripeObject(id=invoice_id)
+
+    def _invoice_send(invoice_id):
+        captured.setdefault("invoice_send", []).append(invoice_id)
+        return _FakeStripeObject(id=invoice_id, hosted_invoice_url="https://stripe.test/in_test_abc")
+
+    monkeypatch.setattr(stripe.Customer, "create", _customer_create)
+    monkeypatch.setattr(stripe.TaxRate, "list", _tax_rate_list)
+    monkeypatch.setattr(stripe.TaxRate, "create", _tax_rate_create)
+    monkeypatch.setattr(stripe.Invoice, "create", _invoice_create)
+    monkeypatch.setattr(stripe.InvoiceItem, "create", _invoice_item_create)
+    monkeypatch.setattr(stripe.Invoice, "finalize_invoice", _invoice_finalize)
+    monkeypatch.setattr(stripe.Invoice, "send_invoice", _invoice_send)
+
+
+def test_send_stripe_invoice_links_id_and_marks_invoiced(session, monkeypatch):
+    from sqlalchemy import select
+
+    captured: dict = {}
+    _install_stripe_mocks(monkeypatch, captured)
+
+    order = _seed_delivered_order_with_lines(session)
+    payment = billing.queue_invoice(session, order=order)
+    session.flush()
+    billing.send_stripe_invoice(session, payment=payment)
+    session.flush()
+
+    refreshed_payment = session.scalar(select(Payment).where(Payment.id == payment.id))
+    refreshed_order = session.scalar(select(Order).where(Order.id == order.id))
+
+    assert refreshed_payment.stripe_invoice_id == "in_test_abc"
+    assert refreshed_order.stripe_invoice_id == "in_test_abc"
+    assert refreshed_order.stripe_hosted_invoice_url == "https://stripe.test/in_test_abc"
+    assert refreshed_order.status == OrderStatus.invoiced
+
+    # Idempotency_key tiré du payment.id : permet le retry sans duplication.
+    invoice_create_kwargs = captured["invoice_create"][0]
+    assert invoice_create_kwargs["idempotency_key"] == f"payment-{payment.id}"
+    assert invoice_create_kwargs["application_fee_amount"] == payment.application_fee_cents
+    assert "transfer_data" in invoice_create_kwargs
+    # 1 ligne par groupe TVA + 1 ligne fee plateforme = 2 InvoiceItems
+    assert len(captured["invoice_item_create"]) == 2
+    assert captured["invoice_finalize"] == ["in_test_abc"]
+    assert captured["invoice_send"] == ["in_test_abc"]
+
+
+def test_send_stripe_invoice_is_noop_if_already_sent(session, monkeypatch):
+    captured: dict = {}
+    _install_stripe_mocks(monkeypatch, captured)
+
+    order = _seed_delivered_order_with_lines(session)
+    payment = billing.queue_invoice(session, order=order)
+    payment.stripe_invoice_id = "in_already_sent"
+    session.flush()
+
+    billing.send_stripe_invoice(session, payment=payment)
+
+    assert "invoice_create" not in captured, "must not call Stripe when already sent"
+    assert "invoice_finalize" not in captured
+    assert "invoice_send" not in captured

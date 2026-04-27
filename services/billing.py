@@ -20,16 +20,22 @@ Invariants :
 """
 from __future__ import annotations
 
+import logging
 from decimal import Decimal
+
+import stripe
 
 from models import (
     CommissionInvoice,
     Invoice,
     Order,
+    OrderStatus,
     Payment,
     PaymentStatus,
 )
 from services.quotes import calculate_quote_totals, derive_invoice_reference
+
+logger = logging.getLogger(__name__)
 
 CENTS_PER_EURO = Decimal("100")
 
@@ -111,3 +117,126 @@ def queue_invoice(db, *, order: Order) -> Payment:
 
     db.flush()
     return payment
+
+
+def _create_or_get_tax_rate(percentage: Decimal, description: str) -> str:
+    """Trouve ou crée un Stripe TaxRate FR pour le taux donné. Mêmes
+    sémantiques que `services.stripe_service._create_or_get_tax_rate`."""
+    pct_str = str(percentage)
+    existing = stripe.TaxRate.list(active=True, limit=100)
+    for rate in existing.auto_paging_iter():
+        if str(rate.percentage) == pct_str and rate.country == "FR":
+            return rate.id
+    new_rate = stripe.TaxRate.create(
+        display_name="TVA",
+        description=description,
+        percentage=pct_str,
+        inclusive=False,
+        country="FR",
+        jurisdiction="FR",
+    )
+    return new_rate.id
+
+
+def _get_or_create_customer(db, user) -> str:
+    """Renvoie l'id Stripe Customer pour `user`, en le créant si besoin.
+    Mute `user.stripe_customer_id` ; le caller doit commit."""
+    if user.stripe_customer_id:
+        return user.stripe_customer_id
+    customer = stripe.Customer.create(
+        email=user.email,
+        name=f"{user.first_name} {user.last_name}",
+        metadata={"user_id": str(user.id)},
+        idempotency_key=f"customer-user-{user.id}",
+    )
+    user.stripe_customer_id = customer.id
+    db.add(user)
+    return customer.id
+
+
+def send_stripe_invoice(db, *, payment: Payment) -> None:
+    """Phase 2 : crée la facture Stripe correspondant au Payment et lie l'id.
+
+    Pré-condition : `payment.stripe_invoice_id IS NULL` (sinon no-op).
+    Post-condition :
+    - `payment.stripe_invoice_id` renseigné ;
+    - `payment.order.stripe_invoice_id` et `payment.order.stripe_hosted_invoice_url` renseignés ;
+    - `payment.order.status == invoiced` ;
+    - facture Stripe finalisée et envoyée au customer.
+
+    Idempotente côté Stripe via `idempotency_key=f"payment-{payment.id}"`.
+    Un retry après crash entre l'envoi Stripe et le commit DB réutilise la
+    même facture Stripe — pas de duplication. Risque résiduel : un re-send
+    d'email au customer (acceptable, loggué).
+    """
+    if payment.stripe_invoice_id:
+        return
+
+    order = payment.order
+    quote = order.quote
+    caterer = quote.caterer
+    client_user = order.client_admin
+
+    totals = _totals_from_quote(quote)
+    platform_fee_ht = totals["platform_fee_ht"]
+    fee_ttc_cents = payment.application_fee_cents
+
+    customer_id = _get_or_create_customer(db, client_user)
+
+    invoice = stripe.Invoice.create(
+        customer=customer_id,
+        collection_method="send_invoice",
+        days_until_due=30,
+        transfer_data={"destination": caterer.stripe_account_id},
+        application_fee_amount=fee_ttc_cents,
+        metadata={
+            "order_id": str(order.id),
+            "payment_id": str(payment.id),
+            "invoice_reference": derive_invoice_reference(quote.reference),
+        },
+        custom_fields=[
+            {"name": "Traiteur", "value": caterer.name},
+            {"name": "SIRET", "value": caterer.siret or ""},
+        ],
+        idempotency_key=f"payment-{payment.id}",
+    )
+
+    # InvoiceItems groupés par taux de TVA, comme avant.
+    tva_grouped: dict[str, dict] = {}
+    for ln in quote.lines:
+        key = str(ln.tva_rate)
+        if key not in tva_grouped:
+            tva_grouped[key] = {"amount_ht": Decimal("0"), "descriptions": []}
+        tva_grouped[key]["amount_ht"] += ln.quantity * ln.unit_price_ht
+        tva_grouped[key]["descriptions"].append(ln.description or "")
+
+    for tva_rate_str, group in tva_grouped.items():
+        tax_rate_id = _create_or_get_tax_rate(Decimal(tva_rate_str), f"TVA {tva_rate_str}%")
+        stripe.InvoiceItem.create(
+            customer=customer_id,
+            invoice=invoice.id,
+            amount=_to_cents(group["amount_ht"]),
+            currency="eur",
+            description=", ".join(d for d in group["descriptions"] if d) or "Prestation traiteur",
+            tax_rates=[tax_rate_id],
+        )
+
+    fee_tax_rate_id = _create_or_get_tax_rate(Decimal("20"), "TVA 20%")
+    stripe.InvoiceItem.create(
+        customer=customer_id,
+        invoice=invoice.id,
+        amount=_to_cents(platform_fee_ht),
+        currency="eur",
+        description="Frais de mise en relation",
+        tax_rates=[fee_tax_rate_id],
+    )
+
+    stripe.Invoice.finalize_invoice(invoice.id)
+    sent = stripe.Invoice.send_invoice(invoice.id)
+    hosted_url = sent.get("hosted_invoice_url", "") or ""
+
+    payment.stripe_invoice_id = invoice.id
+    order.stripe_invoice_id = invoice.id
+    order.stripe_hosted_invoice_url = hosted_url
+    order.status = OrderStatus.invoiced
+    db.flush()
