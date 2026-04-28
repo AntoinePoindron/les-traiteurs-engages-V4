@@ -1,0 +1,11 @@
+# Findings explicitement acceptes par decision documentee.
+# Format : <commit_sha>:<file>:<rule_id>:<line>
+#
+# A nettoyer une fois la cle Synthetic revoquee chez le fournisseur ET
+# l'historique git purge via : git filter-repo --path .deploy.env --invert-paths
+# (puis force-push, voir les notes du chantier P0).
+
+# SYNTHETIC_API_KEY committee dans .deploy.env (commit fda4571, 2026-04-22).
+# Action en cours : rotation cote fournisseur Synthetic, puis purge git.
+# Sans whitelist, le hook pre-commit bloquerait tout commit jusqu'a la purge.
+fda4571b8666604785cd5fbaa58d8a27182e305b:.deploy.env:generic-api-key:4
