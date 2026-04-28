@@ -81,6 +81,12 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
 
+    # CLI for ops tasks: `flask admin create / reset-password / list / disable`.
+    # Avoids relying on ADMIN_INITIAL_PASSWORD env var for day-to-day admin
+    # lifecycle (P3.2).
+    from cli import admin_cli
+    app.cli.add_command(admin_cli)
+
     @app.before_request
     def load_current_user():
         g.current_user = None

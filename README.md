@@ -41,6 +41,22 @@ flask run --port 8000
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | (empty) |
 | `STRIPE_CONNECT_CLIENT_ID` | Stripe Connect client ID | (empty) |
 
+## Admin lifecycle (CLI)
+
+Day-to-day super-admin management uses the Flask CLI (no env var needed):
+
+```bash
+docker compose exec app flask admin create               # interactive prompt
+docker compose exec app flask admin reset-password EMAIL # interactive prompt
+docker compose exec app flask admin list
+docker compose exec app flask admin disable EMAIL        # soft delete (audit trail kept)
+```
+
+`ADMIN_INITIAL_PASSWORD` env var bootstrap remains available for first
+boot only. Once the platform is live, prefer the CLI: passwords are
+typed at the prompt (no shell history, no `.deploy.env` exposure) and
+the policy from `blueprints/auth.validate_password` is enforced.
+
 ## Default credentials
 
 | Role | Email | Password |

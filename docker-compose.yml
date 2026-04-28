@@ -19,6 +19,19 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Resource caps and process hardening (P3.1):
+    # - mem_limit prevents a runaway worker (or DoS) from OOM-killing the
+    #   host or starving Postgres in the same compose project.
+    # - cpus throttles the same worker before it monopolises every core.
+    # - no-new-privileges blocks setuid/setgid escalation inside the
+    #   container even if a CVE in a Python C-extension lets attackers
+    #   exec a binary.
+    mem_limit: 1g
+    mem_reservation: 256m
+    cpus: 2.0
+    pids_limit: 200
+    security_opt:
+      - no-new-privileges:true
 
   db:
     image: postgres:16
@@ -33,6 +46,14 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    # Same hardening on Postgres: caps + no privilege escalation.
+    # 2 GB / 2 CPUs is generous for the dataset size we expect; adjust if
+    # the dashboard reports memory pressure under real production load.
+    mem_limit: 2g
+    mem_reservation: 512m
+    cpus: 2.0
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   pgdata:
