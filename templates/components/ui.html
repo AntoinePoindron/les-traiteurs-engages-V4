@@ -102,3 +102,160 @@
     </div>
   </div>
 {% endmacro %}
+
+{# ============================================================
+   Components ported from the Next.js reference (src/components/ui/).
+   Each macro mirrors a single .tsx file; behaviour kept identical
+   apart from React-only features (router.back, useFormStatus, etc.)
+   which are reimplemented client-side via plain JS or omitted when
+   not needed in this Flask SSR context.
+   ============================================================ #}
+
+{# BackButton — bouton "Retour" stylise. Par defaut history.back();
+   `href` force une navigation vers une URL specifique.
+   Usage : {{ back_button() }} ou {{ back_button(href=url_for('client.dashboard')) }}. #}
+{% macro back_button(label="Retour", href=None) %}
+  {% if href %}
+    <a href="{{ href }}"
+       class="inline-flex items-center gap-1 text-xs font-bold text-navy w-fit hover:opacity-70 transition-opacity">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+      {{ label }}
+    </a>
+  {% else %}
+    <button type="button" onclick="history.back()"
+       class="inline-flex items-center gap-1 text-xs font-bold text-navy w-fit hover:opacity-70 transition-opacity">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+      {{ label }}
+    </button>
+  {% endif %}
+{% endmacro %}
+
+{# InfoChip — chip d'information (budget, couverts, date, lieu).
+   Fond cream arrondi avec icone lucide + valeur en gras.
+   Usage : {{ info_chip(icon='calendar', label='Date', value='12 mars') }}. #}
+{% macro info_chip(icon, value, label=None) %}
+  <div class="flex flex-col gap-2 items-start" style="flex-shrink:0;">
+    {% if label %}
+    <p class="text-text-soft" style="font-size:10px;">{{ label }}</p>
+    {% endif %}
+    <div class="flex items-center gap-1 px-2 py-1 rounded-full" style="background-color:var(--c-cream);">
+      <i data-lucide="{{ icon }}" class="w-4 h-4 text-text-soft" style="flex-shrink:0;"></i>
+      <span class="text-xs font-bold text-text-soft whitespace-nowrap">{{ value }}</span>
+    </div>
+  </div>
+{% endmacro %}
+
+{# ContactCard — carte contact (client/traiteur) avec logo, nom de structure
+   et responsable. Le bouton message est un simple lien vers `messages_href`
+   (pas d'API ouverte directement comme dans React).
+
+   Args:
+     entity_type     : "client" | "caterer"
+     entity_name     : str
+     entity_logo_url : str | None  (URL absolue ou relative)
+     contact_user_id : str | None  (UUID du contact, sert juste a conditionner l'affichage du bouton)
+     contact_first_name, contact_last_name, contact_email : strings
+     public_profile_href : str | None  (rend le header cliquable vers la fiche publique)
+     messages_href   : str | None  (URL vers la conversation dediee)
+     nested          : bool  (True quand la card est imbriquee dans un autre conteneur blanc) #}
+{% macro contact_card(entity_type, entity_name, entity_logo_url=None,
+                      contact_user_id=None, contact_first_name=None,
+                      contact_last_name=None, contact_email=None,
+                      public_profile_href=None, messages_href=None,
+                      nested=False) %}
+  {% set labels = {
+    'client':  {'label': 'CLIENT',   'contact_label': 'Responsable'},
+    'caterer': {'label': 'TRAITEUR', 'contact_label': 'Contact'},
+  } %}
+  {% set L = labels[entity_type] %}
+  {% set fallback_icon = 'chef-hat' if entity_type == 'caterer' else 'building-2' %}
+  {% set full_name = ((contact_first_name or '') ~ ' ' ~ (contact_last_name or '')) | trim %}
+  {% set display_name = full_name or (contact_email or '') %}
+  {% set initials = ((contact_first_name or '')[:1] ~ (contact_last_name or '')[:1]) | upper %}
+  {% if not initials %}{% set initials = (contact_email or '?')[:1] | upper %}{% endif %}
+
+  <div class="{% if nested %}flex flex-col gap-4{% else %}bg-white rounded-lg p-5 flex flex-col gap-4{% endif %}">
+    {% set header_inner %}
+      {% if entity_logo_url %}
+        <div class="rounded-lg overflow-hidden" style="width:3.5rem;height:3.5rem;flex-shrink:0;background-color:var(--c-cream);">
+          <img src="{{ entity_logo_url }}" alt="" style="width:100%;height:100%;object-fit:contain;padding:0.25rem;">
+        </div>
+      {% else %}
+        <div class="rounded-lg flex items-center justify-center"
+             style="width:3.5rem;height:3.5rem;flex-shrink:0;background-color:var(--c-cream);">
+          <i data-lucide="{{ fallback_icon }}" style="width:22px;height:22px;color:var(--c-coral);"></i>
+        </div>
+      {% endif %}
+      <div class="flex flex-col" style="gap:2px;min-width:0;">
+        <p class="text-mute-soft font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">{{ L.label }}</p>
+        <p class="font-display font-bold text-lg text-black truncate">{{ entity_name or '—' }}</p>
+      </div>
+    {% endset %}
+
+    {% if public_profile_href %}
+      <a href="{{ public_profile_href }}"
+         class="flex items-center gap-3 rounded-lg transition-colors"
+         style="margin:-0.25rem;padding:0.25rem;"
+         onmouseover="this.style.backgroundColor='var(--c-cream)'"
+         onmouseout="this.style.backgroundColor='transparent'">
+        {{ header_inner }}
+      </a>
+    {% else %}
+      <div class="flex items-center gap-3">{{ header_inner }}</div>
+    {% endif %}
+
+    {% if display_name %}
+    <div class="flex items-center pt-3 border-t" style="gap:0.625rem;border-color:var(--c-border-soft);">
+      <div class="rounded-full flex items-center justify-center text-white text-xs font-bold"
+           style="width:2rem;height:2rem;flex-shrink:0;background-color:var(--c-navy);">
+        {{ initials }}
+      </div>
+      <div class="flex flex-col" style="min-width:0;">
+        <p class="text-sm font-bold text-black truncate">{{ display_name }}</p>
+        <p class="text-mute" style="font-size:11px;">{{ L.contact_label }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if contact_user_id and messages_href %}
+    <a href="{{ messages_href }}"
+       class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white transition-colors hover:opacity-90"
+       style="background-color:var(--c-navy);">
+      <i data-lucide="message-circle" class="w-4 h-4"></i>
+      Envoyer un message
+    </a>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# SubmitButton — bouton de submit avec etat "en cours" propulse par JS minimal.
+   A placer DANS un <form>. Au submit du form, le bouton se desactive et bascule
+   vers `pending_label`. Pas de spinner reel sans framework JS, mais le pattern
+   evite les double-submit accidentels.
+
+   Args:
+     label        : libelle par defaut
+     pending_label: libelle pendant la soumission (defaut : "En cours...")
+     class        : classes CSS additionnelles a appliquer au <button>
+     style        : styles inline additionnels #}
+{% macro submit_button(label, pending_label="En cours…", class="", style="") %}
+  <button type="submit"
+          class="inline-flex items-center justify-center gap-2 {{ class }}"
+          style="{{ style }}"
+          data-original-label="{{ label }}"
+          data-pending-label="{{ pending_label }}"
+          onclick="
+            var btn = this;
+            var form = btn.closest('form');
+            if (form && !form.checkValidity()) return;
+            setTimeout(function(){
+              btn.disabled = true;
+              btn.style.opacity = '0.7';
+              btn.style.cursor = 'wait';
+              btn.setAttribute('aria-busy', 'true');
+              btn.textContent = btn.dataset.pendingLabel;
+            }, 0);
+          ">
+    {{ label }}
+  </button>
+{% endmacro %}
