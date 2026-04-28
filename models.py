@@ -81,6 +81,10 @@ class QuoteStatus(str, Enum):
 class OrderStatus(str, Enum):
     confirmed = "confirmed"
     delivered = "delivered"
+    # Phase 1 done, phase 2 (Stripe API) enqueued in dramatiq.
+    # Worker promotes to `invoiced` on success or leaves in `invoicing` on
+    # failure so the retry CLI can pick it up. (P3.4)
+    invoicing = "invoicing"
     invoiced = "invoiced"
     paid = "paid"
     disputed = "disputed"

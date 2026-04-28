@@ -1,0 +1,62 @@
+# Production overlay. Same shape as staging, with stricter resource caps,
+# auto-restart, and explicit domain.
+#
+# Compose with:
+#   docker compose --env-file .deploy.env \
+#     -f docker-compose.yml \
+#     -f .deploy-override.yml \
+#     -f docker-compose.prod.yml \
+#     up -d --build
+#
+# Required .deploy.env vars:
+#   CADDY_DOMAIN=traiteurs.engages.inclusion.gouv.fr
+#   CADDY_ACME_EMAIL=ops@inclusion.gouv.fr
+#   SECRET_KEY=<32+ char random>     # python -c "import secrets; print(secrets.token_hex(32))"
+#   SECURE_COOKIES=true
+#   TRUST_PROXY_HEADERS=true
+#   HOST_BIND=127.0.0.1
+#   ENABLE_DEMO_SEED=                # MUST be empty in prod, no demo accounts
+#   ADMIN_INITIAL_PASSWORD=          # empty after first boot, use `flask admin reset-password` instead
+#
+# DNS prerequisite: an A record pointing CADDY_DOMAIN to this server's
+# public IP must exist BEFORE first start.
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN}
+      - CADDY_ACME_EMAIL=${CADDY_ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    mem_limit: 256m
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+
+  app:
+    restart: unless-stopped
+    environment:
+      - SECURE_COOKIES=true
+      - TRUST_PROXY_HEADERS=true
+    # Tighter resource cap than staging now that traffic is real.
+    mem_limit: 2g
+    cpus: 4.0
+
+  db:
+    restart: unless-stopped
+    mem_limit: 4g
+    cpus: 4.0
+
+volumes:
+  caddy_data:
+  caddy_config:

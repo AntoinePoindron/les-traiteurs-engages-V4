@@ -1,0 +1,53 @@
+# Staging overlay. Stack: Caddy (TLS, public) -> gunicorn (internal) -> Postgres.
+#
+# Compose with:
+#   docker compose --env-file .deploy.env \
+#     -f docker-compose.yml \
+#     -f .deploy-override.yml \
+#     -f docker-compose.staging.yml \
+#     up -d --build
+#
+# Required .deploy.env vars:
+#   CADDY_DOMAIN=staging.traiteurs.engages.inclusion.gouv.fr
+#   CADDY_ACME_EMAIL=ops@inclusion.gouv.fr
+#   SECURE_COOKIES=true
+#   TRUST_PROXY_HEADERS=true
+#   HOST_BIND=127.0.0.1
+#
+# DNS prerequisite: an A record pointing CADDY_DOMAIN to this server's
+# public IP must exist BEFORE first start, otherwise Let's Encrypt
+# validation fails.
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 / QUIC
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN}
+      - CADDY_ACME_EMAIL=${CADDY_ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    mem_limit: 256m
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+
+  app:
+    # In staging the app is NOT exposed to the public — only Caddy is.
+    # The base compose still binds 8000, but here we force 127.0.0.1 so
+    # an unrelated process on the host can't bypass TLS.
+    environment:
+      - SECURE_COOKIES=true
+      - TRUST_PROXY_HEADERS=true
+
+volumes:
+  caddy_data:
+  caddy_config:

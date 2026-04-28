@@ -26,6 +26,9 @@ class Settings(BaseSettings):
 
     secret_key: SecretStr = Field(min_length=32)
     database_url: str
+    # Optional in dev (unit tests stub the broker), required wherever the
+    # background worker runs — the app side will only enqueue jobs if set.
+    redis_url: str | None = None
 
     stripe_secret_key: SecretStr | None = None
     stripe_publishable_key: str | None = None

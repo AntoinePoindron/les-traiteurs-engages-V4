@@ -42,6 +42,9 @@ def _required_env():
     test_url = _ensure_test_db()
     os.environ["DATABASE_URL"] = test_url
     os.environ.pop("STRIPE_SECRET_KEY", None)
+    # Use the in-memory dramatiq stub broker (no Redis dependency in tests).
+    # services/billing_tasks.py reads this at import time.
+    os.environ["DRAMATIQ_TESTING"] = "1"
     yield
 
 

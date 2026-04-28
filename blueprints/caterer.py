@@ -445,22 +445,32 @@ def order_detail(order_id):
 @login_required
 @role_required("caterer")
 def order_deliver(order_id):
+    """Deliver an order. Phase 1 (DB-only) is synchronous; phase 2 (Stripe
+    invoice) is enqueued in dramatiq so the caterer doesn't wait on a
+    multi-second Stripe round-trip. P3.4."""
     caterer = g.current_user.caterer
     db = get_db()
     try:
         order = workflow.mark_delivered(db, order_id=order_id, caterer=caterer)
     except workflow.OrderNotFound:
         abort(404)
+
     if caterer.stripe_account_id and caterer.stripe_charges_enabled:
-        try:
-            create_invoice_for_order(db, order)
-            flash("Commande livree et facture Stripe generee.", "success")
-        except Exception:
-            logger.exception("Stripe invoice creation failed for order %s", order_id)
-            flash("Commande marquee comme livree. Erreur lors de la generation de la facture Stripe.", "warning")
+        # Mark as `invoicing` BEFORE commit so the worker can't pick up
+        # the order and race ahead while we're still mid-transaction.
+        order.status = OrderStatus.invoicing
+        db.commit()
+        # Enqueue the Stripe call. send() returns immediately; the actor
+        # runs in the worker container.
+        from services.billing_tasks import send_invoice_for_order
+        send_invoice_for_order.send(order_id=str(order.id))
+        flash(
+            "Commande livree. La facture Stripe est en cours de generation.",
+            "success",
+        )
     else:
+        db.commit()
         flash("Commande marquee comme livree.", "success")
-    db.commit()
     return redirect(url_for("caterer.order_detail", order_id=order_id))
 
 

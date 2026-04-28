@@ -1,8 +1,12 @@
 services:
   app:
     build: .
+    # In dev, HOST_BIND defaults to 0.0.0.0 so the app is reachable from
+    # phones on the same wifi. In staging/prod, set HOST_BIND=127.0.0.1
+    # in .deploy.env so only the local Caddy reverse-proxy can reach 8000
+    # (Caddy contacts `app:8000` via the Docker network either way).
     ports:
-      - "${HOST_PORT:-8000}:8000"
+      - "${HOST_BIND:-0.0.0.0}:${HOST_PORT:-8000}:8000"
     environment:
       - DATABASE_URL=postgresql://traiteurs:traiteurs@db:5432/traiteurs
       # SECRET_KEY must be set via .deploy.env or shell env. App fails to boot if missing or <32 chars.
@@ -16,8 +20,11 @@ services:
       - ENABLE_DEMO_SEED=${ENABLE_DEMO_SEED:-}
       - TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS:-}
       - SECURE_COOKIES=${SECURE_COOKIES:-}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     # Resource caps and process hardening (P3.1):
     # - mem_limit prevents a runaway worker (or DoS) from OOM-killing the
@@ -52,6 +59,52 @@ services:
     mem_limit: 2g
     mem_reservation: 512m
     cpus: 2.0
+    security_opt:
+      - no-new-privileges:true
+
+  # Dramatiq broker. Persistence disabled (--save "") because every queued
+  # job is also reflected as Order.status == invoicing in Postgres — Redis
+  # losing state on restart only means the retry CLI picks up unfinished
+  # phase-2 work. AOF would just duplicate that source of truth.
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    mem_limit: 256m
+    cpus: 0.5
+    security_opt:
+      - no-new-privileges:true
+
+  # Background worker that consumes the dramatiq queues. Same image as the
+  # web app so they share code and dependencies; only the entrypoint differs.
+  worker:
+    build: .
+    # Disable the inherited HEALTHCHECK (defined in the Dockerfile for the
+    # web service): it hits /health on localhost:8000 which the worker
+    # doesn't serve, leaving the container forever in `health: starting`.
+    healthcheck:
+      disable: true
+    command: ["dramatiq", "services.billing_tasks", "--processes", "1", "--threads", "4"]
+    environment:
+      - DATABASE_URL=postgresql://traiteurs:traiteurs@db:5432/traiteurs
+      - SECRET_KEY=${SECRET_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_CONNECT_CLIENT_ID=${STRIPE_CONNECT_CLIENT_ID:-}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpus: 1.0
     security_opt:
       - no-new-privileges:true
 

@@ -1,0 +1,65 @@
+# Caddy reverse-proxy + auto-HTTPS via Let's Encrypt.
+# Used by docker-compose.staging.yml and docker-compose.prod.yml.
+# DOMAIN is injected from the env file (CADDY_DOMAIN).
+#
+# Caddy automatically:
+#   - Provisions a Let's Encrypt certificate for $CADDY_DOMAIN
+#   - Renews it before expiry
+#   - Serves HSTS (max-age=31536000; includeSubDomains; preload)
+#   - Redirects HTTP -> HTTPS
+
+{
+  # Email used by Let's Encrypt for renewal notices and account recovery.
+  # Override per-env via CADDY_ACME_EMAIL in the env file.
+  email {$CADDY_ACME_EMAIL}
+
+  # Production logs format. Switch to CONSOLE in dev for readability.
+  log {
+    format json
+    level INFO
+  }
+}
+
+{$CADDY_DOMAIN} {
+  # Forward everything to the Flask app on the internal Docker network.
+  reverse_proxy app:8000 {
+    # Pass the real client IP and protocol so Flask's TRUST_PROXY_HEADERS
+    # (ProxyFix) can set request.remote_addr / scheme correctly. Without
+    # these the rate limiter sees Caddy's IP only, and Stripe webhooks
+    # would fail signature verification under HTTP scheme detection.
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+    header_up X-Forwarded-Host {host}
+
+    # Time out slow upstream responses so Caddy doesn't hold the connection
+    # open forever (Stripe API calls in the request path are now async, but
+    # belt-and-braces while the migration completes).
+    transport http {
+      dial_timeout 5s
+      response_header_timeout 30s
+    }
+  }
+
+  # Defence in depth: Caddy also enforces these headers regardless of what
+  # Flask sets, so a misconfiguration in app.py can't downgrade the surface.
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    -Server
+  }
+
+  # Static assets: let Caddy serve them directly with long-lived caching.
+  # Flask still owns /static for now (simpler), but if perf becomes an issue
+  # we can mount the static dir read-only and short-circuit here.
+
+  # Structured access log per request, includes status, latency, IP.
+  log {
+    output stdout
+    format json
+  }
+
+  # Compress responses Flask hasn't already compressed.
+  encode gzip zstd
+}

@@ -26,7 +26,9 @@
     <div class="bg-white rounded-lg p-6 mb-6">
       <h3 class="font-display font-bold text-sm mb-4 text-text">Progression</h3>
       {% set statuses = ['confirmed', 'delivered', 'invoiced', 'paid'] %}
-      {% set current_idx = statuses.index(order.status.value) if order.status.value in statuses else -1 %}
+      {# `invoicing` (P3.4 phase 2 in flight) shares the `delivered` step. #}
+      {% set effective_status = 'delivered' if order.status.value == 'invoicing' else order.status.value %}
+      {% set current_idx = statuses.index(effective_status) if effective_status in statuses else -1 %}
       <div class="flex items-center justify-between">
         {% for s in statuses %}
         <div class="flex flex-col items-center flex-1">
@@ -139,7 +141,7 @@
     </div>
     {% endif %}
 
-    {% if order.status in (OrderStatus.confirmed, OrderStatus.delivered) and not order.stripe_hosted_invoice_url %}
+    {% if order.status in (OrderStatus.confirmed, OrderStatus.delivered, OrderStatus.invoicing) and not order.stripe_hosted_invoice_url %}
     <div class="bg-white rounded-lg p-6 mb-6">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
