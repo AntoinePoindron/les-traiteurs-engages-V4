@@ -100,6 +100,16 @@ def test_logout_clears_session(client, login):
     login("alice@test.local")
     # Confirm logged in
     assert client.get("/client/dashboard").status_code == 200
-    client.get("/logout")
+    # VULN-18: logout is POST-only now (CSRF + no remote logout via <img>).
+    client.post("/logout")
     # Now back to redirect
     assert client.get("/client/dashboard", follow_redirects=False).status_code == 302
+
+
+def test_logout_get_is_rejected(client, login):
+    """GET on /logout must return 405 (Method Not Allowed) to defeat the
+    classic CSRF-via-image attack vector."""
+    login("alice@test.local")
+    assert client.get("/logout").status_code == 405
+    # Session must still be valid after the rejected GET.
+    assert client.get("/client/dashboard").status_code == 200

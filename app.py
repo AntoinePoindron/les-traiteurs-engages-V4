@@ -48,6 +48,11 @@ def create_app():
         SESSION_COOKIE_SECURE=settings.secure_cookies,
         PERMANENT_SESSION_LIFETIME=timedelta(days=7),
         WTF_CSRF_TIME_LIMIT=None,  # token lives for the session lifetime
+        # Cap request body size to defuse trivial DoS via huge uploads.
+        # 16 MB covers logos, profile pictures, attachment screenshots
+        # comfortably; bump if the product ever needs to accept invoice PDFs
+        # or video. Triggers a 413 error caught by the handler below. (P2 #2)
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024,
     )
 
     csrf.init_app(app)
@@ -131,6 +136,25 @@ def create_app():
         except Exception:
             pass
         return render_template("errors/500.html"), 500
+
+    @app.errorhandler(ValueError)
+    def _bad_value(e):
+        # Defence in depth (audit 1 VULN-47, audit 2 #11): even though every
+        # endpoint routes user input through WTForms or guarded try/except, a
+        # future regression that lets ValueError escape would otherwise return
+        # 500 with a stack trace in dev mode. Catch it here and return a clean
+        # 400, in JSON for /api routes so the frontend can display it.
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "Donnee invalide."}), 400
+        return render_template("errors/400.html"), 400
+
+    @app.errorhandler(413)
+    def _too_large(_e):
+        # Triggered when the request body exceeds MAX_CONTENT_LENGTH.
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "Requete trop volumineuse (max 16 Mo)."}), 413
+        # Fall back to the generic 500 template until a dedicated 413 page exists.
+        return render_template("errors/500.html"), 413
 
     @app.route("/health")
     def health():

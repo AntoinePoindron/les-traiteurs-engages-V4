@@ -21,7 +21,10 @@ from models import (
     QuoteStatus,
     User,
 )
+from pydantic import ValidationError
+
 from services import workflow
+from services.json_schemas import ServiceConfig
 from services.quotes import (
     calculate_quote_totals, generate_quote_reference, lines_from_dicts,
 )
@@ -125,10 +128,22 @@ def profile_save():
     caterer.specialties = [s.strip() for s in specialties_raw.split(",") if s.strip()] if specialties_raw else caterer.specialties
     service_config_raw = form.service_config.data or ""
     if service_config_raw:
+        # VULN-25: validate the JSON shape strictly. Pydantic with extra="forbid"
+        # rejects unknown keys (typos, attempted bloat) and enforces the
+        # MealType -> bool contract that services/matching.py relies on.
         try:
-            caterer.service_config = json.loads(service_config_raw)
+            parsed = json.loads(service_config_raw)
+            validated = ServiceConfig.model_validate(parsed)
+            caterer.service_config = validated.model_dump()
         except json.JSONDecodeError:
-            pass
+            flash("Configuration JSON : syntaxe invalide.", "error")
+            return redirect(url_for("caterer.profile"))
+        except ValidationError as exc:
+            # Surface the first error in human terms (full report goes to logs).
+            first = exc.errors()[0]
+            field = ".".join(str(p) for p in first["loc"]) or "(racine)"
+            flash(f"Configuration JSON invalide en '{field}' : {first['msg']}.", "error")
+            return redirect(url_for("caterer.profile"))
     db.commit()
     flash("Profil mis a jour.", "success")
     return redirect(url_for("caterer.profile"))

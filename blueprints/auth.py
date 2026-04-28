@@ -243,7 +243,10 @@ def signup():
     return render_template("auth/signup.html")
 
 
-@auth_bp.route("/logout")
+@auth_bp.route("/logout", methods=["POST"])
 def logout():
+    # VULN-18: POST + CSRF token instead of GET so a third-party page cannot
+    # silently log the user out via <img src=".../logout"> or a fetch.
+    # CSRFProtect (extensions.csrf) validates the form's csrf_token field.
     session.clear()
     return redirect(url_for("auth.login"))

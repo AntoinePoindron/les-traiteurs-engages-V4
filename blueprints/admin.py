@@ -26,6 +26,7 @@ from models import (
     User,
 )
 from services import workflow
+from services.audit import log_admin_action
 from services.matching import find_matching_caterers
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -106,6 +107,11 @@ def qualification_approve(request_id):
     except workflow.NoMatchingCaterers:
         flash("Aucun traiteur compatible trouve. Impossible d'approuver.", "error")
         return redirect(url_for("admin.qualification_detail", request_id=request_id))
+    log_admin_action(
+        db, g.current_user, "quote_request.approve",
+        target_type="quote_request", target_id=request_id,
+        extra={"matched_caterers": len(qrcs)},
+    )
     db.commit()
     flash(f"Demande approuvee et envoyee a {len(qrcs)} traiteur(s).", "success")
     return redirect(url_for("admin.qualification"))
@@ -126,6 +132,11 @@ def qualification_reject(request_id):
         )
     except workflow.RequestNotFound:
         abort(404)
+    log_admin_action(
+        db, g.current_user, "quote_request.reject",
+        target_type="quote_request", target_id=request_id,
+        extra={"reason": form.rejection_reason.data},
+    )
     db.commit()
     flash("Demande rejetee.", "info")
     return redirect(url_for("admin.qualification"))
@@ -160,6 +171,11 @@ def caterer_validate(caterer_id):
     if not caterer:
         abort(404)
     caterer.is_validated = True
+    log_admin_action(
+        db, g.current_user, "caterer.validate",
+        target_type="caterer", target_id=caterer_id,
+        extra={"caterer_name": caterer.name},
+    )
     db.commit()
     flash(f"Traiteur {caterer.name} valide.", "success")
     return redirect(url_for("admin.caterer_detail", caterer_id=caterer_id))
@@ -174,6 +190,11 @@ def caterer_invalidate(caterer_id):
     if not caterer:
         abort(404)
     caterer.is_validated = False
+    log_admin_action(
+        db, g.current_user, "caterer.invalidate",
+        target_type="caterer", target_id=caterer_id,
+        extra={"caterer_name": caterer.name},
+    )
     db.commit()
     flash(f"Traiteur {caterer.name} invalide.", "info")
     return redirect(url_for("admin.caterer_detail", caterer_id=caterer_id))
@@ -358,32 +379,97 @@ def stats():
     )
 
 
+_MESSAGES_PAGE_SIZE = 25
+
+
 @admin_bp.route("/messages")
 @login_required
 @role_required("super_admin")
 def messages():
+    """Paginated thread overview. VULN-21: replaces a load-all-then-N+1
+    implementation that OOM'd past a few thousand messages.
+
+    Three queries total regardless of dataset size:
+      1. Aggregate per thread (count + last_at), paginated.
+      2. Fetch the latest Message per thread via PostgreSQL DISTINCT ON.
+      3. Bulk-fetch the involved Users.
+    """
     db = get_db()
-    all_messages = db.scalars(
-        select(Message).order_by(Message.created_at.desc())
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+
+    total_threads = db.scalar(
+        select(func.count(func.distinct(Message.thread_id)))
+    ) or 0
+    total_pages = (total_threads + _MESSAGES_PAGE_SIZE - 1) // _MESSAGES_PAGE_SIZE
+
+    # 1. Per-thread aggregates, paginated by last activity.
+    summaries = db.execute(
+        select(
+            Message.thread_id.label("thread_id"),
+            func.count(Message.id).label("message_count"),
+            func.max(Message.created_at).label("last_at"),
+        )
+        .group_by(Message.thread_id)
+        .order_by(func.max(Message.created_at).desc())
+        .limit(_MESSAGES_PAGE_SIZE)
+        .offset((page - 1) * _MESSAGES_PAGE_SIZE)
     ).all()
-    threads = {}
-    for msg in all_messages:
-        tid = str(msg.thread_id)
-        if tid not in threads:
-            sender = db.get(User, msg.sender_id)
-            recipient = db.get(User, msg.recipient_id)
-            threads[tid] = {
-                "thread_id": tid,
-                "sender_name": f"{sender.first_name} {sender.last_name}" if sender else "Inconnu",
-                "recipient_name": f"{recipient.first_name} {recipient.last_name}" if recipient else "Inconnu",
-                "last_message": msg.body[:80],
-                "last_at": msg.created_at,
-                "message_count": db.scalar(
-                    select(func.count(Message.id)).where(Message.thread_id == msg.thread_id)
-                ),
-            }
+
+    if not summaries:
+        return render_template(
+            "admin/messages.html",
+            user=g.current_user,
+            threads=[],
+            page=page,
+            total_pages=total_pages,
+            total=total_threads,
+        )
+
+    thread_ids = [s.thread_id for s in summaries]
+    count_by_thread = {s.thread_id: s.message_count for s in summaries}
+
+    # 2. Last message per paginated thread. PostgreSQL-specific DISTINCT ON
+    # picks the row with the greatest created_at per thread in one pass.
+    last_messages = db.execute(
+        select(Message)
+        .where(Message.thread_id.in_(thread_ids))
+        .order_by(Message.thread_id, Message.created_at.desc())
+        .distinct(Message.thread_id)
+    ).scalars().all()
+    last_by_thread = {m.thread_id: m for m in last_messages}
+
+    # 3. Bulk-fetch every user referenced by the paginated last messages.
+    user_ids = set()
+    for msg in last_messages:
+        user_ids.add(msg.sender_id)
+        user_ids.add(msg.recipient_id)
+    users = {
+        u.id: u for u in db.execute(
+            select(User).where(User.id.in_(user_ids))
+        ).scalars().all()
+    } if user_ids else {}
+
+    threads = []
+    for tid in thread_ids:  # preserves the ORDER BY last_at DESC
+        msg = last_by_thread.get(tid)
+        if not msg:
+            continue
+        sender = users.get(msg.sender_id)
+        recipient = users.get(msg.recipient_id)
+        threads.append({
+            "thread_id": str(tid),
+            "sender_name": f"{sender.first_name} {sender.last_name}" if sender else "Inconnu",
+            "recipient_name": f"{recipient.first_name} {recipient.last_name}" if recipient else "Inconnu",
+            "last_message": (msg.body or "")[:80],
+            "last_at": msg.created_at,
+            "message_count": count_by_thread.get(tid, 0),
+        })
+
     return render_template(
         "admin/messages.html",
         user=g.current_user,
-        threads=list(threads.values()),
+        threads=threads,
+        page=page,
+        total_pages=total_pages,
+        total=total_threads,
     )

@@ -451,6 +451,36 @@ class Notification(Base):
     user: Mapped[User] = relationship(back_populates="notifications")
 
 
+class AuditLog(Base):
+    """Append-only journal of sensitive admin actions.
+
+    Written by services.audit.log_admin_action(). Never modified or deleted
+    by application code — that's the whole point. Operationally, the table
+    can be archived (move rows older than N years to cold storage) but never
+    edited in place.
+
+    Captures who did what to which entity, when, with optional metadata
+    (e.g. rejection reason, before/after snapshots) plus IP + user-agent
+    for forensics. The actor's email is snapshotted alongside actor_id so
+    that deleting a user does not erase the audit trail.
+
+    Audit reference: P3 / "audit logging des actions admin sensibles".
+    """
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
+    actor_email: Mapped[str | None] = mapped_column(String(255))
+    action: Mapped[str] = mapped_column(String(60), index=True)
+    target_type: Mapped[str | None] = mapped_column(String(40))
+    target_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
+    extra: Mapped[dict | None] = mapped_column(JSON)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
+
+
 class StripeEvent(Base):
     """Deduplication table for Stripe webhook events.
 

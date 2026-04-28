@@ -165,9 +165,12 @@
         <button class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
           <i data-lucide="bell" class="w-4.5 h-4.5 text-mute"></i>
         </button>
-        <a href="{{ url_for('auth.logout') }}" class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors" title="D&#233;connexion">
-          <i data-lucide="log-out" class="w-4.5 h-4.5 text-mute"></i>
-        </a>
+        <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors" title="D&#233;connexion">
+            <i data-lucide="log-out" class="w-4.5 h-4.5 text-mute"></i>
+          </button>
+        </form>
       </div>
     </div>
   </aside>
