@@ -28,6 +28,14 @@ PASSWORD_BLOCKLIST = {
     "secret", "test1234",
 }
 
+# Pre-computed dummy hash so /login always pays bcrypt's cost, whether the
+# email exists or not. Without this, the `or` short-circuit at l. 84 below
+# made bcrypt run only when the user existed, leaking ~250 ms on hits
+# vs ~10 ms on misses — trivial email enumeration (audit VULN-102).
+# Generated once at import; the actual password we hash is irrelevant
+# because we only care about constant work.
+_DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"timing-safe-dummy", bcrypt.gensalt()).decode()
+
 
 def validate_password(password: str) -> str | None:
     """Return None if the password passes policy, else a user-facing error."""
@@ -69,7 +77,13 @@ def login():
         user = db.execute(
             select(User).where(User.email == email)
         ).scalar_one_or_none()
-        if not user or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+        # VULN-102: always pay the bcrypt cost — comparing against a dummy
+        # hash when the user does not exist keeps the response time
+        # constant (~250 ms in both branches) and prevents email
+        # enumeration via a timing side-channel.
+        hash_to_check = user.password_hash if user else _DUMMY_PASSWORD_HASH
+        password_ok = bcrypt.checkpw(password.encode(), hash_to_check.encode())
+        if not user or not password_ok:
             flash("Email ou mot de passe incorrect.", "error")
             return render_template("auth/login.html")
         if not user.is_active:

@@ -24,7 +24,10 @@ configure_logging()
 
 CSP = (
     "default-src 'self'; "
-    "script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; "
+    # VULN-105: lucide + chart.js are now bundled in static/js/vendor/,
+    # so we drop https://unpkg.com and https://cdn.jsdelivr.net from
+    # script-src. Tightens the supply-chain surface to first-party only.
+    "script-src 'self'; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' https://fonts.gstatic.com; "
     "img-src 'self' data:; "
