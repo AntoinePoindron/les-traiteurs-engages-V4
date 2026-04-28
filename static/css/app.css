@@ -68,8 +68,45 @@
 
   /* Type */
   --font-display:      'Fraunces', serif;
-  --font-body:         system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body:         'Marianne', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-feat-display: 'SOFT' 0, 'WONK' 1;
+}
+
+/* ============================================================
+   Marianne — police officielle de l'Etat (DSFR).
+   Fichiers attendus dans /static/fonts/Marianne/. Si absents, le browser
+   tombe gracieusement sur system-ui (defini en fallback dans --font-body).
+   Pour un rendu pixel-perfect, telecharger les fichiers depuis :
+     https://github.com/GouvernementFR/dsfr/tree/main/dist/fonts
+   et les placer dans static/fonts/Marianne/.
+   ============================================================ */
+@font-face {
+  font-family: 'Marianne';
+  src: url('/static/fonts/Marianne/Marianne-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Marianne';
+  src: url('/static/fonts/Marianne/Marianne-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Marianne';
+  src: url('/static/fonts/Marianne/Marianne-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Marianne';
+  src: url('/static/fonts/Marianne/Marianne-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
 
 /* Base element styles (moved from base.html <style>) */
@@ -321,3 +358,129 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 
 /* Badge sizes */
 .badge-xs { padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4; }
+
+/* ============================================================
+   LANDING PAGE — styles isoles sous .landing-root pour ne pas
+   contaminer les pages connectees. Portes du Next.js de reference
+   (src/app/globals.css). Tous les selecteurs commencent par
+   .landing-root pour scoper.
+   ============================================================ */
+
+.landing-root {
+  font-family: 'Marianne', system-ui, sans-serif;
+  color: var(--c-navy);
+  background-color: var(--c-cream-page);
+}
+.landing-root h1,
+.landing-root h2,
+.landing-root h3 {
+  font-family: 'Fraunces', Georgia, serif;
+}
+.landing-root .font-fraunces {
+  font-family: 'Fraunces', Georgia, serif;
+}
+.landing-root .font-fraunces-italic {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+}
+
+/* Badge "Lancement" sur la section sombre */
+.landing-root .badge-launch {
+  display: inline-block;
+  border: 1.5px solid white;
+  border-radius: 8px;
+  padding: 0.4rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: white;
+  letter-spacing: 0.02em;
+}
+
+/* Soulignement decoratif (pinceau) sur les titres */
+.landing-root .title-deco {
+  position: relative;
+  display: inline-block;
+}
+.landing-root .title-deco::before {
+  content: '';
+  display: block;
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 0.5rem;
+  rotate: 40deg;
+  background: url('/static/img/landing/deco-brush-strokes.png') no-repeat center;
+  background-size: contain;
+}
+@media (min-width: 640px) {
+  .landing-root .title-deco::before { display: none; }
+  .landing-root .title-deco::after {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 40px;
+    right: -60px;
+    width: 80px;
+    height: 80px;
+    rotate: 40deg;
+    background: url('/static/img/landing/deco-brush-strokes.png') no-repeat center;
+    background-size: contain;
+  }
+}
+
+/* Bouton avec animation "swap" hover (label slide-out, second label slide-in) */
+.landing-root .swap-btn {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  font-weight: 700;
+}
+.landing-root .swap-btn .swap-front,
+.landing-root .swap-btn .swap-back {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s;
+}
+.landing-root .swap-btn .swap-back { transform: translateY(100%); }
+.landing-root .swap-btn:hover .swap-front { transform: translateY(-100%); }
+.landing-root .swap-btn:hover .swap-back  { transform: translateY(0); }
+
+/* Step timeline desktop positioning (4 steps placed along an SVG S-curve) */
+.landing-root .step-pos-1 { top: -5%;  left: 24%; }
+.landing-root .step-pos-2 { top: 26%;  right: 23%; left: auto; }
+.landing-root .step-pos-3 { top: 60%;  left: 23%; }
+.landing-root .step-pos-4 { top: 94%;  right: 24%; left: auto; }
+
+/* Responsive utilities used by the landing — Tailwind variants `sm:`,
+   `md:`, `lg:` are not in the precompiled bundle, so we hand-write
+   the ones the landing relies on. Scoped under .landing-root to avoid
+   any leak to the connected pages (which use a different layout system). */
+@media (min-width: 640px) {
+  .landing-root .sm\:absolute        { position: absolute; }
+  .landing-root .sm\:block           { display: block; }
+  .landing-root .sm\:inline          { display: inline; }
+  .landing-root .sm\:flex-row        { flex-direction: row; }
+  .landing-root .sm\:flex-row-reverse{ flex-direction: row-reverse; }
+  .landing-root .sm\:items-start     { align-items: flex-start; }
+  .landing-root .sm\:text-left       { text-align: left; }
+  .landing-root .sm\:text-right      { text-align: right; }
+  .landing-root .sm\:px-6            { padding-left: 1.5rem; padding-right: 1.5rem; }
+}
+@media (min-width: 768px) {
+  .landing-root .md\:flex-row        { flex-direction: row; }
+  .landing-root .md\:items-start     { align-items: flex-start; }
+  .landing-root .md\:grid-cols-3     { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .landing-root .md\:order-1         { order: 1; }
+  .landing-root .md\:order-2         { order: 2; }
+  .landing-root .md\:mt-3            { margin-top: 0.75rem; }
+}
+@media (min-width: 1024px) {
+  .landing-root .lg\:flex-row        { flex-direction: row; }
+  .landing-root .lg\:justify-end     { justify-content: flex-end; }
+  .landing-root .lg\:justify-start   { justify-content: flex-start; }
+  .landing-root .lg\:text-left       { text-align: left; }
+  .landing-root .lg\:px-8            { padding-left: 2rem; padding-right: 2rem; }
+}
+

@@ -2,212 +2,286 @@
 
 {% block title %}Les Traiteurs Engag&#233;s - Traiteurs inclusifs pour vos &#233;v&#233;nements{% endblock %}
 
+{#-
+  Landing publique. Style scope sous .landing-root (cf. static/css/app.css).
+  Porte du Next.js de reference (src/components/landing/LandingPage.tsx).
+  Liens externes (Tally) ouvrent une nouvelle onglet avec rel="noopener noreferrer"
+  pour bloquer reverse-tabnabbing.
+-#}
+
+{% set TALLY_QUOTE = "https://tally.so/r/wgMrXd" %}
+
 {% block public_content %}
-<!-- Fixed header -->
-<header class="fixed top-0 left-0 right-0 z-30 backdrop-blur-md bg-white-95 h-14">
-  <div class="max-w-6xl mx-auto px-4 h-full flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-8">
-    </div>
-    <div class="flex items-center gap-3">
-      <a href="{{ url_for('auth.login') }}"
-        class="text-sm font-medium px-4 py-2 rounded-xl transition-colors text-navy">
-        Connexion
-      </a>
-      <a href="{{ url_for('auth.signup') }}"
-        class="text-sm font-medium text-white px-5 py-2 rounded-xl transition-colors relative overflow-hidden group bg-navy">
-        <span class="relative z-10">S'inscrire</span>
-      </a>
-    </div>
-  </div>
-</header>
+<main class="landing-root" style="background-color:#FAF7F2;color:#1A3A52;">
 
-<!-- Hero -->
-<section class="pt-32 pb-20 px-4 bg-cream-page">
-  <div class="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
-    <div class="flex-1 max-w-xl">
-      <h1 class="font-display text-4xl sm:text-5xl font-bold leading-tight mb-6 text-navy">
-        Des traiteurs<br><em class="italic">engag&#233;s</em> pour vos<br>&#233;v&#233;nements
-      </h1>
-      <p class="text-lg mb-8 leading-relaxed text-mute">
-        Mettez en relation votre entreprise avec des traiteurs ESAT, EA, EI et ACI.
-        Valorisez votre engagement social tout en offrant des prestations de qualit&#233;.
+  {# ========== HEADER ========== #}
+  <header class="fixed top-0 left-0 right-0 z-50" style="backdrop-filter: blur(8px); background-color: rgba(255,255,255,0.95);">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between" style="height:3.5rem;">
+        <div class="flex items-center gap-3">
+          <img src="{{ url_for('static', filename='img/landing/logo-republique.png') }}"
+               alt="R&#233;publique Fran&#231;aise" style="height:2rem;width:auto;">
+          <div style="width:1px;height:1.75rem;background-color:rgba(26,58,82,0.2);"></div>
+          <img src="{{ url_for('static', filename='img/landing/logo-traiteurs-engages.png') }}"
+               alt="Les traiteurs engag&#233;s" style="height:1.75rem;width:auto;">
+        </div>
+        <nav class="flex items-center gap-3">
+          <a href="{{ url_for('auth.login') }}"
+             class="hidden sm:inline text-sm font-bold transition-opacity hover:opacity-70"
+             style="color:#1A3A52;">Se connecter</a>
+          <a href="{{ url_for('auth.signup') }}"
+             class="swap-btn relative inline-block text-white"
+             style="width:10rem;height:2.25rem;border-radius:9999px;background-color:#1A3A52;font-size:0.75rem;">
+            <span class="swap-front">S'inscrire</span>
+            <span class="swap-back">C'est parti&#160;!</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  {# ========== HERO ========== #}
+  <section id="hero" style="background-color:#FAF7F2;padding-top:5rem;padding-bottom:2.5rem;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col lg:flex-row items-center" style="gap:2rem;">
+        <div class="flex-1 text-center lg:text-left">
+          <h1 class="font-fraunces font-bold" style="font-size:1.875rem;line-height:1.2;margin-bottom:1rem;">
+            Des traiteurs<br>
+            <span class="font-fraunces-italic" style="color:#B70102;">engag&#233;s</span> pour<br>
+            vos &#233;v&#233;nements
+          </h1>
+          <p style="font-size:0.875rem;margin-bottom:1.5rem;max-width:28rem;color:rgba(0,0,0,0.7);">
+            Facilitez vos prestations traiteurs, renforcez vos achats inclusifs.
+          </p>
+          <a href="{{ TALLY_QUOTE }}" target="_blank" rel="noopener noreferrer"
+             class="swap-btn relative inline-block text-white"
+             style="width:16rem;height:3rem;border-radius:9999px;background-color:#1A3A52;font-size:0.875rem;">
+            <span class="swap-front">Faire une demande de devis</span>
+            <span class="swap-back">C'est parti&#160;!</span>
+          </a>
+
+          <div class="flex justify-center lg:justify-start" style="gap:1.5rem;margin-top:2rem;">
+            <div class="text-center lg:text-left">
+              <p class="font-fraunces font-bold" style="font-size:1.5rem;color:#1A3A52;">{{ caterer_count or 61 }}</p>
+              <p style="font-size:0.6875rem;margin-top:0.25rem;max-width:120px;color:#1A3A52;">
+                Traiteurs inclusifs r&#233;f&#233;renc&#233;s en &#206;le-de-France
+              </p>
+            </div>
+            <div class="text-center lg:text-left">
+              <p class="font-fraunces font-bold" style="font-size:1.5rem;color:#1A3A52;">{{ order_count or '350+' }}</p>
+              <p style="font-size:0.6875rem;margin-top:0.25rem;color:#1A3A52;">&#201;v&#233;nements r&#233;alis&#233;s</p>
+            </div>
+            <div class="text-center lg:text-left">
+              <p class="font-fraunces font-bold" style="font-size:1.5rem;color:#1A3A52;">89%</p>
+              <p style="font-size:0.6875rem;margin-top:0.25rem;color:#1A3A52;">D'utilisateurs satisfaits</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 flex justify-center lg:justify-end">
+          <img src="{{ url_for('static', filename='img/landing/Hero_image.png') }}"
+               alt="Traiteurs engag&#233;s - prestations &#233;v&#233;nementielles"
+               style="width:100%;max-width:24rem;height:auto;">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ========== COMMENT CA FONCTIONNE ========== #}
+  <section id="how-it-works" style="background-color:#FAF7F2;padding-top:2rem;padding-bottom:3rem;">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center" style="margin-bottom:2.5rem;">
+        <h2 class="font-fraunces font-bold" style="font-size:1.5rem;margin-bottom:0.75rem;">
+          <span class="title-deco">Comment &#231;a fonctionne&#160;?</span>
+        </h2>
+        <p style="font-size:0.875rem;max-width:36rem;margin:0 auto;color:rgba(0,0,0,0.6);">
+          Un processus simple et efficace pour trouver le traiteur id&#233;al pour votre &#233;v&#233;nement
+        </p>
+      </div>
+
+      {# Conteneur 600x600 desktop, stack vertical mobile #}
+      <div class="relative w-full mx-auto" style="max-width:600px;">
+        {# Chemin SVG (desktop only) #}
+        <div class="hidden sm:block absolute inset-0 pointer-events-none">
+          <img src="{{ url_for('static', filename='img/landing/chemin-desktop.svg') }}"
+               alt="" aria-hidden="true"
+               class="absolute" style="top:0;left:50%;transform:translateX(-50%);height:100%;width:auto;">
+        </div>
+
+        <div class="relative z-10 flex flex-col gap-10 sm:block" style="aspect-ratio:1/1;">
+          {# Step 1 - top right #}
+          <div class="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left sm:absolute step-pos-1">
+            <img src="{{ url_for('static', filename='img/landing/shape-mushroom.png') }}"
+                 alt="" aria-hidden="true" style="width:90px;height:90px;object-fit:contain;flex-shrink:0;">
+            <div style="max-width:200px;">
+              <h3 class="font-fraunces font-bold" style="font-size:1rem;margin-bottom:0.25rem;">1. Inscrivez-vous</h3>
+              <p style="font-size:0.75rem;color:rgba(0,0,0,0.6);">
+                Cr&#233;ez un compte pour votre organisation &amp; rattachez autant d'utilisateurs que vous le souhaitez
+              </p>
+            </div>
+          </div>
+
+          {# Step 2 - mid left #}
+          <div class="flex flex-col items-center text-center gap-3 sm:flex-row-reverse sm:items-start sm:text-right sm:absolute step-pos-2">
+            <img src="{{ url_for('static', filename='img/landing/shape-star-pink.png') }}"
+                 alt="" aria-hidden="true" style="width:90px;height:90px;object-fit:contain;flex-shrink:0;">
+            <div style="max-width:200px;">
+              <h3 class="font-fraunces font-bold" style="font-size:1rem;margin-bottom:0.25rem;">2. D&#233;posez votre demande de devis</h3>
+              <p style="font-size:0.75rem;color:rgba(0,0,0,0.6);">
+                Type d'&#233;v&#233;nement, nombre de convives, date, lieu&#160;: nous qualifions votre demande&#160;!
+              </p>
+            </div>
+          </div>
+
+          {# Step 3 - mid right #}
+          <div class="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left sm:absolute step-pos-3">
+            <img src="{{ url_for('static', filename='img/landing/shape-butterfly.png') }}"
+                 alt="" aria-hidden="true" style="width:90px;height:90px;object-fit:contain;flex-shrink:0;">
+            <div style="max-width:200px;">
+              <h3 class="font-fraunces font-bold" style="font-size:1rem;margin-bottom:0.25rem;">3. Recevez 3 devis</h3>
+              <p style="font-size:0.75rem;color:rgba(0,0,0,0.6);">
+                Les traiteurs les plus adapt&#233;s vous envoient leurs propositions personnalis&#233;es
+              </p>
+            </div>
+          </div>
+
+          {# Step 4 - bottom left #}
+          <div class="flex flex-col items-center text-center gap-3 sm:flex-row-reverse sm:items-start sm:text-right sm:absolute step-pos-4">
+            <img src="{{ url_for('static', filename='img/landing/shape-scallop-pink.png') }}"
+                 alt="" aria-hidden="true" style="width:90px;height:90px;object-fit:contain;flex-shrink:0;">
+            <div style="max-width:200px;">
+              <h3 class="font-fraunces font-bold" style="font-size:1rem;margin-bottom:0.25rem;">4. Choisissez et<br>c'est parti&#160;!</h3>
+              <p style="font-size:0.75rem;color:rgba(0,0,0,0.6);">
+                Comparez, &#233;changez et validez votre choix en toute simplicit&#233;
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ========== BIENTOT DISPONIBLE ========== #}
+  <section id="coming-soon" class="relative" style="background-color:#1A3A52;padding-top:3rem;padding-bottom:3rem;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="text-center" style="margin-bottom:2.5rem;">
+        <span class="badge-launch" style="margin-bottom:1.25rem;">Lancement avril 2026</span>
+        <h2 class="font-fraunces font-bold text-white" style="font-size:1.5rem;margin-top:0.75rem;margin-bottom:0.75rem;">
+          Bient&#244;t disponible
+        </h2>
+        <p class="text-white" style="font-size:0.875rem;max-width:36rem;margin:0 auto;">
+          Une plateforme compl&#232;te pens&#233;e pour simplifier la gestion de vos &#233;v&#233;nements traiteurs
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3" style="gap:1.25rem;margin-bottom:2.5rem;">
+        <div>
+          <div class="flex items-center justify-center" style="gap:0.5rem;margin-bottom:0.75rem;">
+            <img src="{{ url_for('static', filename='img/landing/arrow-1.png') }}" alt="" aria-hidden="true"
+                 style="width:1.5rem;height:1.5rem;transform:rotate(180deg);">
+            <span class="font-fraunces font-fraunces-italic font-bold text-white" style="font-size:1rem;margin-bottom:1rem;">Messagerie</span>
+          </div>
+          <img src="{{ url_for('static', filename='img/landing/screenshots/screenshot-messagerie.png') }}"
+               alt="Aper&#231;u de la messagerie interne" style="width:100%;height:auto;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center justify-center md:order-2 md:mt-3" style="gap:0.5rem;margin-bottom:0.75rem;">
+            <span class="font-fraunces font-fraunces-italic font-bold text-white" style="font-size:1rem;margin-bottom:1rem;">
+              Demande de devis sur-mesure
+            </span>
+            <img src="{{ url_for('static', filename='img/landing/arrow-1.png') }}" alt="" aria-hidden="true"
+                 style="width:1.5rem;height:1.5rem;transform:scaleY(-1);">
+          </div>
+          <img src="{{ url_for('static', filename='img/landing/screenshots/screenshot-demande.png') }}"
+               alt="Aper&#231;u de la demande de devis sur-mesure"
+               class="md:order-1" style="width:100%;height:auto;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
+        </div>
+        <div>
+          <div class="flex items-center justify-center" style="gap:0.5rem;margin-bottom:0.75rem;">
+            <span class="font-fraunces font-fraunces-italic font-bold text-white" style="font-size:1rem;margin-bottom:1rem;">Catalogue traiteur</span>
+            <img src="{{ url_for('static', filename='img/landing/arrow-2.png') }}" alt="" aria-hidden="true"
+                 style="width:2.5rem;height:1.5rem;">
+          </div>
+          <img src="{{ url_for('static', filename='img/landing/screenshots/screenshot-catalogue.png') }}"
+               alt="Aper&#231;u du catalogue traiteur" style="width:100%;height:auto;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
+        </div>
+      </div>
+
+      <div class="text-center">
+        <a href="{{ url_for('auth.signup') }}"
+           class="swap-btn relative inline-block bg-white"
+           style="width:16rem;height:3rem;border-radius:9999px;color:#B70102;font-size:0.875rem;">
+          <span class="swap-front">S'inscrire</span>
+          <span class="swap-back">C'est parti</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {# ========== PLATEFORME DE L'INCLUSION ========== #}
+  <section id="inclusion" style="background-color:#FAF7F2;padding-top:3.5rem;padding-bottom:3.5rem;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col lg:flex-row items-center" style="gap:2rem;">
+        <div class="flex-1 text-center lg:text-left">
+          <h2 class="font-fraunces font-bold text-text" style="font-size:1.25rem;margin-bottom:1rem;">
+            <span class="title-deco">
+              Un projet port&#233; par la<br>Plateforme de l'inclusion
+            </span>
+          </h2>
+          <p class="text-text" style="font-size:0.875rem;line-height:1.625;">
+            Les traiteurs engag&#233;s est un produit n&#233; d'une ambition&#160;: rendre l'inclusion accessible &#224; toutes
+            les entreprises &#224; travers leurs choix de restauration&#160;!
+          </p>
+          <p class="text-text" style="font-size:0.875rem;line-height:1.625;margin-top:0.75rem;">
+            Port&#233; par la Plateforme de l'inclusion, ce projet connecte les entreprises avec des structures
+            inclusives (SIAE, ESAT et EA) qui emploient des personnes &#233;loign&#233;es de l'emploi.
+          </p>
+        </div>
+        <div class="flex-shrink-0">
+          <img src="{{ url_for('static', filename='img/landing/logo-plateforme-inclusion.png') }}"
+               alt="Plateforme de l'inclusion" style="width:14rem;height:auto;">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ========== CTA FINAL ========== #}
+  <section id="cta-final" class="relative overflow-hidden" style="background-color:#FFDDDD;padding-top:3rem;padding-bottom:3rem;">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+      <h2 class="font-fraunces font-bold" style="font-size:1.25rem;line-height:1.2;margin-bottom:1rem;color:#B70102;">
+        Vous pouvez d&#232;s &#224; pr&#233;sent faire appel aux traiteurs engag&#233;s&#160;!
+      </h2>
+      <p style="font-size:0.875rem;margin-bottom:2rem;color:#B70102;">
+        Demandez un devis en quelques minutes &amp; recevez jusqu'&#224; 3 devis.
       </p>
-      <a href="{{ url_for('auth.signup') }}"
-        class="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-medium text-base btn-navy">
-        D&#233;couvrir la plateforme
-        <i data-lucide="arrow-right" class="w-4 h-4"></i>
-      </a>
-
-      <!-- Stat counters -->
-      <div class="flex items-center gap-8 mt-10">
-        <div>
-          <p class="font-display text-3xl font-bold text-navy">{{ caterer_count or 0 }}</p>
-          <p class="text-sm text-mute">Traiteurs</p>
-        </div>
-        <div class="w-px h-10 bg-border-default"></div>
-        <div>
-          <p class="font-display text-3xl font-bold text-navy">{{ company_count or 0 }}</p>
-          <p class="text-sm text-mute">Entreprises</p>
-        </div>
-        <div class="w-px h-10 bg-border-default"></div>
-        <div>
-          <p class="font-display text-3xl font-bold text-navy">{{ order_count or 0 }}</p>
-          <p class="text-sm text-mute">Commandes</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right side: illustration placeholder -->
-    <div class="flex-1 relative hidden lg:flex items-center justify-center">
-      <div class="relative w-80 h-80">
-        <!-- Pink geometric shape -->
-        <svg class="absolute -top-4 -right-4 w-72 h-72 opacity-20" viewBox="0 0 200 200">
-          <path d="M100 0 L200 50 L200 150 L100 200 L0 150 L0 50 Z" fill="#FFDDDD"/>
-        </svg>
-        <!-- Placeholder cards -->
-        <div class="absolute top-8 left-4 w-48 h-32 rounded-2xl shadow-lg overflow-hidden bg-cream">
-          <div class="p-4">
-            <div class="text-3xl mb-2">&#127858;</div>
-            <div class="h-2 rounded bg-border-default" style="width: 80%;"></div>
-            <div class="h-2 rounded mt-2 bg-border-default" style="width: 60%;"></div>
-          </div>
-        </div>
-        <div class="absolute bottom-8 right-4 w-48 h-32 rounded-2xl shadow-lg overflow-hidden bg-white">
-          <div class="p-4">
-            <div class="text-3xl mb-2">&#127869;</div>
-            <div class="h-2 rounded bg-border-default" style="width: 70%;"></div>
-            <div class="h-2 rounded mt-2 bg-border-default" style="width: 50%;"></div>
-          </div>
-        </div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-28 rounded-2xl shadow-lg overflow-hidden bg-white">
-          <div class="p-4">
-            <div class="text-3xl mb-2">&#129367;</div>
-            <div class="h-2 rounded bg-border-default" style="width: 90%;"></div>
-            <div class="h-2 rounded mt-2 bg-border-default" style="width: 40%;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Comment &#231;a fonctionne -->
-<section class="py-20 px-4 bg-white">
-  <div class="max-w-5xl mx-auto">
-    <h2 class="font-display text-3xl font-bold text-center mb-4 text-navy">Comment &#231;a fonctionne</h2>
-    <p class="text-center mb-14 max-w-xl mx-auto text-mute">Quatre &#233;tapes simples pour trouver le traiteur id&#233;al.</p>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-      <div class="text-center">
-        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-cream">
-          <span class="text-2xl">&#128221;</span>
-        </div>
-        <div class="font-display text-sm font-bold mb-2 text-coral">&#201;tape 1</div>
-        <h3 class="font-display text-base font-semibold mb-2 text-navy">D&#233;crivez votre besoin</h3>
-        <p class="text-sm leading-relaxed text-mute">Type de repas, nombre de convives, r&#233;gimes alimentaires, date et lieu.</p>
-      </div>
-      <div class="text-center">
-        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-cream">
-          <span class="text-2xl">&#128104;&#8205;&#127859;</span>
-        </div>
-        <div class="font-display text-sm font-bold mb-2 text-coral">&#201;tape 2</div>
-        <h3 class="font-display text-base font-semibold mb-2 text-navy">Recevez des devis</h3>
-        <p class="text-sm leading-relaxed text-mute">Jusqu'&#224; 3 propositions de traiteurs qualifi&#233;s et proches de votre lieu.</p>
-      </div>
-      <div class="text-center">
-        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-cream">
-          <span class="text-2xl">&#9989;</span>
-        </div>
-        <div class="font-display text-sm font-bold mb-2 text-coral">&#201;tape 3</div>
-        <h3 class="font-display text-base font-semibold mb-2 text-navy">Comparez et choisissez</h3>
-        <p class="text-sm leading-relaxed text-mute">Comparez les offres en d&#233;tail et acceptez le devis de votre choix.</p>
-      </div>
-      <div class="text-center">
-        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-cream">
-          <span class="text-2xl">&#127881;</span>
-        </div>
-        <div class="font-display text-sm font-bold mb-2 text-coral">&#201;tape 4</div>
-        <h3 class="font-display text-base font-semibold mb-2 text-navy">Commandez et payez</h3>
-        <p class="text-sm leading-relaxed text-mute">Suivez la commande et payez en ligne. Facturation B2B &#224; 30 jours.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Bient&#244;t disponible -->
-<section class="py-20 px-4 bg-navy">
-  <div class="max-w-5xl mx-auto">
-    <h2 class="font-display text-3xl font-bold text-white text-center mb-4">Bient&#244;t disponible</h2>
-    <p class="text-center mb-14 text-white-60">De nouvelles fonctionnalit&#233;s arrivent pour am&#233;liorer votre exp&#233;rience.</p>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="rounded-xl p-6 bg-white-8">
-        <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-4 bg-white-12">
-          <i data-lucide="calendar" class="w-5 h-5 text-white"></i>
-        </div>
-        <h3 class="font-display text-base font-semibold text-white mb-2">Planning int&#233;gr&#233;</h3>
-        <p class="text-sm text-white-60">G&#233;rez vos &#233;v&#233;nements et livraisons depuis un calendrier centralis&#233;.</p>
-      </div>
-      <div class="rounded-xl p-6 bg-white-8">
-        <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-4 bg-white-12">
-          <i data-lucide="star" class="w-5 h-5 text-white"></i>
-        </div>
-        <h3 class="font-display text-base font-semibold text-white mb-2">Avis et notations</h3>
-        <p class="text-sm text-white-60">&#201;valuez vos prestations pour aider la communaut&#233; &#224; faire les meilleurs choix.</p>
-      </div>
-      <div class="rounded-xl p-6 bg-white-8">
-        <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-4 bg-white-12">
-          <i data-lucide="repeat" class="w-5 h-5 text-white"></i>
-        </div>
-        <h3 class="font-display text-base font-semibold text-white mb-2">Commandes r&#233;currentes</h3>
-        <p class="text-sm text-white-60">Programmez vos commandes habituelles en quelques clics.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Partnership -->
-<section class="py-16 px-4 bg-white">
-  <div class="max-w-3xl mx-auto text-center">
-    <p class="text-sm font-medium uppercase tracking-wider mb-4 text-mute-soft">Partenaire</p>
-    <h2 class="font-display text-2xl font-bold mb-4 text-navy">Un projet port&#233; par la Plateforme de l'inclusion</h2>
-    <p class="text-sm leading-relaxed text-mute">
-      Les Traiteurs Engag&#233;s s'inscrit dans l'&#233;cosyst&#232;me de la Plateforme de l'inclusion,
-      qui facilite l'acc&#232;s &#224; l'emploi des personnes en situation de fragilit&#233;.
-    </p>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="py-20 px-4 bg-cta-blush">
-  <div class="max-w-3xl mx-auto text-center">
-    <h2 class="font-display text-3xl font-bold mb-4 text-red-cta">Pr&#234;t &#224; vous engager ?</h2>
-    <p class="mb-8 text-red-cta opacity-70">Rejoignez la plateforme et valorisez votre engagement social.</p>
-    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-      <a href="{{ url_for('auth.signup') }}"
-        class="w-full sm:w-auto px-8 py-3.5 font-medium rounded-xl text-center btn-red">
-        Je suis une entreprise
-      </a>
-      <a href="{{ url_for('auth.signup') }}"
-        class="w-full sm:w-auto px-8 py-3.5 font-medium rounded-xl transition-colors text-center bg-white text-red-cta border-2 border-red-cta">
-        Je suis un traiteur
+      <a href="{{ TALLY_QUOTE }}" target="_blank" rel="noopener noreferrer"
+         class="swap-btn relative inline-block"
+         style="width:16rem;height:3rem;border-radius:9999px;border:2px solid #B70102;color:#B70102;font-size:0.875rem;">
+        <span class="swap-front">Faire une demande de devis</span>
+        <span class="swap-back">C'est parti&#160;!</span>
       </a>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- Footer -->
-<footer class="py-10 px-4 bg-text">
-  <div class="max-w-5xl mx-auto">
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-8 brightness-0 invert">
+  {# ========== FOOTER ========== #}
+  <footer style="background-color:#1A3A52;padding-top:2rem;padding-bottom:2rem;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row items-center md:items-start justify-between" style="gap:1.5rem;">
+        <div>
+          <img src="{{ url_for('static', filename='img/landing/logo-traiteurs-engages-white.png') }}"
+               alt="Les traiteurs engag&#233;s" style="height:2.25rem;width:auto;">
+        </div>
+        <nav class="flex flex-col md:flex-row items-center text-xs"
+             style="gap:0.5rem;color:rgba(255,255,255,0.7);">
+          <a href="{{ TALLY_QUOTE }}" target="_blank" rel="noopener noreferrer">Faire une demande de devis</a>
+          <a href="{{ url_for('auth.signup') }}">S'inscrire</a>
+          <a href="{{ url_for('auth.login') }}">Espace connect&#233;</a>
+          <a href="#">CGU/CGV</a>
+          <a href="#">Mentions l&#233;gales</a>
+        </nav>
       </div>
-      <p class="text-sm text-white-50">Marketplace B2B pour la restauration inclusive</p>
     </div>
-    <div class="mt-6 pt-6 border-t border-white-10">
-      <p class="text-xs text-center text-white-30">&#169; {{ 2026 }} Les Traiteurs Engag&#233;s. Tous droits r&#233;serv&#233;s.</p>
-    </div>
-  </div>
-</footer>
+  </footer>
 
+</main>
 {% endblock %}
