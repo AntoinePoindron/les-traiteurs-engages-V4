@@ -81,6 +81,24 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
 
+    # Dev-only account switcher. Tied to the same env flag that seeds the
+    # demo data so production (where the flag is empty) never registers
+    # the route. See blueprints/devtools.py for the safety rationale.
+    import os
+    demo_mode = os.getenv("ENABLE_DEMO_SEED") == "1"
+    if demo_mode:
+        from blueprints.devtools import devtools_bp, DEMO_ACCOUNTS
+        app.register_blueprint(devtools_bp)
+    else:
+        DEMO_ACCOUNTS = []
+
+    @app.context_processor
+    def _inject_demo_state():
+        return {
+            "dev_demo_mode": demo_mode,
+            "dev_demo_accounts": DEMO_ACCOUNTS,
+        }
+
     # CLI for ops tasks: `flask admin create / reset-password / list / disable`.
     # Avoids relying on ADMIN_INITIAL_PASSWORD env var for day-to-day admin
     # lifecycle (P3.2).

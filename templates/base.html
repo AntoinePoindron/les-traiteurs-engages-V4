@@ -190,6 +190,10 @@
   </main>
   {% endif %}
 
+  {% if dev_demo_mode %}
+    {% include "components/dev_account_switcher.html" %}
+  {% endif %}
+
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>

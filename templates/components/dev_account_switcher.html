@@ -1,0 +1,43 @@
+{# Floating dev account switcher (bottom-right). Rendered by base.html only
+   when dev_demo_mode is True (i.e. ENABLE_DEMO_SEED=1). Never appears in
+   production. See blueprints/devtools.py for the security model. #}
+<div class="fixed bottom-4 right-4 z-50">
+  <details class="relative group">
+    <summary class="cursor-pointer flex items-center gap-2 bg-yellow-100 border border-yellow-400 text-yellow-900 px-3 py-2 rounded-lg shadow-lg text-sm font-bold hover:bg-yellow-200 transition-colors list-none">
+      <i data-lucide="users" class="w-4 h-4"></i>
+      <span>Switcher compte (DEV)</span>
+      <i data-lucide="chevron-up" class="w-4 h-4 transition-transform group-open:rotate-180"></i>
+    </summary>
+    <div class="absolute bottom-full right-0 mb-2 w-80 bg-white border border-default rounded-lg shadow-xl p-2 max-h-96 overflow-y-auto">
+      <p class="text-xs text-mute px-2 py-1.5 border-b border-soft mb-1">
+        Connexion sans mot de passe.<br>
+        Disponible uniquement en mode dev (<code>ENABLE_DEMO_SEED=1</code>).
+      </p>
+      {% if g.current_user %}
+      <p class="text-xs text-mute px-2 py-1">
+        Actuellement : <strong class="text-text">{{ g.current_user.email }}</strong>
+      </p>
+      {% endif %}
+      {% for acc in dev_demo_accounts %}
+      <form method="POST" action="{{ url_for('devtools.switch_account') }}" class="block">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="email" value="{{ acc.email }}">
+        <button type="submit"
+                class="w-full text-left px-2 py-1.5 hover:bg-cream rounded text-sm
+                       {% if g.current_user and g.current_user.email == acc.email %}bg-cream-200{% endif %}">
+          <span class="font-medium text-text">{{ acc.label }}</span>
+          <span class="block text-xs text-mute">{{ acc.email }} &middot; {{ acc.role }}</span>
+        </button>
+      </form>
+      {% endfor %}
+      {% if g.current_user %}
+      <form method="POST" action="{{ url_for('auth.logout') }}" class="block mt-1 pt-1 border-t border-soft">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="w-full text-left px-2 py-1.5 hover:bg-cream rounded text-sm text-danger font-medium">
+          <i data-lucide="log-out" class="inline w-3.5 h-3.5 mr-1"></i> Se deconnecter
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </details>
+</div>
