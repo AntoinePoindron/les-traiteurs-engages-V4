@@ -14,6 +14,40 @@ auth_bp = Blueprint("auth", __name__)
 LOGIN_LIMIT = "10 per minute"
 SIGNUP_LIMIT = "5 per hour"
 
+# Password policy (audit 1 VULN-14). NIST SP 800-63B: length is the dominant
+# factor; complexity rules are weak by themselves but block the laziest attempts.
+# We require length >= 12 + at least 3 character classes + not in a top-passwords
+# blocklist. For a stronger check, plug in zxcvbn or Have-I-Been-Pwned later.
+PASSWORD_MIN_LENGTH = 12
+PASSWORD_BLOCKLIST = {
+    "password", "password1", "password123", "passw0rd", "motdepasse",
+    "azerty", "azerty123", "qwerty", "qwerty123", "qwertyuiop",
+    "123456", "123456789", "1234567890", "111111", "000000", "12345678",
+    "iloveyou", "admin", "admin123", "letmein", "welcome", "welcome1",
+    "monkey", "dragon", "abc123", "abcdef", "changeme", "changeme123",
+    "secret", "test1234",
+}
+
+
+def validate_password(password: str) -> str | None:
+    """Return None if the password passes policy, else a user-facing error."""
+    if len(password) < PASSWORD_MIN_LENGTH:
+        return f"Le mot de passe doit comporter au moins {PASSWORD_MIN_LENGTH} caracteres."
+    if password.lower() in PASSWORD_BLOCKLIST:
+        return "Ce mot de passe est trop courant. Choisissez-en un plus original."
+    classes = sum([
+        any(c.islower() for c in password),
+        any(c.isupper() for c in password),
+        any(c.isdigit() for c in password),
+        any(not c.isalnum() for c in password),
+    ])
+    if classes < 3:
+        return (
+            "Le mot de passe doit contenir au moins 3 categories de caracteres "
+            "parmi : minuscules, majuscules, chiffres, caracteres speciaux."
+        )
+    return None
+
 ROLE_DASHBOARDS = {
     UserRole.client_admin: "client.dashboard",
     UserRole.client_user: "client.dashboard",
@@ -70,8 +104,9 @@ def signup():
             flash("Le SIRET doit comporter exactement 14 chiffres.", "error")
             return render_template("auth/signup.html")
 
-        if len(password) < 8:
-            flash("Le mot de passe doit comporter au moins 8 caracteres.", "error")
+        password_error = validate_password(password)
+        if password_error:
+            flash(password_error, "error")
             return render_template("auth/signup.html")
 
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -81,7 +116,15 @@ def signup():
             select(User).where(User.email == email)
         ).scalar_one_or_none()
         if existing_user:
-            flash("Un compte avec cet email existe deja.", "error")
+            # VULN-28: do not confirm whether the email is registered. Generic
+            # wording so a scraper cannot enumerate accounts via /signup.
+            # Full mitigation needs identical UX for all three branches
+            # (existing email, existing SIRET, fresh signup) — tracked as P2.
+            flash(
+                "Inscription impossible avec ces informations. "
+                "Si vous avez deja un compte, connectez-vous.",
+                "error",
+            )
             return render_template("auth/signup.html")
 
         if role == "client_admin":
@@ -108,9 +151,12 @@ def signup():
                 db.flush()
                 db.commit()
                 session["user_id"] = str(user.id)
+                # VULN-28: avoid confirming SIRET presence. Wording stays
+                # informative for the legitimate case (employee joining an
+                # existing company) without naming the company or the SIRET.
                 flash(
-                    "Une entreprise avec ce SIRET existe deja. "
-                    "Votre demande d'adhesion est en attente d'approbation.",
+                    "Votre demande d'adhesion a ete enregistree. "
+                    "Vous pourrez acceder a votre espace une fois validee par un administrateur.",
                     "info",
                 )
                 return redirect(url_for("client.dashboard"))

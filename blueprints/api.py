@@ -11,7 +11,7 @@ from blueprints.middleware import login_required
 from database import get_db
 from models import (
     Caterer, Message, Notification, Order, OrderStatus, Payment,
-    PaymentStatus, StripeEvent, User,
+    PaymentStatus, Quote, QuoteRequest, QuoteRequestCaterer, StripeEvent, User,
 )
 from services.notifications import create_notification, get_unread_count, mark_as_read
 from services.stripe_service import verify_webhook_signature
@@ -152,6 +152,65 @@ def get_messages(thread_id):
     return jsonify({"messages": result})
 
 
+def _allowed_recipients_for(db, user, *, order_id=None, quote_request_id=None):
+    """Return the set of user IDs the current user is allowed to message in
+    the context of the given order or quote_request. VULN-04 (audit 1).
+
+    Membership rule (Option A — strict):
+    - Order context: client company users + the assigned caterer's users.
+    - Quote-request context: client company users + every solicited caterer's
+      users (so a caterer who hasn't quoted yet can still ask questions).
+    Returns an empty set when the current user has no relation to the entity,
+    or when the entity does not exist. Self is always excluded.
+    """
+    qr_id = quote_request_id
+    caterer_ids: set[uuid.UUID] = set()
+    company_id: uuid.UUID | None = None
+
+    if order_id:
+        order = db.get(Order, order_id)
+        if not order:
+            return set()
+        quote = db.get(Quote, order.quote_id)
+        if not quote:
+            return set()
+        qr_id = quote.quote_request_id
+        caterer_ids.add(quote.caterer_id)
+
+    if qr_id:
+        qr = db.get(QuoteRequest, qr_id)
+        if not qr:
+            return set()
+        company_id = qr.company_id
+        # Include every caterer solicited on the QR, not just those who quoted —
+        # a caterer reviewing a brief must be able to message the client.
+        qrc_caterer_ids = db.scalars(
+            select(QuoteRequestCaterer.caterer_id).where(
+                QuoteRequestCaterer.quote_request_id == qr_id
+            )
+        ).all()
+        caterer_ids.update(qrc_caterer_ids)
+
+    # Caller must themselves be a party — otherwise a stranger could enumerate
+    # company/caterer membership by probing recipient IDs.
+    user_in_company = bool(company_id and user.company_id == company_id)
+    user_in_caterers = bool(user.caterer_id and user.caterer_id in caterer_ids)
+    if not (user_in_company or user_in_caterers):
+        return set()
+
+    allowed: set[uuid.UUID] = set()
+    if company_id:
+        allowed.update(
+            db.scalars(select(User.id).where(User.company_id == company_id)).all()
+        )
+    if caterer_ids:
+        allowed.update(
+            db.scalars(select(User.id).where(User.caterer_id.in_(caterer_ids))).all()
+        )
+    allowed.discard(user.id)
+    return allowed
+
+
 @api_bp.route("/messages", methods=["POST"])
 @login_required
 @limiter.limit("60 per minute")
@@ -179,6 +238,21 @@ def send_message():
         except (ValueError, TypeError):
             quote_request_id = None
 
+    # VULN-04: gate the message on a real business relationship. super_admin
+    # bypasses the check (operational support over moderation tooling).
+    db = get_db()
+    is_admin = user.role == "super_admin"
+    if not is_admin:
+        if not order_id and not quote_request_id:
+            return jsonify({
+                "error": "Le message doit etre lie a une commande ou une demande de devis."
+            }), 400
+        allowed = _allowed_recipients_for(
+            db, user, order_id=order_id, quote_request_id=quote_request_id
+        )
+        if recipient_id not in allowed:
+            return jsonify({"error": "Destinataire non autorise."}), 403
+
     # DESIGN: thread_id is deterministic per pair of users.
     # Any two users share exactly one thread, for life — messages about order
     # #42 and order #87 pile up together. `Message.order_id` and
@@ -192,7 +266,6 @@ def send_message():
     pair = sorted([str(user.id), str(recipient_id)])
     thread_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{pair[0]}:{pair[1]}")
 
-    db = get_db()
     msg = Message(
         thread_id=thread_id,
         sender_id=user.id,

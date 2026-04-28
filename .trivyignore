@@ -1,0 +1,21 @@
+# Trivy ignore list — CVE acceptees par decision explicite.
+# Chaque entree DOIT inclure :
+#   - le CVE
+#   - la date de revue
+#   - la justification
+#   - une date d'expiration (le scan affichera l'entree comme expiree apres ca,
+#     pour forcer une re-revue periodique).
+#
+# Verifier mensuellement si Debian a publie un fix : `docker pull python:3.11-slim`
+# puis relancer .\security-scan.ps1.
+
+# --- ncurses (CVE-2025-69720) ---
+# Aucun fix disponible cote Debian (suivi : DSA pending). Impact reel limite :
+# l'app n'utilise pas ncurses (pas de TTY interactive, pas de `more`/`less`/`vim`
+# en runtime). Reevaluer si Debian publie un correctif ou si on bouge sur Alpine.
+CVE-2025-69720 exp:2026-07-31
+
+# --- systemd / udev (CVE-2026-29111) ---
+# Aucun fix disponible cote Debian. systemd/udev ne sont pas demarres dans le
+# conteneur (PID 1 est gunicorn). Surface d'attaque : nulle pour notre runtime.
+CVE-2026-29111 exp:2026-07-31

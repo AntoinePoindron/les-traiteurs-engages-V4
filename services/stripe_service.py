@@ -178,7 +178,9 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
         }
         for ln in quote.lines
     ]
-    totals = calculate_quote_totals(line_dicts, quote.quote_request.guest_count)
+    totals = calculate_quote_totals(
+        line_dicts, quote.quote_request.guest_count, commission_rate=caterer.commission_rate
+    )
 
     customer_id = get_or_create_customer(session, client_user)
 

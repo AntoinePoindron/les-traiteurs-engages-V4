@@ -1,0 +1,56 @@
+# VCS
+.git/
+.gitignore
+.gitattributes
+
+# Secrets / env
+.env
+.env.*
+.deploy.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+*.egg-info/
+
+# SQLite local
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Test / coverage (tests/ stays in the image — README recommends running
+# `docker compose exec app pytest` for QA against the live container).
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artefacts
+dist/
+build/
+
+# Docs / specs not needed at runtime
+*.md
+.specify/
+plan.md
+spec.md
+tasks.md
+
+# Local notes
+.claude/
+
+# Compose overrides (deploy.env is the source of truth, not committed)
+docker-compose.local.yml
+.deploy-override.yml

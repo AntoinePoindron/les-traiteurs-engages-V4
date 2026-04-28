@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
       (isSent ? 'bg-terracotta text-white rounded-br-sm' : 'bg-cream-200 text-navy rounded-bl-sm');
     bubble.innerHTML = '<p>' + escapeHtml(msg.body) + '</p>' +
       '<p class="text-xs mt-1 ' + (isSent ? 'text-terracotta-100' : 'text-navy-200') + '">' +
-      msg.sender_name + ' — ' + formatTime(msg.created_at) + '</p>';
+      escapeHtml(msg.sender_name) + ' — ' + escapeHtml(formatTime(msg.created_at)) + '</p>';
     div.appendChild(bubble);
     return div;
   }

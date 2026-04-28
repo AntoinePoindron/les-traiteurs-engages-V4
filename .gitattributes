@@ -1,0 +1,15 @@
+# Normalise line endings to LF for files that run inside the Linux container.
+# Without this, a Windows clone with autocrlf=true silently turns shell scripts
+# into CRLF and entrypoint.sh fails with `set: Illegal option -`.
+
+*.sh           text eol=lf
+*.py           text eol=lf
+Dockerfile     text eol=lf
+Dockerfile.*   text eol=lf
+*.yml          text eol=lf
+*.yaml         text eol=lf
+.dockerignore  text eol=lf
+.gitignore     text eol=lf
+.trivyignore   text eol=lf
+.env.example   text eol=lf
+.deploy.env.example text eol=lf

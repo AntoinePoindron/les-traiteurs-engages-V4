@@ -305,7 +305,7 @@ def request_detail(request_id):
 
 @client_bp.route("/requests/<uuid:request_id>/accept-quote", methods=["POST"])
 @login_required
-@role_required("client_admin", "client_user")
+@role_required("client_admin")  # VULN-35: financial commitment, client_user must not engage the company
 def accept_quote(request_id):
     form = QuoteAcceptForm()
     if not form.validate_on_submit():
@@ -339,7 +339,7 @@ def accept_quote(request_id):
 
 @client_bp.route("/requests/<uuid:request_id>/refuse-quote", methods=["POST"])
 @login_required
-@role_required("client_admin", "client_user")
+@role_required("client_admin")  # VULN-35: symmetric with accept_quote
 def refuse_quote(request_id):
     form = QuoteRefuseForm()
     if not form.validate_on_submit():
@@ -463,7 +463,19 @@ def request_edit_post(request_id):
     qr.is_compare_mode = form.is_compare_mode.data
     qr.message_to_caterer = form.message_to_caterer.data or None
 
-    qr.status = QuoteRequestStatus.pending_review if form.is_compare_mode.data else QuoteRequestStatus.sent_to_caterers
+    # VULN-36: editing a request that is already awaiting admin qualification
+    # MUST keep it in pending_review. Otherwise a client could toggle
+    # is_compare_mode=False on a pending_review request and ship it straight
+    # to caterers, bypassing the gatekeeper that controls matching rules.
+    # On a draft, the original behaviour stands (compare → pending_review,
+    # direct → sent_to_caterers).
+    if qr.status == QuoteRequestStatus.pending_review:
+        qr.status = QuoteRequestStatus.pending_review
+    else:
+        qr.status = (
+            QuoteRequestStatus.pending_review if form.is_compare_mode.data
+            else QuoteRequestStatus.sent_to_caterers
+        )
 
     db.commit()
 

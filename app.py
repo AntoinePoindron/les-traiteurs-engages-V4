@@ -172,4 +172,11 @@ def create_app():
 
 
 if __name__ == "__main__":
-    create_app().run(debug=True, port=8000)
+    # Debug only on opt-in via env. The Werkzeug debugger executes arbitrary
+    # code through its console — must never be on in production. Audit VULN-17
+    # / Bandit B201. Production runs through gunicorn (entrypoint.sh) which
+    # ignores this block entirely, so the practical risk is a `python app.py`
+    # in dev with FLASK_DEBUG accidentally set in the environment.
+    import os
+    debug_flag = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
+    create_app().run(debug=debug_flag, port=8000)

@@ -88,14 +88,25 @@ def derive_invoice_reference(quote_reference):
     return quote_reference.replace("DEVIS-", "FAC-", 1)
 
 
-def calculate_quote_totals(details, guest_count):
+DEFAULT_COMMISSION_RATE = Decimal("0.05")
+
+
+def calculate_quote_totals(details, guest_count, commission_rate=None):
     """Compute all totals from line items as Decimals.
 
     Callers write the relevant fields onto Quote columns
     (`total_amount_ht`, `amount_per_person`, `valorisable_agefiph`).
     Templates that need richer breakdowns (per-section, per-TVA-rate) call
     this helper at render time — there is no persisted cache.
+
+    `commission_rate` (audit 1 VULN-44): pass `caterer.commission_rate` so
+    per-caterer overrides actually take effect. Falls back to 5% for tests
+    and any caller that does not have a Caterer in scope.
     """
+    if commission_rate is None:
+        commission_rate = DEFAULT_COMMISSION_RATE
+    else:
+        commission_rate = Decimal(str(commission_rate))
     lines = details if isinstance(details, list) else []
 
     section_totals: dict[str, Decimal] = {}
@@ -125,8 +136,9 @@ def calculate_quote_totals(details, guest_count):
 
     total_ttc = total_ht + total_tva
 
-    # Platform fee: 5% of total_ht, TVA 20% on fee
-    platform_fee_ht = total_ht * Decimal("0.05")
+    # Platform fee: commission_rate of total_ht (default 5%, per-caterer override
+    # via Caterer.commission_rate), TVA 20% on fee.
+    platform_fee_ht = total_ht * commission_rate
     platform_fee_tva = platform_fee_ht * Decimal("0.20")
     platform_fee_ttc = platform_fee_ht + platform_fee_tva
 

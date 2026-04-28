@@ -1,19 +1,27 @@
-Flask>=3.0
-SQLAlchemy>=2.0
-alembic
-psycopg2-binary
-httpx
-python-dotenv
-werkzeug
-gunicorn
-bcrypt
-pydantic-settings>=2.0
-flask-wtf>=1.2
-email-validator>=2.0
-stripe>=10.0
-python-json-logger>=2.0
-flask-limiter>=3.5
+# Pinned to exact versions (audit 1 VULN-40, audit 2 #10): floating ranges
+# allow pip to install vulnerable versions silently. Bump with pip-audit
+# in the loop, then rebuild the image.
+#
+# To regenerate after deliberate upgrade:
+#   docker compose -p traiteurs exec app pip freeze > requirements.txt
+#   then prune transitive deps you don't import directly.
+
+Flask==3.1.3
+SQLAlchemy==2.0.49
+alembic==1.18.4
+psycopg2-binary==2.9.12
+httpx==0.28.1
+python-dotenv==1.2.2
+werkzeug==3.1.8
+gunicorn==25.3.0
+bcrypt==5.0.0
+pydantic-settings==2.14.0
+flask-wtf==1.3.0
+email-validator==2.3.0
+stripe==15.1.0
+python-json-logger==4.1.0
+flask-limiter==4.1.1
 
 # --- dev / test ---
-pytest>=8.0
-pytest-flask>=1.3
+pytest==9.0.3
+pytest-flask==1.3.0

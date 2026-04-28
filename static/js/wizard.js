@@ -190,9 +190,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return checked ? checked.value : '';
     }
 
-    function setHtml(id, html) {
+    // Renamed mentally from setHtml: callers only pass plain text (form values,
+    // joined labels). Using textContent closes audit VULN-45 (DOM-based XSS via
+    // pre-filled fields decoded by the browser before injection).
+    function setHtml(id, text) {
       var el = document.getElementById(id);
-      if (el) el.innerHTML = html;
+      if (el) el.textContent = text;
     }
 
     var mealType = radioVal('meal_type');

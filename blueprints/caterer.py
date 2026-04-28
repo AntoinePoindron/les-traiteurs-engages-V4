@@ -254,7 +254,7 @@ def quote_create(qr_id):
             quote=None,
             initial_lines=line_dicts,
         ), 400
-    totals = calculate_quote_totals(line_dicts, qr.guest_count)
+    totals = calculate_quote_totals(line_dicts, qr.guest_count, commission_rate=caterer.commission_rate)
     reference = generate_quote_reference(db, caterer)
     quote = Quote(
         quote_request_id=qr_id,
@@ -355,7 +355,7 @@ def quote_update(qr_id, q_id):
             quote=quote,
             initial_lines=line_dicts,
         ), 400
-    totals = calculate_quote_totals(line_dicts, qr.guest_count)
+    totals = calculate_quote_totals(line_dicts, qr.guest_count, commission_rate=caterer.commission_rate)
     quote.lines = new_lines
     quote.total_amount_ht = totals["total_ht"]
     quote.amount_per_person = totals["amount_per_person"]

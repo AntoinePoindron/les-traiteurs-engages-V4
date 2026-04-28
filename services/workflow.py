@@ -123,14 +123,24 @@ def accept_quote(
 
     Lève RequestNotFound (404), QuoteNotAvailable / QuoteExpired (flash).
     """
+    # VULN-41: SELECT FOR UPDATE on the request serializes concurrent
+    # accept_quote calls so two clicks (or two tabs) cannot both create an
+    # Order. Order.quote_id UNIQUE is a backstop, but locking earlier avoids
+    # IntegrityError noise and double Stripe round-trips downstream.
     qr = db.execute(
         select(QuoteRequest).where(
             QuoteRequest.id == request_id,
             QuoteRequest.company_id == user.company_id,
-        )
+        ).with_for_update()
     ).scalar_one_or_none()
     if not qr:
         raise RequestNotFound
+
+    # VULN-32: only requests that completed admin qualification can be acted on.
+    # Skipping this check let a draft request whose quotes were somehow set to
+    # `sent` slip through, bypassing approve_quote_request.
+    if qr.status != QuoteRequestStatus.sent_to_caterers:
+        raise QuoteNotAvailable
 
     accepted = db.execute(
         select(Quote).where(

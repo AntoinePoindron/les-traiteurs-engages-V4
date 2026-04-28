@@ -45,3 +45,10 @@ build/
 
 # Local notes
 .claude/
+
+# Local Docker overrides (per-developer, e.g. exposing the DB port)
+docker-compose.local.yml
+docker-compose.override.yml
+
+# Security scan reports
+.scan-reports/
