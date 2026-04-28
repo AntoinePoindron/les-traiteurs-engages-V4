@@ -30,6 +30,10 @@
       {% endif %}
     </div>
 
+    {# Layout 70/30 : details a gauche, "Devis recus" en sidebar a droite. #}
+    <div class="split-detail">
+      <div class="split-main">
+
     <!-- Request details -->
     <div class="space-y-4 mb-8">
       <!-- Type de service -->
@@ -177,6 +181,10 @@
       {% endif %}
     </div>
 
+      </div>{# /.split-main #}
+
+      <aside class="split-aside">
+
     <!-- Devis recus -->
     <div class="mb-8">
       <h2 class="font-display font-bold text-xl mb-4 text-text">Devis recus</h2>
@@ -314,6 +322,9 @@
       </div>
       {% endif %}
     </div>
+
+      </aside>{# /.split-aside #}
+    </div>{# /.split-detail #}
 
 </main>
 {% endblock %}

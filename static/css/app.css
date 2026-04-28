@@ -447,6 +447,21 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .landing-root .swap-btn:hover .swap-front { transform: translateY(-100%); }
 .landing-root .swap-btn:hover .swap-back  { transform: translateY(0); }
 
+/* Detail-with-sidebar layout (70% main / 30% aside).
+   Stack vertically on small screens, side-by-side from `lg` (≥1024px). */
+.split-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.split-detail > .split-main  { width: 100%; }
+.split-detail > .split-aside { width: 100%; }
+@media (min-width: 1024px) {
+  .split-detail               { flex-direction: row; align-items: flex-start; }
+  .split-detail > .split-main  { width: 70%; }
+  .split-detail > .split-aside { width: 30%; position: sticky; top: 1.5rem; }
+}
+
 /* Step timeline desktop positioning (4 steps placed along an SVG S-curve) */
 .landing-root .step-pos-1 { top: -5%;  left: 24%; }
 .landing-root .step-pos-2 { top: 26%;  right: 23%; left: auto; }

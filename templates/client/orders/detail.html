@@ -22,6 +22,10 @@
       </div>
     </div>
 
+    {# Layout 70/30 : details + status a gauche, facture / paiement en sidebar a droite. #}
+    <div class="split-detail">
+      <div class="split-main">
+
     <!-- Status timeline -->
     <div class="bg-white rounded-lg p-6 mb-6">
       <h3 class="font-display font-bold text-sm mb-4 text-text">Progression</h3>
@@ -126,6 +130,10 @@
       {% endif %}
     </div>
 
+      </div>{# /.split-main #}
+
+      <aside class="split-aside">
+
     <!-- Invoice / Payment -->
     {% if order.stripe_hosted_invoice_url %}
     <div class="bg-white rounded-lg p-6 mb-6">
@@ -160,6 +168,9 @@
       </div>
     </div>
     {% endif %}
+
+      </aside>{# /.split-aside #}
+    </div>{# /.split-detail #}
 
 </main>
 {% endblock %}
