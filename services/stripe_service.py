@@ -190,6 +190,9 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
 
     invoice_ref = derive_invoice_reference(quote.reference)
 
+    order.invoice_attempt = (order.invoice_attempt or 0) + 1
+    session.flush()
+
     invoice = stripe.Invoice.create(
         customer=customer_id,
         collection_method="send_invoice",
@@ -204,7 +207,7 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
             {"name": "Traiteur", "value": caterer.name},
             {"name": "SIRET", "value": caterer.siret or ""},
         ],
-        idempotency_key=f"invoice-order-{order.id}",
+        idempotency_key=f"invoice-order-{order.id}-v{order.invoice_attempt}",
     )
 
     tva_grouped: dict[str, dict] = {}

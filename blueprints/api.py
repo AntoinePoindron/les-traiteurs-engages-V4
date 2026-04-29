@@ -13,6 +13,7 @@ from models import (
     Caterer, Message, Notification, Order, OrderStatus, Payment,
     PaymentStatus, Quote, QuoteRequest, QuoteRequestCaterer, StripeEvent, User,
 )
+from services.audit import log_admin_action
 from services.notifications import create_notification, get_unread_count, mark_as_read
 from services.stripe_service import verify_webhook_signature
 
@@ -127,6 +128,9 @@ def get_messages(thread_id):
         stmt = stmt.where(
             or_(Message.sender_id == user.id, Message.recipient_id == user.id)
         )
+    else:
+        log_admin_action(db, user, "message.admin_view",
+                         target_type="thread", target_id=thread_id)
     messages = db.scalars(stmt).all()
 
     db.execute(

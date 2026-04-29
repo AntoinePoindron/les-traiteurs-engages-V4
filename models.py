@@ -366,6 +366,7 @@ class Order(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     stripe_invoice_id: Mapped[str | None] = mapped_column(String(255))
     stripe_hosted_invoice_url: Mapped[str | None] = mapped_column(String(500))
+    invoice_attempt: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 

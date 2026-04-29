@@ -330,6 +330,7 @@ def mark_delivered(
         .where(Order.id == order_id)
         .where(Quote.caterer_id == caterer.id)
         .where(Order.status == OrderStatus.confirmed)
+        .with_for_update()
     )
     if not order:
         raise OrderNotFound
