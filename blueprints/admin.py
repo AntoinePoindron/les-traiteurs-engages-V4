@@ -246,7 +246,12 @@ def payments():
     db = get_db()
     stmt = select(Payment).order_by(Payment.created_at.desc())
     if status_filter != "all":
-        stmt = stmt.where(Payment.status == status_filter)
+        try:
+            status_enum = PaymentStatus(status_filter)
+        except ValueError:
+            status_filter = "all"
+        else:
+            stmt = stmt.where(Payment.status == status_enum)
     payment_list = db.scalars(stmt).all()
 
     total_revenue = db.scalar(
