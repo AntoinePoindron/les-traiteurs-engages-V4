@@ -190,7 +190,7 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
 
     invoice_ref = derive_invoice_reference(quote.reference)
 
-    order.invoice_attempt = (order.invoice_attempt or 0) + 1
+    order.invoice_attempt += 1
     session.flush()
 
     invoice = stripe.Invoice.create(

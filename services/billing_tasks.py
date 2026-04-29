@@ -62,7 +62,7 @@ def send_invoice_for_order(order_id: str) -> None:
     native UUID type). Open a fresh DB session — we are NOT in a Flask
     request context, `g` and `database.get_db()` are unavailable.
 
-    The Stripe SDK call carries `idempotency_key=invoice-order-<order_id>`
+    The Stripe SDK call carries `idempotency_key=invoice-order-<order_id>-v<attempt>`
     so a retry after a partial failure does not double-bill.
     """
     # Imported lazily so importing this module from the web side does not
