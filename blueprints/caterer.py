@@ -47,11 +47,53 @@ caterer_bp = Blueprint("caterer", __name__, url_prefix="/caterer")
 def dashboard():
     caterer = g.current_user.caterer
     db = get_db()
-    pending_count = db.scalar(
+
+    # KPI 1 : nouvelles demandes (QRC selected, pas encore traitees par le caterer)
+    new_requests_count = db.scalar(
         select(func.count(QuoteRequestCaterer.id))
         .where(QuoteRequestCaterer.caterer_id == caterer.id)
         .where(QuoteRequestCaterer.status == QRCStatus.selected)
-    )
+    ) or 0
+
+    # KPI 2 : devis envoyes en attente de reponse client
+    pending_quotes_count = db.scalar(
+        select(func.count(Quote.id))
+        .where(Quote.caterer_id == caterer.id)
+        .where(Quote.status == QuoteStatus.sent)
+    ) or 0
+
+    # KPI 3 : commandes en cours (post-acceptation, avant paiement complete)
+    orders_in_progress_count = db.scalar(
+        select(func.count(Order.id))
+        .join(Quote, Order.quote_id == Quote.id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(Order.status.in_([
+            OrderStatus.confirmed,
+            OrderStatus.delivered,
+            OrderStatus.invoicing,
+            OrderStatus.invoiced,
+        ]))
+    ) or 0
+
+    # KPI 4 : CA realise (paiements Stripe succeeded)
+    total_revenue = db.scalar(
+        select(func.sum(Payment.amount_to_caterer_cents))
+        .join(Order, Payment.order_id == Order.id)
+        .join(Quote, Order.quote_id == Quote.id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(Payment.status == PaymentStatus.succeeded)
+    ) or 0
+
+    # Liste 1 : demandes a traiter (les nouvelles QRC)
+    new_requests = db.scalars(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+        .where(QuoteRequestCaterer.status == QRCStatus.selected)
+        .order_by(QuoteRequestCaterer.id.desc())
+        .limit(10)
+    ).all()
+
+    # Liste 2 : commandes a venir (livraisons confirmees pas encore passees)
     upcoming_deliveries = db.scalars(
         select(Order)
         .join(Quote, Order.quote_id == Quote.id)
@@ -61,19 +103,16 @@ def dashboard():
         .order_by(Order.delivery_date)
         .limit(5)
     ).all()
-    total_revenue = db.scalar(
-        select(func.sum(Payment.amount_to_caterer_cents))
-        .join(Order, Payment.order_id == Order.id)
-        .join(Quote, Order.quote_id == Quote.id)
-        .where(Quote.caterer_id == caterer.id)
-        .where(Payment.status == PaymentStatus.succeeded)
-    ) or 0
+
     return render_template(
         "caterer/dashboard.html",
         user=g.current_user,
-        pending_count=pending_count,
-        upcoming_deliveries=upcoming_deliveries,
+        new_requests_count=new_requests_count,
+        pending_quotes_count=pending_quotes_count,
+        orders_in_progress_count=orders_in_progress_count,
         total_revenue=total_revenue / 100,
+        new_requests=new_requests,
+        upcoming_deliveries=upcoming_deliveries,
     )
 
 
@@ -117,12 +156,61 @@ def profile_save():
     caterer.dietary_casher = form.dietary_casher.data
     caterer.dietary_gluten_free = form.dietary_gluten_free.data
     caterer.dietary_lactose_free = form.dietary_lactose_free.data
-    photos = list(caterer.photos or [])
-    for file in request.files.getlist("photos"):
+    # Photos lifecycle:
+    #   1. The form submits one hidden `photos_order` input per item shown
+    #      in the UI grid, in DOM order. Each value is either:
+    #        - an existing photo URL (kept if still in DB and not deleted)
+    #        - the literal "__NEW__" sentinel (consume the next uploaded file)
+    #      This lets the user drag a freshly-dropped photo into the
+    #      Vitrine slots BEFORE saving — the order survives end-to-end.
+    #   2. Any URL listed in `photo_delete` is dropped.
+    #   3. Files in `request.files.getlist("photos")` not consumed by a
+    #      __NEW__ sentinel are appended at the end (graceful fallback
+    #      for non-JS clients or buggy front-end states).
+    #   4. Hard cap at 10 entries; surplus is silently truncated.
+    PHOTOS_MAX = 10
+    existing_photos = set(caterer.photos or [])
+    delete_urls = set(request.form.getlist("photo_delete"))
+    requested_order = request.form.getlist("photos_order")
+    new_files = [f for f in request.files.getlist("photos") if f and f.filename]
+    new_iter = iter(new_files)
+
+    final: list[str] = []
+    for token in requested_order:
+        if token == "__NEW__":
+            file = next(new_iter, None)
+            if file is None:
+                continue
+            url = save_upload(file, subfolder="caterers")
+            if url:
+                final.append(url)
+        elif token in existing_photos and token not in delete_urls:
+            final.append(token)
+
+    # Append leftover uploads (no JS, or more files than __NEW__ tokens).
+    for file in new_iter:
         url = save_upload(file, subfolder="caterers")
         if url:
-            photos.append(url)
-    caterer.photos = photos
+            final.append(url)
+
+    # If photos_order was empty (e.g. very old client), keep existing minus deletes.
+    if not requested_order and not new_files:
+        final = [u for u in (caterer.photos or []) if u not in delete_urls]
+
+    caterer.photos = final[:PHOTOS_MAX]
+
+    # Logo : champ optionnel. La case "logo_delete" prend le pas si cochee
+    # ET aucun nouveau fichier n'est envoye en meme temps. Un nouvel upload
+    # remplace silencieusement l'ancien.
+    logo_file = request.files.get("logo")
+    if logo_file and logo_file.filename:
+        new_logo_url = save_upload(logo_file, subfolder="caterers/logos")
+        if new_logo_url:
+            caterer.logo_url = new_logo_url
+        else:
+            flash("Logo refuse : format ou taille invalide.", "error")
+    elif request.form.get("logo_delete") == "1":
+        caterer.logo_url = None
 
     specialties_raw = form.specialties.data or ""
     caterer.specialties = [s.strip() for s in specialties_raw.split(",") if s.strip()] if specialties_raw else caterer.specialties

@@ -119,6 +119,16 @@ def dashboard():
         .limit(5)
     ).scalars().all()
 
+    # Dashboard widget: les demandes les plus recentes, toutes statuts confondus.
+    # 10 lignes — assez pour couvrir l'activite hebdomadaire normale, le lien
+    # "Voir tout" pointe sur /requests pour la liste complete + filtres.
+    recent_requests = db.execute(
+        select(QuoteRequest)
+        .where(QuoteRequest.company_id == user.company_id)
+        .order_by(QuoteRequest.created_at.desc())
+        .limit(10)
+    ).scalars().all()
+
     services = db.execute(
         select(CompanyService).where(CompanyService.company_id == user.company_id)
     ).scalars().all()
@@ -146,8 +156,10 @@ def dashboard():
         user=user,
         active_requests_count=active_requests_count,
         recent_orders=recent_orders,
+        recent_requests=recent_requests,
         budget_data=budget_data,
         order_status_labels=ORDER_STATUS_LABELS,
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
@@ -518,11 +530,26 @@ def order_detail(order_id):
     ).scalar_one_or_none()
     if not order:
         abort(404)
+
+    # Build a direct link to the conversation with the caterer's primary user.
+    # thread_id is uuid5 of the sorted (sender, recipient) pair (cf. api.send_message).
+    # Falls back to the messages list when the caterer has no user attached
+    # — shouldn't happen in practice but keeps the template safe.
+    caterer = order.quote.caterer
+    caterer_user = caterer.users[0] if caterer.users else None
+    if caterer_user:
+        pair = sorted([str(user.id), str(caterer_user.id)])
+        thread_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{pair[0]}:{pair[1]}")
+        caterer_message_href = url_for("client.message_thread", thread_id=thread_id)
+    else:
+        caterer_message_href = url_for("client.messages")
+
     return render_template(
         "client/orders/detail.html",
         user=user,
         order=order,
         order_status_labels=ORDER_STATUS_LABELS,
+        caterer_message_href=caterer_message_href,
     )
 
 
@@ -959,9 +986,15 @@ def _get_user_threads(db, user_id):
                     Message.is_read.is_(False),
                 )
             )
+            # Si l'autre interlocuteur est un caterer, on expose son logo
+            # pour l'avatar dans la liste/thread (cf. templates messages/*).
+            other_caterer_logo_url = None
+            if other_user and other_user.caterer:
+                other_caterer_logo_url = other_user.caterer.logo_url
             threads[tid] = {
                 "thread_id": tid,
                 "other_name": f"{other_user.first_name} {other_user.last_name}" if other_user else "Inconnu",
+                "other_caterer_logo_url": other_caterer_logo_url,
                 "last_message": msg.body[:80],
                 "last_at": msg.created_at,
                 "unread": unread,

@@ -194,40 +194,49 @@
         {% for quote in quotes %}
         <div class="bg-white rounded-lg p-6">
           <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+            {# Logo + nom cliquables vers la fiche traiteur publique. #}
+            <a href="{{ url_for('client.caterer_detail', caterer_id=quote.caterer.id) }}"
+               class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              {% if quote.caterer.logo_url %}
+              <img src="{{ quote.caterer.logo_url }}" alt="Logo {{ quote.caterer.name }}"
+                   class="w-9 h-9 rounded-lg object-contain p-1 bg-cream">
+              {% else %}
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft" style="flex-shrink:0;">
                 <i data-lucide="chef-hat" class="w-4\.5 h-4\.5 text-navy"></i>
               </div>
+              {% endif %}
               <div>
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-bold text-text">{{ quote.caterer.name }}</span>
-                  {{ structure_type_badge(quote.caterer.structure_type) }}
-                </div>
+                <div class="mb-1">{{ structure_type_badge(quote.caterer.structure_type) }}</div>
+                <p class="text-sm font-bold text-text">{{ quote.caterer.name }}</p>
                 <span class="text-xs text-mute">Ref. {{ quote.reference }}</span>
               </div>
-            </div>
+            </a>
             {{ status_badge(quote.status) }}
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
-            <div>
-              <span class="text-xs text-mute">Total HT</span>
-              <p class="font-bold text-text">{{ "%.2f" | format(quote.total_amount_ht | float) }} EUR</p>
+          <dl class="space-y-2 mb-4 text-sm">
+            <div class="flex items-center justify-between">
+              <dt class="text-mute">Total HT</dt>
+              <dd class="font-bold text-text">{{ "%.2f" | format(quote.total_amount_ht | float) }} EUR</dd>
             </div>
-            <div>
-              <span class="text-xs text-mute">TTC</span>
+            <div class="flex items-center justify-between">
+              <dt class="text-mute">TTC</dt>
               {% set ttc = (quote.total_amount_ht | float) * 1.1 %}
-              <p class="font-bold text-text">{{ "%.2f" | format(ttc) }} EUR</p>
+              <dd class="font-bold text-text">{{ "%.2f" | format(ttc) }} EUR</dd>
             </div>
-            <div>
-              <span class="text-xs text-mute">Par personne</span>
-              <p class="font-bold text-text">{{ "%.2f" | format(quote.amount_per_person | float) if quote.amount_per_person else '-' }} EUR</p>
+            <div class="flex items-center justify-between">
+              <dt class="text-mute">Par personne</dt>
+              <dd class="font-bold text-text">
+                {% if quote.amount_per_person %}{{ "%.2f" | format(quote.amount_per_person | float) }} EUR{% else %}-{% endif %}
+              </dd>
             </div>
-            <div>
-              <span class="text-xs text-mute">AGEFIPH</span>
-              <p class="font-bold text-text">{{ "%.2f" | format(quote.valorisable_agefiph | float) if quote.valorisable_agefiph else '-' }} EUR</p>
+            <div class="flex items-center justify-between">
+              <dt class="text-mute">AGEFIPH</dt>
+              <dd class="font-bold text-text">
+                {% if quote.valorisable_agefiph %}{{ "%.2f" | format(quote.valorisable_agefiph | float) }} EUR{% else %}-{% endif %}
+              </dd>
             </div>
-          </div>
+          </dl>
 
           {% if quote.notes %}
           <p class="text-xs mb-4 text-mute">{{ quote.notes }}</p>
@@ -306,6 +315,18 @@
           <div class="pt-3 border-t border-soft">
             <p class="text-xs text-mute">Raison du refus :</p>
             <p class="text-sm text-text-soft">{{ quote.refusal_reason }}</p>
+          </div>
+          {% endif %}
+
+          {# CTA "Voir la commande" en bas du bloc, pleine largeur, meme
+             format que les boutons Accepter/Refuser des autres devis. #}
+          {% if quote.status == QuoteStatus.accepted and quote.order %}
+          <div class="pt-3 border-t border-soft">
+            <a href="{{ url_for('client.order_detail', order_id=quote.order.id) }}"
+               class="w-full inline-flex items-center justify-center gap-2 rounded-full text-xs font-bold px-4 py-2.5 bg-navy text-white hover:opacity-90 transition-opacity">
+              <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+              Voir la commande
+            </a>
           </div>
           {% endif %}
         </div>

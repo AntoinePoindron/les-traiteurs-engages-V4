@@ -48,57 +48,117 @@
       </a>
     </div>
 
-    <!-- Budget tracking -->
-    {% if budget_data is defined and budget_data %}
-    <div class="bg-white rounded-lg p-6 mb-6">
-      <h2 class="font-display font-bold text-xl mb-4 text-text">Suivi budgetaire par service</h2>
-      <div class="space-y-4">
-        {% for svc in budget_data %}
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-sm font-bold text-text">{{ svc.name }}</span>
-            <span class="text-xs text-mute">
-              {{ "%.0f" | format(svc.spent) }} EUR / {{ "%.0f" | format(svc.budget) }} EUR
-            </span>
+    {# Layout 70/30 : liste des demandes a gauche, commandes + budget a droite. #}
+    <div class="split-detail">
+      <div class="split-main">
+
+        {# Liste des demandes #}
+        <div class="bg-white rounded-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-display font-bold text-xl text-text">Mes demandes</h2>
+            <a href="{{ url_for('client.requests_list') }}" class="text-xs font-bold hover:opacity-70 transition-opacity text-navy">Voir tout</a>
           </div>
-          {% set pct = (svc.spent / svc.budget * 100) if svc.budget > 0 else 0 %}
-          <div class="w-full rounded-full h-2.5 bg-border-soft">
-            <div class="h-2.5 rounded-full transition-all {% if pct > 90 %}bg-red-500{% elif pct > 70 %}bg-amber-400{% else %}bg-green-500{% endif %}"
-                 style="width: {{ [pct, 100] | min }}%"></div>
+          {% if recent_requests %}
+          <div>
+            {% for qr in recent_requests %}
+            <a href="{{ url_for('client.request_detail', request_id=qr.id) }}"
+               class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft first:border-t-0">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+                <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold truncate text-text">
+                  {{ meal_type_labels.get(qr.meal_type, qr.meal_type or 'Demande de devis') }}
+                </p>
+                <div class="flex items-center gap-3 mt-0.5">
+                  <span class="text-xs text-mute">
+                    {% if qr.event_date %}{{ qr.event_date.strftime('%d/%m/%Y') }}{% else %}Date a definir{% endif %}
+                  </span>
+                  {% if qr.guest_count %}
+                  <span class="text-xs text-mute">{{ qr.guest_count }} convives</span>
+                  {% endif %}
+                  {% if qr.budget_global %}
+                  <span class="text-xs text-mute">{{ "%.0f" | format(qr.budget_global | float) }} EUR</span>
+                  {% endif %}
+                </div>
+              </div>
+              {{ status_badge(qr.status) }}
+              <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-12">
+            <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
+              <i data-lucide="file-plus" class="w-6 h-6 text-navy"></i>
+            </div>
+            <p class="text-sm text-mute mb-4">Vous n'avez encore aucune demande de devis.</p>
+            <a href="{{ url_for('client.requests_new') }}"
+               class="inline-flex items-center gap-2 rounded-full text-xs font-bold px-4 py-2.5 bg-navy text-white">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              Creer une demande
+            </a>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>{# /.split-main #}
+
+      <aside class="split-aside">
+
+        {# Dernieres commandes #}
+        {% if recent_orders %}
+        <div class="bg-white rounded-lg p-6 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-display font-bold text-xl text-text">Dernieres commandes</h2>
+            <a href="{{ url_for('client.orders_list') }}" class="text-xs font-bold hover:opacity-70 transition-opacity text-navy">Voir tout</a>
+          </div>
+          <div>
+            {% for order in recent_orders %}
+            <a href="{{ url_for('client.order_detail', order_id=order.id) }}"
+               class="flex items-center gap-3 py-3 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft first:border-t-0">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream" style="flex-shrink:0;">
+                <i data-lucide="shopping-bag" class="w-4 h-4 text-navy"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold truncate text-text">{{ order.quote.caterer.name }}</p>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-xs text-mute">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
+                </div>
+              </div>
+              {{ status_badge(order.status) }}
+            </a>
+            {% endfor %}
           </div>
         </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
+        {% endif %}
 
-    <!-- Recent orders -->
-    {% if recent_orders is defined and recent_orders %}
-    <div class="bg-white rounded-lg p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="font-display font-bold text-xl text-text">Dernieres commandes</h2>
-        <a href="{{ url_for('client.orders_list') }}" class="text-xs font-bold hover:opacity-70 transition-opacity text-navy">Voir tout</a>
-      </div>
-      <div>
-        {% for order in recent_orders %}
-        <a href="{{ url_for('client.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t-soft">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
-            <i data-lucide="shopping-bag" class="w-4 h-4 text-navy"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold truncate text-text">{{ order.quote.caterer.name }}</p>
-            <div class="flex items-center gap-3 mt-0.5">
-              <span class="text-xs text-mute">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
-              <span class="text-xs text-mute">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR HT</span>
+        {# Suivi budgetaire #}
+        {% if budget_data %}
+        <div class="bg-white rounded-lg p-6">
+          <h2 class="font-display font-bold text-xl mb-4 text-text">Suivi budgetaire</h2>
+          <div class="space-y-4">
+            {% for svc in budget_data %}
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-sm font-bold text-text">{{ svc.name }}</span>
+                <span class="text-xs text-mute">
+                  {{ "%.0f" | format(svc.spent) }} / {{ "%.0f" | format(svc.budget) }} EUR
+                </span>
+              </div>
+              {% set pct = (svc.spent / svc.budget * 100) if svc.budget > 0 else 0 %}
+              <div class="w-full rounded-full h-2.5 bg-border-soft">
+                <div class="h-2.5 rounded-full transition-all {% if pct > 90 %}bg-red-500{% elif pct > 70 %}bg-amber-400{% else %}bg-green-500{% endif %}"
+                     style="width: {{ [pct, 100] | min }}%"></div>
+              </div>
             </div>
+            {% endfor %}
           </div>
-          {{ status_badge(order.status) }}
-          <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
+        </div>
+        {% endif %}
+
+      </aside>{# /.split-aside #}
+    </div>{# /.split-detail #}
 
 </main>
 {% endblock %}

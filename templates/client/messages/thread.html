@@ -11,10 +11,20 @@
     <div class="h-chat bg-white rounded-lg flex flex-col">
       <!-- Header -->
       <div class="px-6 py-4 flex items-center gap-3 border-b border-soft">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream" style="overflow:hidden;flex-shrink:0;">
+          {% if other_user.caterer and other_user.caterer.logo_url %}
+          <img src="{{ other_user.caterer.logo_url }}" alt=""
+               style="width:100%;height:100%;object-fit:contain;padding:0.125rem;">
+          {% else %}
           <i data-lucide="user" class="w-4 h-4 text-navy"></i>
+          {% endif %}
         </div>
-        <p class="text-sm font-bold text-text">{{ other_user.first_name }} {{ other_user.last_name }}</p>
+        <div>
+          <p class="text-sm font-bold text-text">{{ other_user.first_name }} {{ other_user.last_name }}</p>
+          {% if other_user.caterer %}
+          <p class="text-xs text-mute">{{ other_user.caterer.name }}</p>
+          {% endif %}
+        </div>
       </div>
 
       <!-- Messages -->

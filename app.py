@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
@@ -30,7 +31,11 @@ CSP = (
     "script-src 'self'; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' https://fonts.gstatic.com; "
-    "img-src 'self' data:; "
+    # `blob:` est requis pour afficher les previews de fichiers cote client
+    # (URL.createObjectURL utilise par caterer-profile.js). Les blob URLs
+    # sont generees par le navigateur lui-meme a partir de fichiers locaux,
+    # donc elles n'ouvrent aucune surface reseau ni cross-origin.
+    "img-src 'self' data: blob:; "
     "connect-src 'self'; "
     "object-src 'none'; "
     "frame-ancestors 'none'; "
@@ -56,6 +61,12 @@ def create_app():
         # comfortably; bump if the product ever needs to accept invoice PDFs
         # or video. Triggers a 413 error caught by the handler below. (P2 #2)
         MAX_CONTENT_LENGTH=16 * 1024 * 1024,
+        # Dev-only template auto-reload. On Docker Desktop Windows the bind
+        # mount drops mtime updates, so Jinja's default mtime-based cache
+        # serves stale templates after every edit. Setting this to True
+        # makes Jinja stat the file on every render — slower (~5%) but
+        # makes the dev workflow predictable. Off in prod.
+        TEMPLATES_AUTO_RELOAD=os.getenv("TEMPLATES_AUTO_RELOAD") == "1",
     )
 
     csrf.init_app(app)
@@ -87,7 +98,7 @@ def create_app():
     # Dev-only account switcher. Tied to the same env flag that seeds the
     # demo data so production (where the flag is empty) never registers
     # the route. See blueprints/devtools.py for the safety rationale.
-    import os
+    # `os` is imported at module level above.
     demo_mode = os.getenv("ENABLE_DEMO_SEED") == "1"
     if demo_mode:
         from blueprints.devtools import devtools_bp, DEMO_ACCOUNTS

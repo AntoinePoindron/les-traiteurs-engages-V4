@@ -447,6 +447,15 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .landing-root .swap-btn:hover .swap-front { transform: translateY(-100%); }
 .landing-root .swap-btn:hover .swap-back  { transform: translateY(0); }
 
+/* Galerie photo cliquable : leger dezoom au hover pour signaler l'affordance
+   (couple avec cursor:pointer sur le wrapper data-photo-index, gere inline). */
+#photos-gallery [data-photo-index] img {
+  transition: transform .2s ease;
+}
+#photos-gallery [data-photo-index]:hover img {
+  transform: scale(0.97);
+}
+
 /* Detail-with-sidebar layout (70% main / 30% aside).
    Stack vertically on small screens, side-by-side from `lg` (≥1024px). */
 .split-detail {

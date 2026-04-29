@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% from "components/structure_type_badge.html" import structure_type_badge %}
 
 {% block title %}Mon profil - Les Traiteurs Engages{% endblock %}
@@ -9,8 +9,40 @@
   <div class="flex items-center gap-2 mt-1">{{ structure_type_badge(caterer.structure_type) }} <span class="text-xs text-mute">{{ caterer.siret }}</span></div>
 </div>
 
-<form method="POST" action="{{ url_for('caterer.profile_save') }}" class="space-y-6 max-w-3xl">
+<form method="POST" action="{{ url_for('caterer.profile_save') }}" enctype="multipart/form-data" class="space-y-6 max-w-3xl">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {# Logo : preview + upload + delete. Format JPG/PNG/GIF/WEBP, 10 Mo max
+     (cap dans services/uploads.py). Utilise dans la sidebar, le dashboard,
+     les encarts traiteur sur demandes/commandes, et la messagerie. #}
+  <div class="bg-white rounded-lg p-6">
+    <h2 class="font-display font-bold text-xl mb-4 text-text">Logo</h2>
+    <div class="flex items-start gap-6">
+      <div id="logo-preview" class="rounded-lg flex items-center justify-center bg-cream"
+           style="width:6rem;height:6rem;flex-shrink:0;overflow:hidden;">
+        {% if caterer.logo_url %}
+        <img src="{{ caterer.logo_url }}" alt="Logo {{ caterer.name }}"
+             style="width:100%;height:100%;object-fit:contain;padding:0.25rem;">
+        {% else %}
+        <i data-lucide="image" class="w-8 h-8 text-mute"></i>
+        {% endif %}
+      </div>
+      <div class="flex-1">
+        <label for="logo" class="block text-sm font-bold mb-1 text-text">
+          {% if caterer.logo_url %}Remplacer le logo{% else %}Ajouter un logo{% endif %}
+        </label>
+        <input type="file" id="logo" name="logo" accept="image/png,image/jpeg,image/gif,image/webp"
+               class="block text-sm text-text">
+        <p class="text-xs mt-1 text-mute">PNG, JPG, GIF ou WEBP. 10 Mo max. Format carre recommande (~512&times;512 px).</p>
+        {% if caterer.logo_url %}
+        <label class="inline-flex items-center gap-2 mt-3 text-xs text-danger cursor-pointer">
+          <input type="checkbox" name="logo_delete" value="1" class="w-3.5 h-3.5">
+          Supprimer le logo actuel
+        </label>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
   <div class="bg-white rounded-lg p-6">
     <h2 class="font-display font-bold text-xl mb-4 text-text">Informations</h2>
@@ -95,18 +127,63 @@
     </div>
   </div>
 
+  {# Photos : jusqu'a 10, les 3 premieres en vitrine. Drag-drop pour reordonner. #}
+  {% set PHOTOS_MAX = 10 %}
+  {% set current_count = (caterer.photos or [])|length %}
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4 text-text">Photos</h2>
-    {% if caterer.photos %}
-    <div class="grid grid-cols-3 gap-3 mb-4">
-      {% for photo in caterer.photos %}
-      <img src="{{ photo }}" alt="Photo traiteur" class="rounded-lg object-cover h-32 w-full">
+    <h2 class="font-display font-bold text-xl mb-2 text-text">Photos de presentation</h2>
+    <p class="text-sm text-mute mb-4">
+      Jusqu'a {{ PHOTOS_MAX }} photos. Les <strong>3 premieres</strong> apparaissent en vitrine sur votre fiche publique.
+      Glissez-deposez pour reordonner.
+    </p>
+
+    <div id="photos-grid" data-photos-max="{{ PHOTOS_MAX }}"
+         class="grid grid-cols-3 sm-grid-cols-4 md-grid-cols-5 gap-3 mb-4">
+      {% for photo in caterer.photos or [] %}
+      <div class="photo-item" draggable="true" data-url="{{ photo }}"
+           style="position:relative;cursor:grab;border-radius:0.5rem;overflow:hidden;
+                  {% if loop.index <= 3 %}box-shadow:0 0 0 3px var(--c-coral);{% else %}box-shadow:0 0 0 1px var(--c-border);{% endif %}">
+        <input type="hidden" name="photos_order" value="{{ photo }}">
+        <img src="{{ photo }}" alt="" draggable="false" style="display:block;width:100%;height:8rem;object-fit:cover;pointer-events:none;">
+        {% if loop.index <= 3 %}
+        <span class="vitrine-badge" style="position:absolute;top:0.375rem;left:0.375rem;background:var(--c-coral);color:white;font-size:0.625rem;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:0.04em;">
+          Vitrine {{ loop.index }}
+        </span>
+        {% endif %}
+        <button type="button" data-action="delete-photo" title="Supprimer cette photo"
+                style="position:absolute;top:0.375rem;right:0.375rem;width:1.5rem;height:1.5rem;border:none;border-radius:9999px;background:rgba(0,0,0,0.5);color:white;font-size:1rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+      </div>
       {% endfor %}
     </div>
-    {% else %}
-    <p class="text-sm text-mute">Aucune photo ajoutee pour le moment.</p>
-    {% endif %}
+
+    {# Drop zone : carte de meme taille qu'une photo, avec "+" + format.
+       Accepte le clic (proxy vers l'input file masque) ET le drag-drop
+       de fichiers depuis le bureau. Cachee quand on atteint la limite. #}
+    <div id="photo-drop-wrapper" {% if current_count >= PHOTOS_MAX %}style="display:none"{% endif %}>
+      <label for="photos-upload" id="photo-drop-zone"
+             style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                    width:100%;max-width:14rem;height:8rem;border-radius:0.5rem;
+                    border:2px dashed var(--c-border);background:var(--c-cream-page);
+                    cursor:pointer;transition:all .15s;text-align:center;padding:0.75rem;">
+        <span id="photo-drop-icon" style="font-size:2rem;line-height:1;color:var(--c-navy);font-weight:300;">+</span>
+        <span style="font-size:0.75rem;font-weight:700;color:var(--c-text);margin-top:0.25rem;">
+          Ajouter une photo
+        </span>
+        <span id="photo-drop-hint" style="font-size:0.6875rem;color:var(--c-mute);margin-top:0.125rem;line-height:1.3;">
+          Glisser-deposer ou cliquer<br>PNG/JPG/GIF/WEBP &middot; 10 Mo max
+        </span>
+      </label>
+      <input type="file" id="photos-upload" name="photos" multiple
+             accept="image/png,image/jpeg,image/gif,image/webp"
+             style="display:none;">
+      <p class="text-xs mt-2 text-mute">
+        <span id="photos-remaining">{{ PHOTOS_MAX - current_count }}</span> emplacement(s) restant(s).
+        <span id="photos-selected-count" style="display:none;font-weight:700;color:var(--c-navy);"></span>
+      </p>
+    </div>
   </div>
+
+  <script src="{{ url_for('static', filename='js/caterer-profile.js') }}" defer></script>
 
   <div class="flex justify-end">
     <button type="submit" class="rounded-full text-white text-sm font-bold px-4 py-2.5 transition-colors bg-navy">

@@ -134,6 +134,35 @@
 
       <aside class="split-aside">
 
+    {# Caterer card — logo + name (clickable) + send-message button #}
+    <div class="bg-white rounded-lg p-6 mb-6">
+      <a href="{{ url_for('client.caterer_detail', caterer_id=order.quote.caterer.id) }}"
+         class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        {% if order.quote.caterer.logo_url %}
+        <img src="{{ order.quote.caterer.logo_url }}" alt="Logo {{ order.quote.caterer.name }}"
+             class="w-12 h-12 rounded-lg object-contain p-1 bg-cream">
+        {% else %}
+        <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-navy-soft" style="flex-shrink:0;">
+          <i data-lucide="chef-hat" class="w-5 h-5 text-navy"></i>
+        </div>
+        {% endif %}
+        <div class="flex-1 min-w-0">
+          <p class="text-mute font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">Traiteur</p>
+          <p class="font-display font-bold text-base text-text truncate">{{ order.quote.caterer.name }}</p>
+          {% if order.quote.caterer.city %}
+          <p class="text-xs text-mute truncate">{{ order.quote.caterer.city }}</p>
+          {% endif %}
+        </div>
+        <i data-lucide="external-link" class="w-4 h-4 text-mute" style="flex-shrink:0;"></i>
+      </a>
+
+      <a href="{{ caterer_message_href }}"
+         class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full text-xs font-bold px-4 py-2.5 bg-navy text-white hover:opacity-90 transition-opacity no-underline">
+        <i data-lucide="message-circle" class="w-4 h-4"></i>
+        Envoyer un message
+      </a>
+    </div>
+
     <!-- Invoice / Payment -->
     {% if order.stripe_hosted_invoice_url %}
     <div class="bg-white rounded-lg p-6 mb-6">

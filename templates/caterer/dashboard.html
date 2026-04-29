@@ -4,65 +4,169 @@
 {% block title %}Dashboard Traiteur - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
-<div class="mb-8">
-  <h1 class="font-display font-bold text-3xl text-black">Bienvenue, {{ user.first_name }}</h1>
-  <p class="text-xs mt-1 text-mute">Espace traiteur</p>
-</div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-  <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-      <i data-lucide="file-text" class="w-4.5 h-4.5 text-navy"></i>
+  <!-- Greeting -->
+  <div class="mb-8 flex items-center gap-4">
+    <div class="rounded-lg flex items-center justify-center bg-cream"
+         style="width:3.5rem;height:3.5rem;flex-shrink:0;overflow:hidden;">
+      {% if user.caterer and user.caterer.logo_url %}
+      <img src="{{ user.caterer.logo_url }}" alt="Logo {{ user.caterer.name }}"
+           style="width:100%;height:100%;object-fit:contain;padding:0.25rem;">
+      {% else %}
+      <i data-lucide="chef-hat" class="w-6 h-6 text-navy"></i>
+      {% endif %}
     </div>
     <div>
-      <p class="font-display font-bold text-3xl text-black">{{ pending_count }}</p>
-      <p class="text-xs mt-0.5 text-mute">Demandes en attente</p>
-    </div>
-    <a href="{{ url_for('caterer.requests_list', status='selected') }}" class="text-xs font-bold text-navy">Voir les demandes</a>
-  </div>
-  <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-      <i data-lucide="truck" class="w-4.5 h-4.5 text-navy"></i>
-    </div>
-    <div>
-      <p class="font-display font-bold text-3xl text-black">{{ upcoming_deliveries|length }}</p>
-      <p class="text-xs mt-0.5 text-mute">Prochaines livraisons</p>
-    </div>
-    <a href="{{ url_for('caterer.orders_list') }}" class="text-xs font-bold text-navy">Voir les commandes</a>
-  </div>
-  <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-      <i data-lucide="banknote" class="w-4.5 h-4.5 text-navy"></i>
-    </div>
-    <div>
-      <p class="font-display font-bold text-3xl text-black">{{ "%.2f"|format(total_revenue) }} &euro;</p>
-      <p class="text-xs mt-0.5 text-mute">Total commandes payees</p>
+      <h1 class="font-display font-bold text-3xl text-black">Bienvenue, {{ user.first_name }}</h1>
+      <p class="text-xs mt-1 text-mute">Espace traiteur</p>
     </div>
   </div>
-</div>
 
-{% if upcoming_deliveries %}
-<div class="bg-white rounded-lg p-6">
-  <h2 class="font-display font-bold text-xl mb-4 text-text">Prochaines livraisons</h2>
-  <div>
-    {% for order in upcoming_deliveries %}
-    <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg transition-colors hover:bg-cream border-t border-soft">
-      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
-        <i data-lucide="truck" class="w-4 h-4 text-navy"></i>
+  <!-- Key numbers (4 KPIs) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <a href="{{ url_for('caterer.requests_list', status='selected') }}"
+       class="bg-white rounded-lg p-5 flex flex-col gap-3 hover:opacity-90 transition-opacity">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+        <i data-lucide="inbox" class="w-[18px] h-[18px] text-navy"></i>
       </div>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold truncate text-text">{{ order.quote.quote_request.company.name if order.quote and order.quote.quote_request and order.quote.quote_request.company else 'Client' }}</p>
-        <div class="flex items-center gap-3 mt-0.5">
-          <span class="text-xs text-mute">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
-          <span class="text-xs text-mute">{{ order.delivery_address or 'Adresse non renseignee' }}</span>
-        </div>
+      <div>
+        <p class="font-display font-bold text-3xl text-black">{{ new_requests_count }}</p>
+        <p class="text-xs mt-0.5 text-mute">Nouvelles demandes</p>
       </div>
-      {{ status_badge(order.status) }}
-      <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
     </a>
-    {% endfor %}
+
+    <a href="{{ url_for('caterer.requests_list', status='responded') }}"
+       class="bg-white rounded-lg p-5 flex flex-col gap-3 hover:opacity-90 transition-opacity">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+        <i data-lucide="file-text" class="w-[18px] h-[18px] text-navy"></i>
+      </div>
+      <div>
+        <p class="font-display font-bold text-3xl text-black">{{ pending_quotes_count }}</p>
+        <p class="text-xs mt-0.5 text-mute">Devis en attente</p>
+      </div>
+    </a>
+
+    <a href="{{ url_for('caterer.orders_list') }}"
+       class="bg-white rounded-lg p-5 flex flex-col gap-3 hover:opacity-90 transition-opacity">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+        <i data-lucide="package" class="w-[18px] h-[18px] text-navy"></i>
+      </div>
+      <div>
+        <p class="font-display font-bold text-3xl text-black">{{ orders_in_progress_count }}</p>
+        <p class="text-xs mt-0.5 text-mute">Commandes en cours</p>
+      </div>
+    </a>
+
+    <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+        <i data-lucide="banknote" class="w-[18px] h-[18px] text-navy"></i>
+      </div>
+      <div>
+        <p class="font-display font-bold text-3xl text-black">{{ "%.0f"|format(total_revenue) }} &euro;</p>
+        <p class="text-xs mt-0.5 text-mute">CA realise</p>
+      </div>
+    </div>
   </div>
-</div>
-{% endif %}
+
+  {# Layout 70/30 : demandes a traiter a gauche, commandes a venir a droite. #}
+  <div class="split-detail">
+    <div class="split-main">
+
+      {# Demandes a traiter — toujours rendu meme si vide #}
+      <div class="bg-white rounded-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display font-bold text-xl text-text">Demandes a traiter</h2>
+          {% if new_requests %}
+          <a href="{{ url_for('caterer.requests_list', status='selected') }}"
+             class="text-xs font-bold hover:opacity-70 transition-opacity text-navy">Voir tout</a>
+          {% endif %}
+        </div>
+        {% if new_requests %}
+        <div>
+          {% for qrc in new_requests %}
+          <a href="{{ url_for('caterer.request_detail', qr_id=qrc.quote_request_id) }}"
+             class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft first:border-t-0">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream" style="flex-shrink:0;">
+              <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-bold truncate text-text">
+                {{ qrc.quote_request.company.name if qrc.quote_request and qrc.quote_request.company else 'Client' }}
+              </p>
+              <div class="flex items-center gap-3 mt-0.5">
+                <span class="text-xs text-mute">
+                  {% if qrc.quote_request and qrc.quote_request.event_date %}
+                  {{ qrc.quote_request.event_date.strftime('%d/%m/%Y') }}
+                  {% else %}Date a definir{% endif %}
+                </span>
+                {% if qrc.quote_request and qrc.quote_request.guest_count %}
+                <span class="text-xs text-mute">{{ qrc.quote_request.guest_count }} convives</span>
+                {% endif %}
+                {% if qrc.quote_request and qrc.quote_request.event_city %}
+                <span class="text-xs text-mute">{{ qrc.quote_request.event_city }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+          <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
+            <i data-lucide="inbox" class="w-6 h-6 text-navy"></i>
+          </div>
+          <p class="text-sm text-mute">Aucune nouvelle demande a traiter pour le moment.</p>
+          <p class="text-xs mt-1 text-mute">Les demandes qualifiees par l'admin apparaitront ici.</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>{# /.split-main #}
+
+    <aside class="split-aside">
+
+      {# Commandes a venir — toujours rendu meme si vide #}
+      <div class="bg-white rounded-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display font-bold text-xl text-text">Commandes a venir</h2>
+          {% if upcoming_deliveries %}
+          <a href="{{ url_for('caterer.orders_list') }}"
+             class="text-xs font-bold hover:opacity-70 transition-opacity text-navy">Voir tout</a>
+          {% endif %}
+        </div>
+        {% if upcoming_deliveries %}
+        <div>
+          {% for order in upcoming_deliveries %}
+          <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}"
+             class="flex items-center gap-3 py-3 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft first:border-t-0">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream" style="flex-shrink:0;">
+              <i data-lucide="truck" class="w-4 h-4 text-navy"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-bold truncate text-text">
+                {{ order.quote.quote_request.company.name if order.quote and order.quote.quote_request and order.quote.quote_request.company else 'Client' }}
+              </p>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-xs text-mute">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
+              </div>
+            </div>
+            {{ status_badge(order.status) }}
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+          <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
+            <i data-lucide="truck" class="w-6 h-6 text-navy"></i>
+          </div>
+          <p class="text-sm text-mute">Aucune commande a venir.</p>
+          <p class="text-xs mt-1 text-mute">Les commandes acceptees par les clients apparaitront ici.</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </aside>{# /.split-aside #}
+  </div>{# /.split-detail #}
 
 {% endblock %}

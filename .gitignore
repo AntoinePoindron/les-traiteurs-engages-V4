@@ -52,3 +52,6 @@ docker-compose.override.yml
 
 # Security scan reports
 .scan-reports/
+
+# Runtime user uploads (created by services/uploads.py at runtime)
+static/uploads/
