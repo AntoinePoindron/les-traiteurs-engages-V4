@@ -25,9 +25,8 @@ flask-limiter==4.1.1
 # Background task queue (P3.4) — phase 2 of Stripe billing runs in a
 # separate worker so the user-facing POST returns in <100ms instead of
 # waiting on Stripe API round-trips. Redis is the broker.
-# Pinned to range until after first install; lock to exact in a follow-up.
-dramatiq[redis]>=1.17,<2
-redis>=5,<7
+dramatiq[redis]==1.17.0
+redis==5.0.3
 
 # --- dev / test ---
 pytest==9.0.3
