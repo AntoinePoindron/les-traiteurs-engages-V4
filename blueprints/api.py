@@ -4,6 +4,7 @@ import uuid
 from flask import Blueprint, abort, g, jsonify, request
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 import config
 from extensions import csrf, limiter
@@ -122,6 +123,7 @@ def get_messages(thread_id):
     stmt = (
         select(Message)
         .where(Message.thread_id == thread_id)
+        .options(joinedload(Message.sender))
         .order_by(Message.created_at.asc())
     )
     if not is_admin:
@@ -133,16 +135,17 @@ def get_messages(thread_id):
                          target_type="thread", target_id=thread_id)
     messages = db.scalars(stmt).all()
 
-    db.execute(
-        Message.__table__.update()
-        .where(Message.thread_id == thread_id, Message.recipient_id == user.id, Message.is_read.is_(False))
-        .values(is_read=True)
-    )
+    if not is_admin:
+        db.execute(
+            Message.__table__.update()
+            .where(Message.thread_id == thread_id, Message.recipient_id == user.id, Message.is_read.is_(False))
+            .values(is_read=True)
+        )
     db.commit()
 
     result = []
     for msg in messages:
-        sender = db.get(User, msg.sender_id)
+        sender = msg.sender
         result.append({
             "id": str(msg.id),
             "thread_id": str(msg.thread_id),
