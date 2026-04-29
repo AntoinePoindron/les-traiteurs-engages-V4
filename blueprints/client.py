@@ -2,6 +2,7 @@ import datetime
 import math
 import uuid
 
+import bcrypt
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import func, or_, select
 
@@ -923,8 +924,13 @@ def profile():
             u.first_name = (form.first_name.data or "").strip() or u.first_name
         if form.last_name.data is not None:
             u.last_name = (form.last_name.data or "").strip() or u.last_name
-        if form.email.data:
-            u.email = form.email.data.strip().lower()
+        new_email = (form.email.data or "").strip().lower()
+        if new_email and new_email != u.email:
+            pwd = form.current_password.data or ""
+            if not pwd or not bcrypt.checkpw(pwd.encode(), u.password_hash.encode()):
+                flash("Mot de passe actuel incorrect. Le changement d'email necessite une re-authentification.", "error")
+                return render_template("client/profile.html", user=user), 400
+            u.email = new_email
         db.commit()
         flash("Profil mis a jour.", "success")
         return redirect(url_for("client.profile"))

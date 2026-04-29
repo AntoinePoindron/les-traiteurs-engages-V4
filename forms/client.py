@@ -14,6 +14,7 @@ from wtforms import (
     DecimalField,
     FloatField,
     IntegerField,
+    PasswordField,
     SelectField,
     StringField,
     TextAreaField,
@@ -102,6 +103,7 @@ class UserProfileForm(FlaskForm):
     first_name = StringField(validators=[Optional(), Length(max=255)])
     last_name = StringField(validators=[Optional(), Length(max=255)])
     email = StringField(validators=[Optional(), Email(), Length(max=255)])
+    current_password = PasswordField(validators=[Optional()])
 
 
 class CompanySettingsForm(FlaskForm):

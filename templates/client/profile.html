@@ -26,6 +26,11 @@
           <input type="email" name="email" value="{{ user.email }}" required
             class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
+        <div>
+          <label class="block text-sm font-bold mb-2 text-text">Mot de passe actuel <span class="font-normal text-gray-500">(requis pour changer l'email)</span></label>
+          <input type="password" name="current_password" autocomplete="current-password"
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+        </div>
         <button type="submit"
           class="rounded-full text-sm font-bold px-4 py-2.5 btn-navy">
           Enregistrer
