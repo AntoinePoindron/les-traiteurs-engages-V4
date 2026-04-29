@@ -139,6 +139,9 @@ def create_app():
             # role-protected routes are hit.
             if user and user.membership_status in _BLOCKED_MEMBERSHIP_STATUSES:
                 user = None
+            if user and not user.is_active:
+                session.clear()
+                user = None
             g.current_user = user
 
     @app.teardown_appcontext
