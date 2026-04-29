@@ -249,7 +249,12 @@ def requests_list():
         .where(QuoteRequestCaterer.caterer_id == caterer.id)
     )
     if status_filter:
-        stmt = stmt.where(QuoteRequestCaterer.status == status_filter)
+        try:
+            status_enum = QRCStatus(status_filter)
+        except ValueError:
+            status_filter = None
+        else:
+            stmt = stmt.where(QuoteRequestCaterer.status == status_enum)
     qrcs = db.scalars(stmt.order_by(QuoteRequestCaterer.id.desc())).all()
     for qrc in qrcs:
         _ = qrc.quote_request
