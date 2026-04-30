@@ -14,6 +14,12 @@
   'invoicing':       {'classes': 'bg-pending text-pending',             'label': 'Facturation en cours'},
   'invoiced':        {'classes': 'bg-sky text-sky',                     'label': 'Facturée'},
   'paid':            {'classes': 'bg-flash-success text-success-dark',  'label': 'Payée'},
+  # Aggregated client-facing order statuses (see
+  # blueprints/client/orders.py:_derive_order_display_status). They share
+  # the same colors as the underlying OrderStatus they collapse for visual
+  # continuity.
+  'upcoming':        {'classes': 'bg-purple text-purple',               'label': 'À venir'},
+  'to_pay':          {'classes': 'bg-sky text-sky',                     'label': 'À payer'},
   'disputed':        {'classes': 'bg-danger-soft text-danger',          'label': 'Litige'},
   'submitted':       {'classes': 'bg-navy-soft text-navy',              'label': 'Soumise'},
   'awaiting_quotes': {'classes': 'bg-pending text-pending',             'label': 'En attente de devis'},

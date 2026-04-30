@@ -1,35 +1,88 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
-{% from "components/structure_type_badge.html" import structure_type_badge %}
 
 {% block title %}Mes commandes - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
+{# French short month names — used to format the delivery date as "1 sept. 2026" #}
+{% set fr_months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'] %}
+
 <main class="bg-cream min-h-screen">
 
     <h1 class="font-display font-bold text-4xl mb-6 text-text">Mes commandes</h1>
 
+    {# ---- Filter tabs ---- #}
+    <div class="bg-white rounded-lg p-6 mb-6">
+      <div class="flex flex-wrap gap-2">
+        {% for key, label in status_tabs.items() %}
+        <a href="{{ url_for('client.orders_list', status=key) if key != 'all' else url_for('client.orders_list') }}"
+           class="px-4 py-2 rounded-full text-sm font-bold transition-colors
+           {% if current_tab == key %}bg-navy text-white{% else %}bg-cream text-navy hover:opacity-80{% endif %}">
+          {{ label }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
     {% if orders %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4 text-text">Commandes</h2>
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-display font-bold text-sm text-text">{{ orders|length }} commande{{ 's' if orders|length > 1 else '' }}</h2>
+      </div>
+
       <div>
         {% for order in orders %}
-        <a href="{{ url_for('client.order_detail', order_id=order.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
-            <i data-lucide="shopping-bag" class="w-4 h-4 text-navy"></i>
+        {% set qr = order.quote.quote_request %}
+        <a href="{{ url_for('client.order_detail', order_id=order.id) }}"
+           class="flex items-center gap-4 py-4 -mx-2 px-2 rounded-lg transition-colors hover:bg-cream border-t border-soft first:border-t-0">
+
+          {# Bag icon tile #}
+          <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="shopping-bag" class="w-5 h-5 text-text-soft"></i>
           </div>
+
+          {# Two-line text block #}
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <p class="text-sm font-bold truncate text-text">{{ order.quote.caterer.name }}</p>
-              {{ structure_type_badge(order.quote.caterer.structure_type) }}
+            {# Line 1 : meal type (bold) + caterer name (mute) #}
+            <div class="flex items-center gap-3 flex-wrap">
+              <p class="text-sm font-bold text-text">
+                {{ meal_type_labels.get(qr.meal_type, qr.meal_type.value if qr.meal_type else 'Commande') }}
+              </p>
+              <p class="text-sm text-mute truncate">{{ order.quote.caterer.name }}</p>
             </div>
-            <div class="flex items-center gap-3 mt-0.5">
-              <span class="text-xs text-mute">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
-              <span class="text-xs text-mute">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR HT</span>
+
+            {# Line 2 : delivery date · guests · city · amount #}
+            <div class="flex items-center gap-3 mt-1 flex-wrap text-xs text-mute">
+              {% if order.delivery_date %}
+              <span class="inline-flex items-center gap-1">
+                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                {{ order.delivery_date.day }} {{ fr_months[order.delivery_date.month - 1] }} {{ order.delivery_date.year }}
+              </span>
+              {% endif %}
+              {% if qr.guest_count %}
+              <span class="inline-flex items-center gap-1">
+                <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                {{ qr.guest_count }} convives
+              </span>
+              {% endif %}
+              {% if qr.event_city %}
+              <span class="inline-flex items-center gap-1">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                {{ qr.event_city }}
+              </span>
+              {% endif %}
+              <span class="inline-flex items-center gap-1">
+                <i data-lucide="euro" class="w-3.5 h-3.5"></i>
+                {{ "%.0f"|format(order.quote.total_amount_ht|float) }} HT
+              </span>
             </div>
           </div>
-          {{ status_badge(order.status) }}
-          <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+
+          {# Status badge + chevron #}
+          <div class="flex items-center gap-2 flex-shrink-0">
+            {{ status_badge(order.display_status) }}
+            <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+          </div>
         </a>
         {% endfor %}
       </div>
@@ -41,7 +94,8 @@
         <i data-lucide="shopping-bag" class="w-6 h-6 text-navy"></i>
       </div>
       <h3 class="font-display font-bold text-xl mb-6 text-text">Aucune commande</h3>
-      <a href="{{ url_for('client.requests_list') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white">
+      <a href="{{ url_for('client.requests_list') }}"
+         class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white hover:opacity-90 transition-opacity">
         <i data-lucide="file-text" class="w-4 h-4"></i>
         Voir mes demandes
       </a>
