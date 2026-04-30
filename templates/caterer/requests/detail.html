@@ -37,7 +37,9 @@
     {# ---- Card : event summary ---- #}
     <div class="bg-white rounded-lg p-6 space-y-2">
       <h2 class="font-display font-bold text-2xl text-text">L'événement</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8">
+      {# Inline style for the grid gap because the project ships a static
+         Tailwind build that doesn't include gap-y-* / gap-x-* utilities. #}
+      <div class="grid grid-cols-1 sm:grid-cols-2" style="row-gap:0.5rem;column-gap:2rem;">
 
         {# Date #}
         <div class="flex items-center gap-3">
