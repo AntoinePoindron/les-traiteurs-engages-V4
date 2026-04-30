@@ -446,6 +446,7 @@ def register(bp):
     def search():
         page = request.args.get("page", 1, type=int)
         q = request.args.get("q", "").strip()
+        location = request.args.get("location", "").strip()
         structure_type = request.args.get("structure_type", "")
         dietary = request.args.getlist("dietary")
         capacity = request.args.get("capacity", type=int)
@@ -470,6 +471,17 @@ def register(bp):
         if capacity:
             stmt = stmt.where(
                 or_(Caterer.capacity_max.is_(None), Caterer.capacity_max >= capacity)
+            )
+
+        if location:
+            # Loose match: city OR zip_code starts with the input. Lets the
+            # user type "75" to find Paris, or "Paris" to find by city name.
+            loc_pattern = f"%{location}%"
+            stmt = stmt.where(
+                or_(
+                    Caterer.city.ilike(loc_pattern),
+                    Caterer.zip_code.ilike(loc_pattern),
+                )
             )
 
         if q:
@@ -499,6 +511,7 @@ def register(bp):
             total_pages=total_pages,
             total=total,
             q=q,
+            location=location,
             structure_type=structure_type,
             dietary=dietary,
             capacity=capacity,
