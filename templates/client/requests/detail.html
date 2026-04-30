@@ -211,7 +211,13 @@
                 <span class="text-xs text-mute">Ref. {{ quote.reference }}</span>
               </div>
             </a>
-            {{ status_badge(quote.status) }}
+            {# Hide the "Devis envoyé" pill — Accept/Refuse buttons already
+               signal that the quote is actionable. We still show the badge
+               for accepted / refused / expired quotes since those carry a
+               distinct meaning the buttons can't replace. #}
+            {% if quote.status != QuoteStatus.sent %}
+              {{ status_badge(quote.status) }}
+            {% endif %}
           </div>
 
           <dl class="space-y-2 mb-4 text-sm">
