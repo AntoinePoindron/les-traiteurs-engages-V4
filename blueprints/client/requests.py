@@ -9,6 +9,7 @@ from blueprints.client._helpers import (
     ITEMS_PER_PAGE,
     STATUS_TABS,
     STRUCTURE_GROUPS,
+    apply_quote_request_form,
     own_service_id,
 )
 from blueprints.middleware import login_required, role_required
@@ -99,40 +100,8 @@ def register(bp):
             user_id=user.id,
             company_service_id=service_id,
             status=status,
-            service_type=form.service_type.data or None,
-            meal_type=form.meal_type.data or None,
-            event_date=form.event_date.data,
-            guest_count=form.guest_count.data,
-            event_address=form.event_address.data or None,
-            event_city=form.event_city.data or None,
-            event_zip_code=form.event_zip_code.data or None,
-            event_latitude=form.event_latitude.data,
-            event_longitude=form.event_longitude.data,
-            budget_global=form.budget_global.data,
-            budget_per_person=form.budget_per_person.data,
-            dietary_vegetarian=form.dietary_vegetarian.data,
-            dietary_vegan=form.dietary_vegan.data,
-            dietary_halal=form.dietary_halal.data,
-            dietary_casher=form.dietary_casher.data,
-            dietary_gluten_free=form.dietary_gluten_free.data,
-            dietary_lactose_free=form.dietary_lactose_free.data,
-            vegetarian_count=form.vegetarian_count.data,
-            vegan_count=form.vegan_count.data,
-            halal_count=form.halal_count.data,
-            casher_count=form.casher_count.data,
-            gluten_free_count=form.gluten_free_count.data,
-            lactose_free_count=form.lactose_free_count.data,
-            drinks_alcohol=form.drinks_alcohol.data,
-            drinks_details=form.drinks_details.data or None,
-            wants_waitstaff=form.wants_waitstaff.data,
-            service_waitstaff_details=form.service_waitstaff_details.data or None,
-            wants_equipment=form.wants_equipment.data,
-            wants_decoration=form.wants_decoration.data,
-            wants_setup=form.wants_setup.data,
-            wants_cleanup=form.wants_cleanup.data,
-            is_compare_mode=is_compare,
-            message_to_caterer=form.message_to_caterer.data or None,
         )
+        apply_quote_request_form(qr, form)
         db.add(qr)
         db.flush()
         qr_id = qr.id
@@ -299,39 +268,7 @@ def register(bp):
             ), 400
 
         qr.company_service_id = own_service_id(db, user, form.company_service_id.data)
-        qr.service_type = form.service_type.data or None
-        qr.meal_type = form.meal_type.data or None
-        qr.event_date = form.event_date.data
-        qr.guest_count = form.guest_count.data
-        qr.event_address = form.event_address.data or None
-        qr.event_city = form.event_city.data or None
-        qr.event_zip_code = form.event_zip_code.data or None
-        qr.event_latitude = form.event_latitude.data
-        qr.event_longitude = form.event_longitude.data
-        qr.budget_global = form.budget_global.data
-        qr.budget_per_person = form.budget_per_person.data
-        qr.dietary_vegetarian = form.dietary_vegetarian.data
-        qr.dietary_vegan = form.dietary_vegan.data
-        qr.dietary_halal = form.dietary_halal.data
-        qr.dietary_casher = form.dietary_casher.data
-        qr.dietary_gluten_free = form.dietary_gluten_free.data
-        qr.dietary_lactose_free = form.dietary_lactose_free.data
-        qr.vegetarian_count = form.vegetarian_count.data
-        qr.vegan_count = form.vegan_count.data
-        qr.halal_count = form.halal_count.data
-        qr.casher_count = form.casher_count.data
-        qr.gluten_free_count = form.gluten_free_count.data
-        qr.lactose_free_count = form.lactose_free_count.data
-        qr.drinks_alcohol = form.drinks_alcohol.data
-        qr.drinks_details = form.drinks_details.data or None
-        qr.wants_waitstaff = form.wants_waitstaff.data
-        qr.service_waitstaff_details = form.service_waitstaff_details.data or None
-        qr.wants_equipment = form.wants_equipment.data
-        qr.wants_decoration = form.wants_decoration.data
-        qr.wants_setup = form.wants_setup.data
-        qr.wants_cleanup = form.wants_cleanup.data
-        qr.is_compare_mode = form.is_compare_mode.data
-        qr.message_to_caterer = form.message_to_caterer.data or None
+        apply_quote_request_form(qr, form)
 
         # VULN-36: editing a request that is already awaiting admin qualification
         # MUST keep it in pending_review.
