@@ -25,6 +25,16 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 commission_invoice_seq = Sequence("commission_invoice_number_seq", start=1)
 
 
+class DietaryMixin:
+    """Six boolean dietary flags shared by Caterer and QuoteRequest."""
+    dietary_vegetarian: Mapped[bool] = mapped_column(Boolean, default=False)
+    dietary_vegan: Mapped[bool] = mapped_column(Boolean, default=False)
+    dietary_halal: Mapped[bool] = mapped_column(Boolean, default=False)
+    dietary_casher: Mapped[bool] = mapped_column(Boolean, default=False)
+    dietary_gluten_free: Mapped[bool] = mapped_column(Boolean, default=False)
+    dietary_lactose_free: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -139,7 +149,7 @@ class Company(Base):
     quote_requests: Mapped[list["QuoteRequest"]] = relationship(back_populates="company")
 
 
-class Caterer(Base):
+class Caterer(DietaryMixin, Base):
     __tablename__ = "caterers"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -160,12 +170,6 @@ class Caterer(Base):
     commission_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=Decimal("0.05"))
     logo_url: Mapped[str | None] = mapped_column(String(500))
     delivery_radius_km: Mapped[int | None] = mapped_column(Integer)
-    dietary_vegetarian: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_vegan: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_halal: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_casher: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_gluten_free: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_lactose_free: Mapped[bool] = mapped_column(Boolean, default=False)
     service_config: Mapped[dict | None] = mapped_column(JSON)
     stripe_account_id: Mapped[str | None] = mapped_column(String(255))
     stripe_onboarded_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
@@ -239,7 +243,7 @@ class CompanyEmployee(Base):
     user: Mapped[User | None] = relationship()
 
 
-class QuoteRequest(Base):
+class QuoteRequest(DietaryMixin, Base):
     __tablename__ = "quote_requests"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -258,12 +262,6 @@ class QuoteRequest(Base):
     event_longitude: Mapped[float | None] = mapped_column(Float)
     budget_global: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     budget_per_person: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
-    dietary_vegetarian: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_vegan: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_halal: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_casher: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_gluten_free: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_lactose_free: Mapped[bool] = mapped_column(Boolean, default=False)
     vegetarian_count: Mapped[int | None] = mapped_column(Integer)
     vegan_count: Mapped[int | None] = mapped_column(Integer)
     halal_count: Mapped[int | None] = mapped_column(Integer)
