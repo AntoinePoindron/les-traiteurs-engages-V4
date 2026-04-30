@@ -27,7 +27,13 @@ services:
       - app_pycache:/app/__pycache__
     environment:
       # Picked up by entrypoint.sh; appends --reload to gunicorn.
+      # gunicorn --reload only watches .py files, so it misses pure
+      # template / static changes — the env var below covers those.
       - GUNICORN_RELOAD=1
+      # Tells Jinja to re-read templates on every request, so editing a
+      # .html file is visible after a hard refresh without restarting
+      # the worker. Picked up by app.py:create_app().
+      - TEMPLATES_AUTO_RELOAD=1
       # Flask debug mode (better tracebacks in dev). Never enable in prod.
       - FLASK_DEBUG=1
 
