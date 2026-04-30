@@ -195,8 +195,8 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(255))
     last_name: Mapped[str] = mapped_column(String(255))
     role: Mapped[UserRole] = mapped_column(String(20))
-    company_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("companies.id"))
-    caterer_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("caterers.id"))
+    company_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("companies.id"), index=True)
+    caterer_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     membership_status: Mapped[MembershipStatus | None] = mapped_column(String(20))
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255))
@@ -215,7 +215,7 @@ class CompanyService(Base):
     __tablename__ = "company_services"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"))
+    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"), index=True)
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
     annual_budget: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
@@ -229,8 +229,8 @@ class CompanyEmployee(Base):
     __tablename__ = "company_employees"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"))
-    service_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("company_services.id"))
+    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"), index=True)
+    service_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("company_services.id"), index=True)
     first_name: Mapped[str] = mapped_column(String(255))
     last_name: Mapped[str] = mapped_column(String(255))
     email: Mapped[str] = mapped_column(String(255))
@@ -247,9 +247,9 @@ class QuoteRequest(DietaryMixin, Base):
     __tablename__ = "quote_requests"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"))
+    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"), index=True)
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
-    company_service_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("company_services.id"))
+    company_service_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("company_services.id"), index=True)
     status: Mapped[QuoteRequestStatus] = mapped_column(String(30), default=QuoteRequestStatus.draft)
     service_type: Mapped[str | None] = mapped_column(String(100))
     meal_type: Mapped[MealType | None] = mapped_column(String(20))
@@ -293,8 +293,8 @@ class QuoteRequestCaterer(Base):
     __tablename__ = "quote_request_caterers"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    quote_request_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quote_requests.id"))
-    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"))
+    quote_request_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quote_requests.id"), index=True)
+    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
     status: Mapped[QRCStatus] = mapped_column(String(30), default=QRCStatus.selected)
     responded_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
     response_rank: Mapped[int | None] = mapped_column(Integer)
@@ -307,8 +307,8 @@ class Quote(Base):
     __tablename__ = "quotes"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    quote_request_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quote_requests.id"))
-    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"))
+    quote_request_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quote_requests.id"), index=True)
+    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
     reference: Mapped[str] = mapped_column(String(50), unique=True)
     total_amount_ht: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     amount_per_person: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
@@ -380,8 +380,8 @@ class Invoice(Base):
     __tablename__ = "invoices"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"))
-    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"))
+    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"), index=True)
+    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
     reference: Mapped[str | None] = mapped_column(String(50))
     amount_ht: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     tva_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
@@ -417,8 +417,8 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"))
-    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"))
+    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"), index=True)
+    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
     stripe_checkout_session_id: Mapped[str | None] = mapped_column(String(255))
     stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
     # UNIQUE: a single Stripe invoice maps to exactly one Payment row.
@@ -442,7 +442,7 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
     type: Mapped[str] = mapped_column(String(50))
     title: Mapped[str] = mapped_column(String(255))
     body: Mapped[str | None] = mapped_column(Text)
@@ -506,8 +506,8 @@ class Message(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     thread_id: Mapped[uuid.UUID] = mapped_column(Uuid)
-    sender_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
-    recipient_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+    sender_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
+    recipient_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
     order_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("orders.id"))
     quote_request_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("quote_requests.id"))
     body: Mapped[str] = mapped_column(Text)
