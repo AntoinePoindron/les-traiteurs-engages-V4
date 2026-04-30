@@ -3,6 +3,7 @@ import uuid
 
 from flask import abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import func, or_, select
+from sqlalchemy.orm import selectinload
 
 from blueprints.client._helpers import (
     DIETARY_FLAGS,
@@ -27,9 +28,63 @@ from models import (
     QuoteRequest,
     QuoteRequestCaterer,
     QuoteRequestStatus,
+    QuoteStatus,
 )
 from services import workflow
 from services.quotes import calculate_quote_totals
+
+
+# Filter tabs visible on /client/requests. Each tab maps to one of the
+# values _derive_request_display_status() returns (or "all").
+REQUEST_STATUS_TABS = {
+    "all":              "Toutes",
+    "awaiting_quotes":  "En attente de devis",
+    "quotes_received":  "Devis reçu(s)",
+    "completed":        "Commande créée",
+    "closed":           "Clôturées",
+}
+
+# Quote statuses that count as "the caterer actually responded" (drafts
+# don't, since the client can't see them).
+_QUOTE_RECEIVED_STATUSES = (
+    QuoteStatus.sent,
+    QuoteStatus.accepted,
+    QuoteStatus.refused,
+    QuoteStatus.expired,
+)
+
+
+def _derive_request_display_status(qr):
+    """Collapse QR.status + quote presence into a single client-facing code.
+
+    Returns one of: 'awaiting_quotes', 'quotes_received', 'completed',
+    'closed' (or 'cancelled', kept distinct so the row badge can stay
+    meaningful even though the "Clôturées" tab buckets them together).
+
+    The status_badge component already handles each of these strings
+    with a label and a colour, so the template can pass the result
+    straight through.
+    """
+    if qr.status == QuoteRequestStatus.completed:
+        return "completed"
+    if qr.status == QuoteRequestStatus.cancelled:
+        return "cancelled"
+    if qr.status == QuoteRequestStatus.quotes_refused:
+        return "closed"
+    has_received = any(q.status in _QUOTE_RECEIVED_STATUSES for q in qr.quotes)
+    return "quotes_received" if has_received else "awaiting_quotes"
+
+
+def _request_quote_counts(qr):
+    """Return (received_count, expected_count) used in the row footer.
+
+    `received` counts quotes the caterer actually sent (drafts excluded).
+    `expected` is 1 for single-caterer demands, 3 for compare-mode demands
+    — matches the wizard's "Recevoir 3 devis" copy.
+    """
+    received = sum(1 for q in qr.quotes if q.status in _QUOTE_RECEIVED_STATUSES)
+    expected = 1 if not qr.is_compare_mode else 3
+    return received, expected
 
 
 def register(bp):
@@ -39,32 +94,54 @@ def register(bp):
     def requests_list():
         user = g.current_user
         status_filter = request.args.get("status", "all")
+        if status_filter not in REQUEST_STATUS_TABS:
+            status_filter = "all"
+        search_q = (request.args.get("q") or "").strip().lower()
+
         db = get_db()
-        stmt = select(QuoteRequest).where(
-            QuoteRequest.company_id == user.company_id
-        ).order_by(QuoteRequest.created_at.desc())
-
-        if status_filter == "draft":
-            stmt = stmt.where(QuoteRequest.status == QuoteRequestStatus.draft)
-        elif status_filter == "pending_review":
-            stmt = stmt.where(QuoteRequest.status == QuoteRequestStatus.pending_review)
-        elif status_filter == "sent_to_caterers":
-            stmt = stmt.where(QuoteRequest.status == QuoteRequestStatus.sent_to_caterers)
-        elif status_filter == "completed":
-            stmt = stmt.where(QuoteRequest.status.in_([
-                QuoteRequestStatus.completed,
-                QuoteRequestStatus.cancelled,
-                QuoteRequestStatus.quotes_refused,
-            ]))
-
+        # selectinload(quotes) avoids N+1 when computing display_status
+        # and quote counts for every row.
+        stmt = (
+            select(QuoteRequest)
+            .where(QuoteRequest.company_id == user.company_id)
+            .options(selectinload(QuoteRequest.quotes))
+            .order_by(QuoteRequest.created_at.desc())
+        )
         requests = db.execute(stmt).scalars().all()
+
+        # Hydrate row-level helpers used by the template so it stays
+        # arithmetic-free.
+        for qr in requests:
+            qr.display_status = _derive_request_display_status(qr)
+            qr.received_quotes, qr.expected_quotes = _request_quote_counts(qr)
+
+        # Tab filter: "closed" buckets cancelled + closed for the user
+        # but each row keeps its own badge.
+        if status_filter == "closed":
+            requests = [r for r in requests if r.display_status in ("closed", "cancelled")]
+        elif status_filter != "all":
+            requests = [r for r in requests if r.display_status == status_filter]
+
+        # Free-text search across the cheap-to-check fields. Stays in
+        # Python because the volume per company is small (< 100 demands).
+        if search_q:
+            def _matches(qr):
+                haystack = " ".join(filter(None, [
+                    MEAL_TYPE_LABELS.get(qr.meal_type, "") if qr.meal_type else "",
+                    qr.service_type or "",
+                    qr.event_city or "",
+                    qr.message_to_caterer or "",
+                ])).lower()
+                return search_q in haystack
+            requests = [r for r in requests if _matches(r)]
 
         return render_template(
             "client/requests/list.html",
             user=user,
             requests=requests,
             current_tab=status_filter,
-            tabs=STATUS_TABS,
+            tabs=REQUEST_STATUS_TABS,
+            search_q=search_q,
             meal_type_labels=MEAL_TYPE_LABELS,
         )
 

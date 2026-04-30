@@ -24,6 +24,7 @@
   'completed':       {'classes': 'bg-flash-success text-success-dark',  'label': 'Commande créée'},
   'cancelled':       {'classes': 'bg-border-soft text-mute',            'label': 'Annulée'},
   'quotes_refused':  {'classes': 'bg-danger-soft text-danger',          'label': 'Devis refusé'},
+  'closed':          {'classes': 'bg-border-soft text-mute',            'label': 'Clôturée'},
 } %}
 
 {% set badge = badge_map.get(status_str, {'classes': 'bg-border-soft text-mute', 'label': status_str}) %}
