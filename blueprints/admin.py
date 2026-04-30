@@ -2,6 +2,7 @@ import datetime
 
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import func, select
+from sqlalchemy.orm import joinedload
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
@@ -51,8 +52,11 @@ def dashboard():
         select(func.count(Order.id)).where(Order.created_at >= month_start)
     )
     recent_requests = db.scalars(
-        select(QuoteRequest).order_by(QuoteRequest.created_at.desc()).limit(5)
-    ).all()
+        select(QuoteRequest)
+        .options(joinedload(QuoteRequest.company))
+        .order_by(QuoteRequest.created_at.desc())
+        .limit(5)
+    ).unique().all()
 
     return render_template(
         "admin/dashboard.html",

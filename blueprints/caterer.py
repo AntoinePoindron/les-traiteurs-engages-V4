@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import func, or_, select
+from sqlalchemy.orm import joinedload
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
@@ -88,22 +89,31 @@ def dashboard():
     # Liste 1 : demandes a traiter (les nouvelles QRC)
     new_requests = db.scalars(
         select(QuoteRequestCaterer)
+        .options(
+            joinedload(QuoteRequestCaterer.quote_request)
+            .joinedload(QuoteRequest.company)
+        )
         .where(QuoteRequestCaterer.caterer_id == caterer.id)
         .where(QuoteRequestCaterer.status == QRCStatus.selected)
         .order_by(QuoteRequestCaterer.id.desc())
         .limit(10)
-    ).all()
+    ).unique().all()
 
     # Liste 2 : commandes a venir (livraisons confirmees pas encore passees)
     upcoming_deliveries = db.scalars(
         select(Order)
         .join(Quote, Order.quote_id == Quote.id)
+        .options(
+            joinedload(Order.quote)
+            .joinedload(Quote.quote_request)
+            .joinedload(QuoteRequest.company)
+        )
         .where(Quote.caterer_id == caterer.id)
         .where(Order.status == OrderStatus.confirmed)
         .where(Order.delivery_date >= date.today())
         .order_by(Order.delivery_date)
         .limit(5)
-    ).all()
+    ).unique().all()
 
     return render_template(
         "caterer/dashboard.html",

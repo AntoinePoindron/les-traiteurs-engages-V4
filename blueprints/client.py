@@ -5,6 +5,7 @@ import uuid
 import bcrypt
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import func, or_, select
+from sqlalchemy.orm import joinedload
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
@@ -115,10 +116,11 @@ def dashboard():
         select(Order)
         .join(Quote, Order.quote_id == Quote.id)
         .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
+        .options(joinedload(Order.quote).joinedload(Quote.caterer))
         .where(QuoteRequest.company_id == user.company_id)
         .order_by(Order.created_at.desc())
         .limit(5)
-    ).scalars().all()
+    ).unique().scalars().all()
 
     # Dashboard widget: les demandes les plus recentes, toutes statuts confondus.
     # 10 lignes — assez pour couvrir l'activite hebdomadaire normale, le lien
