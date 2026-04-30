@@ -4,12 +4,12 @@ from flask import abort, flash, g, redirect, render_template, request as flask_r
 from sqlalchemy import select
 
 from blueprints.middleware import login_required, role_required
+from blueprints.scoping import get_caterer_qrc, get_caterer_quote
 from database import get_db
 from forms.caterer import QuoteForm
 from models import (
     QRCStatus,
     Quote,
-    QuoteRequest,
     QuoteRequestCaterer,
     QuoteStatus,
 )
@@ -53,13 +53,7 @@ def register(bp):
     def request_detail(qr_id):
         caterer = g.current_user.caterer
         db = get_db()
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
-        if not qrc:
-            abort(404)
+        qrc = get_caterer_qrc(qr_id, caterer.id)
         qr = qrc.quote_request
         _ = qr.company
         existing_quote = db.scalar(
@@ -80,14 +74,7 @@ def register(bp):
     @role_required("caterer")
     def quote_new(qr_id):
         caterer = g.current_user.caterer
-        db = get_db()
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
-        if not qrc:
-            abort(404)
+        qrc = get_caterer_qrc(qr_id, caterer.id)
         qr = qrc.quote_request
         _ = qr.company
         return render_template(
@@ -105,13 +92,7 @@ def register(bp):
     def quote_create(qr_id):
         caterer = g.current_user.caterer
         db = get_db()
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
-        if not qrc:
-            abort(404)
+        qrc = get_caterer_qrc(qr_id, caterer.id)
         qr = qrc.quote_request
         form = QuoteForm()
         if not form.validate_on_submit():
@@ -164,22 +145,10 @@ def register(bp):
     @role_required("caterer")
     def quote_edit(qr_id, q_id):
         caterer = g.current_user.caterer
-        db = get_db()
-        quote = db.scalar(
-            select(Quote)
-            .where(Quote.id == q_id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Quote.quote_request_id == qr_id)
-        )
-        if not quote:
-            abort(404)
+        quote = get_caterer_quote(qr_id, q_id, caterer.id)
         qr = quote.quote_request
         _ = qr.company
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
+        qrc = get_caterer_qrc(qr_id, caterer.id)
         return render_template(
             "caterer/quotes/editor.html",
             user=g.current_user,
@@ -195,23 +164,12 @@ def register(bp):
     def quote_update(qr_id, q_id):
         caterer = g.current_user.caterer
         db = get_db()
-        quote = db.scalar(
-            select(Quote)
-            .where(Quote.id == q_id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Quote.quote_request_id == qr_id)
-        )
-        if not quote:
-            abort(404)
+        quote = get_caterer_quote(qr_id, q_id, caterer.id)
         if quote.status != QuoteStatus.draft:
             flash("Ce devis a déjà été envoyé et ne peut plus être modifié.", "error")
             return redirect(url_for("caterer.request_detail", qr_id=qr_id))
         qr = quote.quote_request
-        qrc = db.scalar(
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.quote_request_id == qr_id)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-        )
+        qrc = get_caterer_qrc(qr_id, caterer.id)
         form = QuoteForm()
         if not form.validate_on_submit():
             flash("Veuillez corriger les erreurs du formulaire.", "error")

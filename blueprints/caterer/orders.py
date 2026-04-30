@@ -2,6 +2,7 @@ from flask import abort, flash, g, redirect, render_template, url_for
 from sqlalchemy import select
 
 from blueprints.middleware import login_required, role_required
+from blueprints.scoping import get_caterer_order
 from database import get_db
 from models import Order, OrderStatus, Quote
 from services import workflow
@@ -30,15 +31,7 @@ def register(bp):
     @role_required("caterer")
     def order_detail(order_id):
         caterer = g.current_user.caterer
-        db = get_db()
-        order = db.scalar(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .where(Order.id == order_id)
-            .where(Quote.caterer_id == caterer.id)
-        )
-        if not order:
-            abort(404)
+        order = get_caterer_order(order_id, caterer.id)
         _ = order.quote
         _ = order.quote.quote_request
         _ = order.quote.quote_request.company

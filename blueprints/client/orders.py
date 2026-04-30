@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from blueprints.client._helpers import ORDER_STATUS_LABELS
 from blueprints.middleware import login_required, role_required
+from blueprints.scoping import get_company_order
 from database import get_db
 from models import Order, Quote, QuoteRequest
 
@@ -35,15 +36,7 @@ def register(bp):
     @role_required("client_admin", "client_user")
     def order_detail(order_id):
         user = g.current_user
-        db = get_db()
-        order = db.execute(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
-            .where(Order.id == order_id, QuoteRequest.company_id == user.company_id)
-        ).scalar_one_or_none()
-        if not order:
-            abort(404)
+        order = get_company_order(order_id, user.company_id)
 
         caterer = order.quote.caterer
         caterer_user = caterer.users[0] if caterer.users else None

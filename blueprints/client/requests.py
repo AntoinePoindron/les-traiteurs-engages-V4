@@ -13,6 +13,7 @@ from blueprints.client._helpers import (
     own_service_id,
 )
 from blueprints.middleware import login_required, role_required
+from blueprints.scoping import get_company_request
 from database import get_db
 from forms.client import QuoteAcceptForm, QuoteRefuseForm, QuoteRequestForm
 from models import (
@@ -116,14 +117,7 @@ def register(bp):
     def request_detail(request_id):
         user = g.current_user
         db = get_db()
-        qr = db.execute(
-            select(QuoteRequest).where(
-                QuoteRequest.id == request_id,
-                QuoteRequest.company_id == user.company_id,
-            )
-        ).scalar_one_or_none()
-        if not qr:
-            abort(404)
+        qr = get_company_request(request_id, user.company_id)
 
         qrcs = db.execute(
             select(QuoteRequestCaterer).where(
@@ -212,14 +206,7 @@ def register(bp):
     def request_edit(request_id):
         user = g.current_user
         db = get_db()
-        qr = db.execute(
-            select(QuoteRequest).where(
-                QuoteRequest.id == request_id,
-                QuoteRequest.company_id == user.company_id,
-            )
-        ).scalar_one_or_none()
-        if not qr:
-            abort(404)
+        qr = get_company_request(request_id, user.company_id)
         if qr.status not in (QuoteRequestStatus.draft, QuoteRequestStatus.pending_review):
             flash("Cette demande ne peut plus etre modifiee.", "error")
             return redirect(url_for("client.request_detail", request_id=request_id))
@@ -242,14 +229,7 @@ def register(bp):
         user = g.current_user
 
         db = get_db()
-        qr = db.execute(
-            select(QuoteRequest).where(
-                QuoteRequest.id == request_id,
-                QuoteRequest.company_id == user.company_id,
-            )
-        ).scalar_one_or_none()
-        if not qr:
-            abort(404)
+        qr = get_company_request(request_id, user.company_id)
         if qr.status not in (QuoteRequestStatus.draft, QuoteRequestStatus.pending_review):
             flash("Cette demande ne peut plus etre modifiee.", "error")
             return redirect(url_for("client.request_detail", request_id=request_id))

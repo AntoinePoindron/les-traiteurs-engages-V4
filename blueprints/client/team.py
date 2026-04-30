@@ -1,10 +1,11 @@
 import datetime
 
-from flask import abort, flash, g, redirect, render_template, url_for
+from flask import flash, g, redirect, render_template, url_for
 from sqlalchemy import func, select
 
 from blueprints.client._helpers import own_service_id
 from blueprints.middleware import login_required, role_required
+from blueprints.scoping import get_company_employee, get_company_service, get_pending_user
 from database import get_db
 from forms.client import EmployeeForm, ServiceForm
 from models import CompanyEmployee, CompanyService, MembershipStatus, User
@@ -63,15 +64,7 @@ def register(bp):
     @role_required("client_admin")
     def team_service_edit(service_id):
         user = g.current_user
-        db = get_db()
-        service = db.scalar(
-            select(CompanyService).where(
-                CompanyService.id == service_id,
-                CompanyService.company_id == user.company_id,
-            )
-        )
-        if not service:
-            abort(404)
+        service = get_company_service(service_id, user.company_id)
         form = ServiceForm()
         if not form.validate_on_submit():
             flash("Le nom du service est obligatoire.", "error")
@@ -89,14 +82,7 @@ def register(bp):
     def team_service_delete(service_id):
         user = g.current_user
         db = get_db()
-        service = db.scalar(
-            select(CompanyService).where(
-                CompanyService.id == service_id,
-                CompanyService.company_id == user.company_id,
-            )
-        )
-        if not service:
-            abort(404)
+        service = get_company_service(service_id, user.company_id)
         employee_count = db.scalar(
             select(func.count(CompanyEmployee.id)).where(CompanyEmployee.service_id == service_id)
         )
@@ -137,14 +123,7 @@ def register(bp):
     def team_employee_edit(employee_id):
         user = g.current_user
         db = get_db()
-        employee = db.scalar(
-            select(CompanyEmployee).where(
-                CompanyEmployee.id == employee_id,
-                CompanyEmployee.company_id == user.company_id,
-            )
-        )
-        if not employee:
-            abort(404)
+        employee = get_company_employee(employee_id, user.company_id)
         form = EmployeeForm()
         if not form.validate_on_submit():
             flash("Prenom, nom et email sont obligatoires.", "error")
@@ -164,14 +143,7 @@ def register(bp):
     def team_employee_delete(employee_id):
         user = g.current_user
         db = get_db()
-        employee = db.scalar(
-            select(CompanyEmployee).where(
-                CompanyEmployee.id == employee_id,
-                CompanyEmployee.company_id == user.company_id,
-            )
-        )
-        if not employee:
-            abort(404)
+        employee = get_company_employee(employee_id, user.company_id)
         db.delete(employee)
         db.commit()
         flash("Employe supprime.", "success")
@@ -182,15 +154,7 @@ def register(bp):
     @role_required("client_admin")
     def team_employee_invite(employee_id):
         user = g.current_user
-        db = get_db()
-        employee = db.scalar(
-            select(CompanyEmployee).where(
-                CompanyEmployee.id == employee_id,
-                CompanyEmployee.company_id == user.company_id,
-            )
-        )
-        if not employee:
-            abort(404)
+        employee = get_company_employee(employee_id, user.company_id)
         employee.invited_at = datetime.datetime.utcnow()
         db.commit()
         flash(f"Invitation envoyee a {employee.email}.", "success")
@@ -201,16 +165,7 @@ def register(bp):
     @role_required("client_admin")
     def team_approve(user_id):
         admin = g.current_user
-        db = get_db()
-        target_user = db.scalar(
-            select(User).where(
-                User.id == user_id,
-                User.company_id == admin.company_id,
-                User.membership_status == MembershipStatus.pending,
-            )
-        )
-        if not target_user:
-            abort(404)
+        target_user = get_pending_user(user_id, admin.company_id)
         target_user.membership_status = MembershipStatus.active
         db.commit()
         flash("Membre approuve.", "success")
@@ -221,16 +176,7 @@ def register(bp):
     @role_required("client_admin")
     def team_reject(user_id):
         admin = g.current_user
-        db = get_db()
-        target_user = db.scalar(
-            select(User).where(
-                User.id == user_id,
-                User.company_id == admin.company_id,
-                User.membership_status == MembershipStatus.pending,
-            )
-        )
-        if not target_user:
-            abort(404)
+        target_user = get_pending_user(user_id, admin.company_id)
         target_user.membership_status = MembershipStatus.rejected
         db.commit()
         flash("Membre rejete.", "info")
