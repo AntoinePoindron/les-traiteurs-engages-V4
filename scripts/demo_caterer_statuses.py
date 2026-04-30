@@ -20,8 +20,16 @@ ESAT and the Acme Solutions client, instead of re-seeding the world).
 from __future__ import annotations
 
 import datetime
+import os
 import sys
 from decimal import Decimal
+
+# Living in scripts/, we need the project root on sys.path so the
+# top-level modules (database, models, …) can be imported the same way
+# the running app does.
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 from sqlalchemy import select
 
