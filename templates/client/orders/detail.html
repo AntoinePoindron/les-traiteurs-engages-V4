@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
-{% from "components/structure_type_badge.html" import structure_type_badge %}
+{% from "components/ui.html" import back_button %}
 
 {% block title %}Commande - Les Traiteurs Engages{% endblock %}
 
@@ -8,9 +8,7 @@
 <main class="bg-cream min-h-screen">
 
     <!-- Back button -->
-    <a href="{{ url_for('client.orders_list') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
-      <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
-    </a>
+    <div class="mb-6">{{ back_button() }}</div>
 
     <div class="flex items-center justify-between mb-6">
       <div>
@@ -31,7 +29,8 @@
       <h3 class="font-display font-bold text-sm mb-4 text-text">Progression</h3>
       {% set statuses = ['confirmed', 'delivered', 'invoiced', 'paid'] %}
       {# `invoicing` (P3.4 phase 2 in flight) shares the `delivered` step. #}
-      {% set effective_status = 'delivered' if order.status.value == 'invoicing' else order.status.value %}
+      {% set raw_status = order.status|string %}
+      {% set effective_status = 'delivered' if raw_status == 'invoicing' else raw_status %}
       {% set current_idx = statuses.index(effective_status) if effective_status in statuses else -1 %}
       <div class="flex items-center justify-between">
         {% for s in statuses %}
@@ -55,55 +54,36 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-      <!-- Traiteur info -->
-      <div class="bg-white rounded-lg p-6">
-        <div class="flex items-center gap-2 mb-4">
-          <i data-lucide="chef-hat" class="w-4 h-4 text-navy"></i>
-          <h3 class="font-display font-bold text-sm text-text">Traiteur</h3>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-            <i data-lucide="chef-hat" class="w-4\.5 h-4\.5 text-navy"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-bold text-text">{{ order.quote.caterer.name }}</span>
-              {{ structure_type_badge(order.quote.caterer.structure_type) }}
-            </div>
-            <span class="text-xs text-mute">{{ order.quote.caterer.city or '' }}</span>
-          </div>
-        </div>
+    {# "Traiteur" card removed — info is already on the client-side sticky
+       sidebar (logo, name, message CTA), so the left column would
+       duplicate it. Kept the "Devis accepté" card and gave it the full
+       width now that it's the sole occupant. #}
+    <div class="bg-white rounded-lg p-6 mb-6">
+      <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
+        <h3 class="font-display font-bold text-sm text-text">Devis accepte</h3>
       </div>
-
-      <!-- Devis info -->
-      <div class="bg-white rounded-lg p-6">
-        <div class="flex items-center gap-2 mb-4">
-          <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
-          <h3 class="font-display font-bold text-sm text-text">Devis accepte</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-xs text-mute">Reference</span>
+          <span class="text-xs font-bold text-text">{{ order.quote.reference }}</span>
         </div>
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between">
-            <span class="text-xs text-mute">Reference</span>
-            <span class="text-xs font-bold text-text">{{ order.quote.reference }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-xs text-mute">Montant HT</span>
-            <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR</span>
-          </div>
-          {% if order.quote.amount_per_person %}
-          <div class="flex justify-between">
-            <span class="text-xs text-mute">Par personne</span>
-            <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.amount_per_person | float) }} EUR</span>
-          </div>
-          {% endif %}
-          {% if order.quote.valorisable_agefiph %}
-          <div class="flex justify-between">
-            <span class="text-xs text-mute">Valorisable AGEFIPH</span>
-            <span class="text-xs font-bold text-navy">{{ "%.2f" | format(order.quote.valorisable_agefiph | float) }} EUR</span>
-          </div>
-          {% endif %}
+        <div class="flex justify-between">
+          <span class="text-xs text-mute">Montant HT</span>
+          <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR</span>
         </div>
+        {% if order.quote.amount_per_person %}
+        <div class="flex justify-between">
+          <span class="text-xs text-mute">Par personne</span>
+          <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.amount_per_person | float) }} EUR</span>
+        </div>
+        {% endif %}
+        {% if order.quote.valorisable_agefiph %}
+        <div class="flex justify-between">
+          <span class="text-xs text-mute">Valorisable AGEFIPH</span>
+          <span class="text-xs font-bold text-navy">{{ "%.2f" | format(order.quote.valorisable_agefiph | float) }} EUR</span>
+        </div>
+        {% endif %}
       </div>
     </div>
 

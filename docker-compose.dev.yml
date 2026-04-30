@@ -1,0 +1,50 @@
+# Local-dev overlay for docker-compose.yml.
+#
+# Mounts the project root into the running app + worker containers so
+# template, JS and Python changes are visible without rebuilding the
+# image, and turns on gunicorn --reload so Python changes restart the
+# workers automatically (templates and static files are picked up on
+# the next request without any restart).
+#
+# Use:
+#
+#   docker compose --env-file .deploy.env \
+#     -f docker-compose.yml \
+#     -f docker-compose.dev.yml \
+#     up -d
+#
+# Stays out of staging/prod (those use docker-compose.staging.yml /
+# docker-compose.prod.yml respectively, which never reference this file).
+
+services:
+  app:
+    # Bind-mount the working tree on top of the image's /app, so saves
+    # on the host are visible inside the container immediately.
+    volumes:
+      - ./:/app
+      # Keep __pycache__ and .pytest_cache out of the host so we don't
+      # pollute the source tree with container-owned files.
+      - app_pycache:/app/__pycache__
+    environment:
+      # Picked up by entrypoint.sh; appends --reload to gunicorn.
+      # gunicorn --reload only watches .py files, so it misses pure
+      # template / static changes — the env var below covers those.
+      - GUNICORN_RELOAD=1
+      # Tells Jinja to re-read templates on every request, so editing a
+      # .html file is visible after a hard refresh without restarting
+      # the worker. Picked up by app.py:create_app().
+      - TEMPLATES_AUTO_RELOAD=1
+      # Flask debug mode (better tracebacks in dev). Never enable in prod.
+      - FLASK_DEBUG=1
+
+  worker:
+    # The dramatiq worker doesn't auto-reload on code change; you'll
+    # need to restart it manually if you touch services/billing_tasks.py.
+    # The volume mount still ensures the next restart picks up edits.
+    volumes:
+      - ./:/app
+      - worker_pycache:/app/__pycache__
+
+volumes:
+  app_pycache:
+  worker_pycache:

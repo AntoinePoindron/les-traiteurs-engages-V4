@@ -9,6 +9,18 @@
   <p class="text-xs mt-1 text-mute">Commandes confirmees et passees</p>
 </div>
 
+<div class="bg-white rounded-lg p-6 mb-6">
+  <div class="flex flex-wrap gap-2">
+    {% for key, label in status_tabs.items() %}
+    <a href="{{ url_for('caterer.orders_list', status=key) if key != 'all' else url_for('caterer.orders_list') }}"
+       class="px-4 py-2 rounded-full text-sm font-bold transition-colors
+       {% if current_tab == key %}bg-navy text-white{% else %}bg-cream text-navy hover:opacity-80{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
 {% if orders %}
 <div class="bg-white rounded-lg p-6">
   <div>

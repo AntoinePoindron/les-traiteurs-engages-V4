@@ -14,14 +14,21 @@
   'invoicing':       {'classes': 'bg-pending text-pending',             'label': 'Facturation en cours'},
   'invoiced':        {'classes': 'bg-sky text-sky',                     'label': 'Facturée'},
   'paid':            {'classes': 'bg-flash-success text-success-dark',  'label': 'Payée'},
+  'upcoming':        {'classes': 'bg-purple text-purple',               'label': 'À venir'},
+  'to_pay':          {'classes': 'bg-sky text-sky',                     'label': 'À payer'},
   'disputed':        {'classes': 'bg-danger-soft text-danger',          'label': 'Litige'},
   'submitted':       {'classes': 'bg-navy-soft text-navy',              'label': 'Soumise'},
+  'draft':           {'classes': 'bg-border-soft text-mute',            'label': 'Brouillon'},
+  'pending_review':  {'classes': 'bg-pending text-pending',             'label': 'En attente de validation'},
+  'approved':        {'classes': 'bg-info text-info',                   'label': 'Validée'},
+  'sent_to_caterers':{'classes': 'bg-info text-info',                   'label': 'En attente de devis'},
   'awaiting_quotes': {'classes': 'bg-pending text-pending',             'label': 'En attente de devis'},
   'quotes_received': {'classes': 'bg-info text-sky',                    'label': 'Devis reçu(s)'},
   'quote_accepted':  {'classes': 'bg-flash-success text-success-dark',  'label': 'Commande créée'},
   'completed':       {'classes': 'bg-flash-success text-success-dark',  'label': 'Commande créée'},
   'cancelled':       {'classes': 'bg-border-soft text-mute',            'label': 'Annulée'},
   'quotes_refused':  {'classes': 'bg-danger-soft text-danger',          'label': 'Devis refusé'},
+  'closed':          {'classes': 'bg-border-soft text-mute',            'label': 'Clôturée'},
 } %}
 
 {% set badge = badge_map.get(status_str, {'classes': 'bg-border-soft text-mute', 'label': status_str}) %}

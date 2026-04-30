@@ -111,8 +111,12 @@
    not needed in this Flask SSR context.
    ============================================================ #}
 
-{# BackButton — bouton "Retour" stylise. Par defaut history.back();
-   `href` force une navigation vers une URL specifique.
+{# BackButton — bouton "Retour" stylise.
+   - Sans `href` : history.back() via data-action="history-back" (le
+     handler vit dans static/js/history-back.js, charge dans base.html).
+     Inline onclick est banni par la CSP `script-src 'self'`.
+   - Avec `href` : navigation directe vers cette URL (utile quand
+     history.back() n'a pas de cible — ex. landing après login).
    Usage : {{ back_button() }} ou {{ back_button(href=url_for('client.dashboard')) }}. #}
 {% macro back_button(label="Retour", href=None) %}
   {% if href %}
@@ -122,7 +126,7 @@
       {{ label }}
     </a>
   {% else %}
-    <button type="button" onclick="history.back()"
+    <button type="button" data-action="history-back"
        class="inline-flex items-center gap-1 text-xs font-bold text-navy w-fit hover:opacity-70 transition-opacity">
       <i data-lucide="chevron-left" class="w-4 h-4"></i>
       {{ label }}

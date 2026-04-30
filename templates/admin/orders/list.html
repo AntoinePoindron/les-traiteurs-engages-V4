@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "components/status_badge.html" import status_badge %}
+
+{% block title %}Commandes - Admin{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="font-display font-bold text-2xl text-black">Commandes</h1>
+    <p class="text-sm mt-1 text-mute">Toutes les commandes du site</p>
+  </div>
+  <a href="{{ url_for('admin.dashboard') }}" class="inline-flex items-center gap-2 text-sm text-mute">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+    Dashboard
+  </a>
+</div>
+
+<div class="bg-white rounded-lg p-6 mb-6">
+  <div class="flex flex-wrap gap-2">
+    {% for key, label in status_tabs.items() %}
+    <a href="{{ url_for('admin.orders_list', status=key) if key != 'all' else url_for('admin.orders_list') }}"
+       class="px-4 py-2 rounded-full text-sm font-bold transition-colors
+       {% if current_tab == key %}bg-navy text-white{% else %}bg-cream text-navy hover:opacity-80{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if orders %}
+<div class="bg-white rounded-lg overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-soft">
+        <th class="text-left text-xs font-medium uppercase tracking-wider px-4 py-3 text-mute">Référence</th>
+        <th class="text-left text-xs font-medium uppercase tracking-wider px-4 py-3 text-mute">Entreprise</th>
+        <th class="text-left text-xs font-medium uppercase tracking-wider px-4 py-3 text-mute">Traiteur</th>
+        <th class="text-left text-xs font-medium uppercase tracking-wider px-4 py-3 text-mute">Livraison</th>
+        <th class="text-right text-xs font-medium uppercase tracking-wider px-4 py-3 text-mute">Total HT</th>
+        <th class="text-center text-xs font-medium uppercase tracking-wider px-4 py-3 text-mute">Statut</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr class="hover:bg-cream border-t border-soft">
+        <td class="px-4 py-3 font-bold text-navy">{{ order.quote.reference if order.quote else '-' }}</td>
+        <td class="px-4 py-3 text-black">{{ order.quote.quote_request.company.name if order.quote and order.quote.quote_request and order.quote.quote_request.company else '-' }}</td>
+        <td class="px-4 py-3 text-black">{{ order.quote.caterer.name if order.quote and order.quote.caterer else '-' }}</td>
+        <td class="px-4 py-3 text-mute">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</td>
+        <td class="px-4 py-3 text-right text-black">{{ "%.2f"|format(order.quote.total_amount_ht or 0) }} &euro;</td>
+        <td class="px-4 py-3 text-center">{{ status_badge(order.status) }}</td>
+        <td class="px-4 py-3 text-right">
+          <a href="{{ url_for('admin.order_detail', order_id=order.id) }}"
+             class="inline-flex items-center gap-1 text-sm font-bold rounded-full px-3 py-1 text-navy">
+            Voir
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-lg p-12 text-center">
+  <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
+    <i data-lucide="shopping-bag" class="w-6 h-6 text-navy"></i>
+  </div>
+  <h3 class="font-display font-bold text-xl mb-2 text-text">Aucune commande</h3>
+  <p class="text-sm text-mute">Aucune commande pour ce filtre.</p>
+</div>
+{% endif %}
+{% endblock %}

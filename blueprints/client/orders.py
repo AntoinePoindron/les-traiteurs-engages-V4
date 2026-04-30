@@ -1,13 +1,39 @@
 import uuid
 
-from flask import abort, g, render_template, url_for
+from flask import abort, g, render_template, request, url_for
 from sqlalchemy import select
 
 from blueprints.client._helpers import ORDER_STATUS_LABELS
 from blueprints.middleware import login_required, role_required
 from blueprints.scoping import get_company_order
 from database import get_db
-from models import Order, Quote, QuoteRequest
+from models import MEAL_TYPE_LABELS, Order, OrderStatus, Quote, QuoteRequest
+
+
+# Filter tabs visible on /client/orders. Keys map to ?status= URL params,
+# values are the labels rendered in the tab pill.
+ORDER_STATUS_TABS = {
+    "all":      "Toutes",
+    "upcoming": "À venir",
+    "to_pay":   "À payer",
+    "paid":     "Payées",
+}
+
+
+def _derive_order_display_status(order):
+    """Collapse OrderStatus into the three buckets the client cares about.
+
+    Returns one of: 'upcoming', 'to_pay', 'paid'. The mapping mirrors
+    the labels and badge colours used in templates/components/status_badge.html.
+    """
+    if order.status == OrderStatus.paid:
+        return "paid"
+    if order.status == OrderStatus.invoiced:
+        return "to_pay"
+    # confirmed / delivered / invoicing / disputed all surface as
+    # "À venir" — the client has nothing actionable until the invoice is
+    # ready.
+    return "upcoming"
 
 
 def register(bp):
@@ -17,6 +43,10 @@ def register(bp):
     def orders_list():
         user = g.current_user
         db = get_db()
+        status_filter = request.args.get("status") or "all"
+        if status_filter not in ORDER_STATUS_TABS:
+            status_filter = "all"
+
         orders = db.execute(
             select(Order)
             .join(Quote, Order.quote_id == Quote.id)
@@ -24,11 +54,21 @@ def register(bp):
             .where(QuoteRequest.company_id == user.company_id)
             .order_by(Order.created_at.desc())
         ).scalars().all()
+
+        for order in orders:
+            order.display_status = _derive_order_display_status(order)
+
+        if status_filter != "all":
+            orders = [o for o in orders if o.display_status == status_filter]
+
         return render_template(
             "client/orders/list.html",
             user=user,
             orders=orders,
             order_status_labels=ORDER_STATUS_LABELS,
+            meal_type_labels=MEAL_TYPE_LABELS,
+            status_tabs=ORDER_STATUS_TABS,
+            current_tab=status_filter,
         )
 
     @bp.route("/orders/<uuid:order_id>")

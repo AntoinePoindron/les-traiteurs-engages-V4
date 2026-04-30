@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import back_button %}
 
 {% block title %}Nouvelle demande de devis - Les Traiteurs Engages{% endblock %}
 
@@ -6,9 +7,7 @@
 <main class="bg-cream min-h-screen">
 
     <!-- Back button -->
-    <a href="{{ url_for('client.requests_list') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
-      <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
-    </a>
+    <div class="mb-6">{{ back_button() }}</div>
 
     <h1 class="font-display font-bold text-4xl mb-2 text-text">Nouvelle demande de devis</h1>
     <p class="text-sm mb-6 text-mute">Decrivez votre evenement en quelques etapes pour recevoir des propositions de traiteurs engages.</p>
@@ -412,50 +411,25 @@
             class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors resize-none border-default"></textarea>
         </div>
 
-        <!-- Compare mode -->
+        {# Hidden mode flags resolved by the entry point:
+             - default wizard ("Recevoir 3 devis")  → compare mode, no target
+             - "Demander un devis" from caterer profile → single-caterer flow,
+               target_caterer_id set, is_compare_mode left empty so the
+               backend forces the single-caterer path.
+        #}
+        {% if target_caterer %}
+        <input type="hidden" name="target_caterer_id" value="{{ target_caterer.id }}">
+        <input type="hidden" name="is_compare_mode" value="0">
         <div class="mb-6 p-4 rounded-lg bg-navy-soft">
-          <label class="block text-sm font-bold mb-3 text-text">Mode d'envoi</label>
-          <div class="space-y-3">
-            <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-white border-2 border-default">
-              <input type="radio" id="is_compare_mode_yes" name="is_compare_mode" value="1" checked class="w-4 h-4 mt-0.5 accent-navy">
-              <div>
-                <span class="font-bold text-sm text-text">Comparer 3 devis</span>
-                <p class="text-xs mt-0.5 text-mute">Votre demande sera envoyee a plusieurs traiteurs. Vous recevrez jusqu'a 3 propositions a comparer.</p>
-              </div>
-            </label>
-            <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-white border-2 border-default">
-              <input type="radio" id="is_compare_mode_no" name="is_compare_mode" value="0" class="w-4 h-4 mt-0.5 accent-navy">
-              <div>
-                <span class="font-bold text-sm text-text">Envoyer a un traiteur specifique</span>
-                <p class="text-xs mt-0.5 text-mute">Choisissez directement le traiteur a qui envoyer votre demande.</p>
-              </div>
-            </label>
-          </div>
+          <p class="text-sm font-bold text-text">Demande dédiée à un traiteur</p>
+          <p class="text-xs mt-1 text-mute">
+            Cette demande sera envoyée uniquement à
+            <span class="font-bold">{{ target_caterer.name }}</span>.
+          </p>
         </div>
-
-        <!-- Caterer select (hidden by default) -->
-        <div id="caterer-select-wrapper" class="mb-6 hidden">
-          <label for="target_caterer_id" class="block text-sm font-bold mb-2 text-text">Choisir un traiteur</label>
-          <select id="target_caterer_id" name="target_caterer_id"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-            <option value="">Selectionnez un traiteur...</option>
-          </select>
-        </div>
-
-        <!-- Service interne -->
-        <div class="mb-2">
-          <label for="company_service_id" class="block text-sm font-bold mb-2 text-text">Service interne <span class="text-mute">(optionnel)</span></label>
-          <select id="company_service_id" name="company_service_id"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-            <option value="">Aucun service selectionne</option>
-            {% if services is defined %}
-            {% for service in services %}
-            <option value="{{ service.id }}">{{ service.name }}</option>
-            {% endfor %}
-            {% endif %}
-          </select>
-          <p class="text-xs mt-1 text-mute">Associez cette demande a un service pour le suivi budgetaire.</p>
-        </div>
+        {% else %}
+        <input type="hidden" name="is_compare_mode" value="1">
+        {% endif %}
       </div>
 
       <!-- Navigation buttons -->

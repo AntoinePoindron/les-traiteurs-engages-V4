@@ -4,50 +4,150 @@
 {% block title %}Mes demandes - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
+{# French short month names — used for event date formatting like "1 sept. 2026" #}
+{% set fr_months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'] %}
+
 <main class="bg-cream min-h-screen">
 
     <div class="flex items-center justify-between mb-6">
-      <h1 class="font-display font-bold text-4xl text-text">Mes demandes de devis</h1>
-      <a href="{{ url_for('client.requests_new') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white">
+      <h1 class="font-display font-bold text-4xl text-text">Mes demandes</h1>
+      <button type="button" data-action="open-new-request-menu"
+              class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white hover:opacity-90 transition-opacity">
         <i data-lucide="plus" class="w-4 h-4"></i>
         Nouvelle demande
-      </a>
+      </button>
     </div>
 
-    <!-- Filter tabs -->
-    <div class="bg-white rounded-lg p-6 flex items-center gap-4 mb-6 overflow-x-auto">
-      {% for key, label in tabs.items() %}
-      <a href="{{ url_for('client.requests_list', status=key) }}"
-         class="px-3 py-2 rounded-full text-xs font-bold whitespace-nowrap {% if current_tab == key %}bg-navy text-white{% else %}bg-cream text-navy{% endif %}">
-        {{ label }}
-      </a>
-      {% endfor %}
+    {# ---- Filters + search ---- #}
+    <div class="bg-white rounded-lg p-6 mb-6">
+      <form method="GET" action="{{ url_for('client.requests_list') }}"
+            class="flex flex-wrap items-center gap-3">
+        {# Tab pills (each one resubmits the GET form so search query carries over) #}
+        <div class="flex flex-wrap gap-2 flex-1 min-w-0">
+          {% for key, label in tabs.items() %}
+          <a href="{{ url_for('client.requests_list', status=key, q=search_q or None) }}"
+             class="px-4 py-2 rounded-full text-sm font-bold transition-colors whitespace-nowrap
+             {% if current_tab == key %}bg-navy text-white{% else %}bg-cream text-navy hover:opacity-80{% endif %}">
+            {{ label }}
+          </a>
+          {% endfor %}
+        </div>
+
+        {# Search input #}
+        <div class="relative">
+          <input type="hidden" name="status" value="{{ current_tab }}">
+          <input type="search" name="q" value="{{ search_q }}" placeholder="Rechercher..."
+                 class="w-64 pl-3 pr-9 py-2 rounded-full text-sm input-soft"
+                 style="background-color:var(--c-cream);">
+          <button type="submit"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center hover:opacity-70 transition-opacity">
+            <i data-lucide="search" class="w-4 h-4 text-mute"></i>
+          </button>
+        </div>
+      </form>
     </div>
 
     {% if requests %}
-    <!-- List items -->
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4 text-text">Demandes</h2>
+      {# Header : count + sort indicator (visual only — backend already
+         orders by created_at desc which matches "La plus récente"). #}
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-display font-bold text-sm text-text">
+          {{ requests|length }} demande{{ 's' if requests|length > 1 else '' }}
+        </h2>
+        <div class="text-xs text-mute inline-flex items-center gap-1">
+          <span>Trier par</span>
+          <span class="font-bold text-text">La plus récente</span>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+        </div>
+      </div>
+
       <div>
         {% for qr in requests %}
-        <a href="{{ url_for('client.request_detail', request_id=qr.id) }}" class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
-            <i data-lucide="grid-2x2" class="w-4 h-4 text-navy"></i>
+        {# Single-caterer demands (non compare mode) get a chef-hat icon
+           to signal they target one caterer; compare-mode demands get
+           the multi-tile icon. #}
+        {% set row_icon = 'chef-hat' if not qr.is_compare_mode else 'grid-2x2' %}
+        <a href="{{ url_for('client.request_detail', request_id=qr.id) }}"
+           class="flex items-center gap-4 py-4 -mx-2 px-2 rounded-lg transition-colors hover:bg-cream border-t border-soft first:border-t-0">
+
+          {# Icon tile #}
+          <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="{{ row_icon }}" class="w-5 h-5 text-text-soft"></i>
           </div>
+
+          {# Two-line text block #}
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold truncate text-text">{{ meal_type_labels.get(qr.meal_type, qr.meal_type or 'Demande') }}</p>
-            <div class="flex items-center gap-3 mt-0.5">
-              <span class="text-xs text-mute">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</span>
-              <span class="text-xs text-mute">{{ qr.guest_count or '-' }} pers.</span>
+            {# Line 1 : meal type (bold) + creation timestamp (mute) #}
+            <div class="flex items-center gap-3 flex-wrap">
+              <p class="text-sm font-bold text-text">
+                {{ meal_type_labels.get(qr.meal_type, qr.meal_type.value if qr.meal_type else 'Demande') }}
+              </p>
+              <p class="text-xs text-mute">
+                Créée le {{ qr.created_at.strftime('%d/%m/%Y') }} à {{ qr.created_at.strftime('%H:%M') }}
+              </p>
+            </div>
+
+            {# Line 2 : meal type · event date · guests · budget · location · quote count #}
+            <div class="flex items-center gap-3 mt-1 flex-wrap text-xs text-mute">
+              <span>
+                {{ meal_type_labels.get(qr.meal_type, qr.meal_type.value if qr.meal_type else '') }}
+                {% if qr.event_date %}
+                  &middot; {{ qr.event_date.day }} {{ fr_months[qr.event_date.month - 1] }} {{ qr.event_date.year }}
+                {% endif %}
+              </span>
+              {% if qr.guest_count %}
+              <span class="inline-flex items-center gap-1">
+                <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                {{ qr.guest_count }}
+              </span>
+              {% endif %}
               {% if qr.budget_global %}
-              <span class="text-xs text-mute">{{ "%.0f" | format(qr.budget_global | float) }} EUR</span>
+              <span class="inline-flex items-center gap-1">
+                <i data-lucide="euro" class="w-3.5 h-3.5"></i>
+                {{ "%.0f"|format(qr.budget_global) }}
+              </span>
               {% elif qr.budget_per_person %}
-              <span class="text-xs text-mute">{{ "%.0f" | format(qr.budget_per_person | float) }} EUR/pers.</span>
+              <span class="inline-flex items-center gap-1">
+                <i data-lucide="euro" class="w-3.5 h-3.5"></i>
+                {{ "%.0f"|format(qr.budget_per_person) }}/pers
+              </span>
+              {% endif %}
+              {% if qr.event_address or qr.event_city %}
+              <span class="inline-flex items-center gap-1">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                {% if qr.event_address %}{{ qr.event_address|truncate(40, True, '…') }}{% else %}{{ qr.event_city }}{% endif %}
+              </span>
+              {% endif %}
+
+              {# Quote count chip — only meaningful while the demand is
+                 still in flight (awaiting / received). Past order or
+                 closed demands hide it to reduce noise. #}
+              {% if qr.display_status in ('awaiting_quotes', 'quotes_received') %}
+                {% if qr.is_compare_mode %}
+                  {# X/3 devis, orange when none, sky when at least one #}
+                  <span class="inline-flex items-center gap-1 font-bold {% if qr.received_quotes == 0 %}text-pending{% else %}text-sky{% endif %}">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                    {{ qr.received_quotes }}/{{ qr.expected_quotes }} devis
+                  </span>
+                {% else %}
+                  {# Single-caterer demand: just "X devis" without the cap #}
+                  {% if qr.received_quotes > 0 %}
+                  <span class="inline-flex items-center gap-1 font-bold text-sky">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                    {{ qr.received_quotes }} devis
+                  </span>
+                  {% endif %}
+                {% endif %}
               {% endif %}
             </div>
           </div>
-          {{ status_badge(qr.status) }}
-          <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+
+          {# Status badge + chevron #}
+          <div class="flex items-center gap-2 flex-shrink-0">
+            {{ status_badge(qr.display_status) }}
+            <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+          </div>
         </a>
         {% endfor %}
       </div>
@@ -58,14 +158,20 @@
       <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
         <i data-lucide="file-text" class="w-6 h-6 text-navy"></i>
       </div>
-      <h3 class="font-display font-bold text-xl mb-2 text-text">Aucune demande</h3>
-      <p class="text-sm mb-6 text-mute">Vous n'avez pas encore cree de demande de devis.</p>
-      <a href="{{ url_for('client.requests_new') }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white">
+      <h3 class="font-display font-bold text-xl mb-6 text-text">Aucune demande</h3>
+      <button type="button" data-action="open-new-request-menu"
+              class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 bg-navy text-white hover:opacity-90 transition-opacity">
         <i data-lucide="plus" class="w-4 h-4"></i>
         Creer une demande
-      </a>
+      </button>
     </div>
     {% endif %}
 
+    {% include "client/_new_request_modal.html" %}
+
 </main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/new-request-modal.js') }}" defer></script>
 {% endblock %}

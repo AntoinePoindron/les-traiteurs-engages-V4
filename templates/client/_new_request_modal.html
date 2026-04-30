@@ -1,0 +1,47 @@
+{# Modal shown when the client clicks any "Nouvelle demande" CTA.
+
+   Two paths out:
+     - "Trouver un traiteur"  → catalogue (/client/search)
+     - "Recevoir 3 devis"     → wizard (/client/requests/new)
+
+   Toggling is handled by static/js/new-request-modal.js (CSP-safe;
+   inline scripts are blocked by the project's `script-src 'self'`).
+
+   Include once near the bottom of the page (inside {% block content %})
+   and use [data-action="open-new-request-menu"] on any trigger button.
+#}
+<div id="new-request-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
+     style="background-color:rgba(0,0,0,0.5);">
+  <div class="bg-white rounded-lg w-full" style="max-width:480px;">
+    <div class="p-2">
+      <button type="button" data-action="close-new-request-menu"
+              class="ml-auto block w-8 h-8 rounded-lg flex items-center justify-center hover:bg-cream transition-colors">
+        <i data-lucide="x" class="w-4 h-4 text-text"></i>
+      </button>
+    </div>
+
+    <div class="px-6 pb-6 pt-2 space-y-2">
+      <a href="{{ url_for('client.search') }}"
+         class="flex items-center gap-4 p-4 rounded-lg hover:bg-cream transition-colors">
+        <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+          <i data-lucide="search" class="w-5 h-5 text-text-soft"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-display font-bold text-base text-text">Trouver un traiteur</p>
+          <p class="text-sm text-mute mt-0.5">Parcourir le catalogue et contacter directement</p>
+        </div>
+      </a>
+
+      <a href="{{ url_for('client.requests_new') }}"
+         class="flex items-center gap-4 p-4 rounded-lg hover:bg-cream transition-colors">
+        <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+          <i data-lucide="grid-2x2" class="w-5 h-5 text-text-soft"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-display font-bold text-base text-text">Recevoir 3 devis</p>
+          <p class="text-sm text-mute mt-0.5">Comparer les offres des traiteurs les plus adaptés</p>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>

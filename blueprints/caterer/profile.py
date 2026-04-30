@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from blueprints.middleware import login_required, role_required
 from database import get_db
 from forms.caterer import CatererProfileForm
+from models import SERVICE_OFFERING_LABELS
 from services.json_schemas import ServiceConfig
 from services.uploads import save_upload
 
@@ -18,7 +19,12 @@ def register(bp):
     @login_required
     @role_required("caterer")
     def profile():
-        return render_template("caterer/profile.html", user=g.current_user, caterer=g.current_user.caterer)
+        return render_template(
+            "caterer/profile.html",
+            user=g.current_user,
+            caterer=g.current_user.caterer,
+            service_offering_labels=SERVICE_OFFERING_LABELS,
+        )
 
     @bp.route("/profile", methods=["POST"])
     @login_required
@@ -28,7 +34,12 @@ def register(bp):
         form = CatererProfileForm()
         if not form.validate_on_submit():
             flash("Veuillez corriger les erreurs du formulaire.", "error")
-            return render_template("caterer/profile.html", user=g.current_user, caterer=caterer), 400
+            return render_template(
+                "caterer/profile.html",
+                user=g.current_user,
+                caterer=caterer,
+                service_offering_labels=SERVICE_OFFERING_LABELS,
+            ), 400
         db = get_db()
         db.add(caterer)
         if form.name.data is not None:
@@ -95,6 +106,22 @@ def register(bp):
 
         specialties_raw = form.specialties.data or ""
         caterer.specialties = [s.strip() for s in specialties_raw.split(",") if s.strip()] if specialties_raw else caterer.specialties
+
+        # Catalog metadata. service_offerings comes through as a list of
+        # checkbox values; validate against the canonical slug map so a
+        # tampered request can't write an unknown slug to the JSON column.
+        offered = [
+            v for v in request.form.getlist("service_offerings")
+            if v in SERVICE_OFFERING_LABELS
+        ]
+        caterer.service_offerings = offered or None
+        if form.price_per_person_min.data is not None:
+            caterer.price_per_person_min = form.price_per_person_min.data
+        if form.price_per_person_max.data is not None:
+            caterer.price_per_person_max = form.price_per_person_max.data
+        if form.min_advance_days.data is not None:
+            caterer.min_advance_days = form.min_advance_days.data
+
         service_config_raw = form.service_config.data or ""
         if service_config_raw:
             try:

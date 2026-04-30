@@ -1,14 +1,12 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
+{% from "components/ui.html" import back_button %}
 
 {% block title %}{{ company.name }} - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
 <div class="mb-6">
-  <a href="{{ url_for('admin.companies_list') }}" class="inline-flex items-center gap-2 text-sm mb-3 text-mute">
-    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-    Retour a la liste
-  </a>
+  <div class="mb-3">{{ back_button(label="Retour a la liste") }}</div>
   <div class="flex items-center gap-3">
     <h1 class="font-display font-bold text-2xl text-black">{{ company.name }}</h1>
     {% if company.oeth_eligible %}

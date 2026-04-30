@@ -1,4 +1,4 @@
-from flask import abort, flash, g, redirect, render_template, url_for
+from flask import abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import select
 
 from blueprints.middleware import login_required, role_required
@@ -9,6 +9,29 @@ from models import Order, OrderStatus, Quote
 from services import workflow
 
 
+# Filter tabs visible on /caterer/orders. Keys map to ?status= URL params,
+# values are the labels rendered in the tab pill.
+ORDER_STATUS_TABS = {
+    "all":       "Toutes",
+    "upcoming":  "À venir",
+    "delivered": "Livrées",
+    "invoiced":  "Facturées",
+    "paid":      "Payées",
+    "disputed":  "Litige",
+}
+
+
+# "invoiced" tab covers both `invoicing` (Stripe call in flight) and `invoiced`
+# (invoice issued) — the caterer experiences them as the same stage.
+_TAB_TO_STATUSES = {
+    "upcoming":  (OrderStatus.confirmed,),
+    "delivered": (OrderStatus.delivered,),
+    "invoiced":  (OrderStatus.invoicing, OrderStatus.invoiced),
+    "paid":      (OrderStatus.paid,),
+    "disputed":  (OrderStatus.disputed,),
+}
+
+
 def register(bp):
     @bp.route("/orders")
     @login_required
@@ -16,16 +39,30 @@ def register(bp):
     def orders_list():
         caterer = g.current_user.caterer
         db = get_db()
-        orders = db.scalars(
+        status_filter = request.args.get("status") or "all"
+        if status_filter not in ORDER_STATUS_TABS:
+            status_filter = "all"
+
+        stmt = (
             select(Order)
             .join(Quote, Order.quote_id == Quote.id)
             .where(Quote.caterer_id == caterer.id)
             .order_by(Order.created_at.desc())
-        ).all()
+        )
+        if status_filter != "all":
+            stmt = stmt.where(Order.status.in_(_TAB_TO_STATUSES[status_filter]))
+
+        orders = db.scalars(stmt).all()
         for o in orders:
             _ = o.quote
             _ = o.quote.quote_request
-        return render_template("caterer/orders/list.html", user=g.current_user, orders=orders)
+        return render_template(
+            "caterer/orders/list.html",
+            user=g.current_user,
+            orders=orders,
+            status_tabs=ORDER_STATUS_TABS,
+            current_tab=status_filter,
+        )
 
     @bp.route("/orders/<uuid:order_id>")
     @login_required

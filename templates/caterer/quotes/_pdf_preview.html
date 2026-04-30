@@ -1,0 +1,181 @@
+{# PDF-style quote preview — read-only render of an already-persisted Quote.
+
+   Used as an in-page modal on the request detail page (caterer side) when
+   the caterer clicks "Voir le devis" on a sent / refused / accepted quote.
+
+   Expected context:
+     quote               : Quote (with .reference, .lines, .total_amount_ht)
+     qr                  : QuoteRequest (with .company, .meal_type, .event_*, .guest_count)
+     caterer             : Caterer (.name, .address, .city, .zip_code, .siret)
+     pdf_preview         : dict from request_detail() — keys: lines_by_section, totals
+     meal_type_labels    : dict[MealType, str]
+
+   The live preview shown inside the editor (before sending) is rendered
+   client-side in static/js/quote-editor.js and intentionally mirrors this
+   partial's structure, so both surfaces stay visually consistent.
+#}
+{% set fr_months_long = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'] %}
+{% set section_labels = {
+  'principal': 'PRESTATIONS PRINCIPALES',
+  'boissons': 'BOISSONS',
+  'extras': 'PRESTATIONS COMPLÉMENTAIRES',
+} %}
+{% set section_order = ['principal', 'boissons', 'extras'] %}
+
+{# Header : reference (right-aligned, like an invoice) #}
+<div class="text-right mb-6">
+  <h3 class="font-display font-bold text-lg text-text">DEVIS N° {{ quote.reference }}</h3>
+</div>
+
+{# Plateforme + Prestataire #}
+<div class="grid grid-cols-2 gap-6 mb-6 text-xs">
+  <div>
+    <p class="uppercase font-bold mb-2 text-mute">Plateforme</p>
+    <p class="font-bold text-text">Les Traiteurs Engagés</p>
+    <p class="text-text">GIP Plateforme de l'inclusion</p>
+    <p class="text-text">6, boulevard Saint-Denis 75010 Paris</p>
+    <p class="mt-1 text-mute">SIRET : 13003013300016</p>
+  </div>
+  <div>
+    <p class="uppercase font-bold mb-2 text-mute">Prestataire</p>
+    <p class="font-bold text-text">{{ caterer.name }}</p>
+    <p class="text-text">{{ caterer.address or '' }}</p>
+    <p class="text-text">{{ caterer.zip_code or '' }} {{ caterer.city or '' }}</p>
+    {% if caterer.siret %}
+    <p class="mt-1 text-mute">SIRET : {{ caterer.siret }}</p>
+    {% endif %}
+  </div>
+</div>
+
+{# Client #}
+<div class="mb-6 text-xs">
+  <p class="uppercase font-bold mb-2 text-mute">Client</p>
+  <p class="font-bold text-text">{{ qr.company.name }}</p>
+  {% if qr.user %}
+  <p class="text-text">{{ qr.user.first_name }} {{ qr.user.last_name }}</p>
+  {% endif %}
+  {% if qr.event_city %}
+  <p class="text-text">{{ qr.event_city }}</p>
+  {% endif %}
+  {% if qr.company.siret %}
+  <p class="mt-1 text-mute">SIRET : {{ qr.company.siret }}</p>
+  {% endif %}
+</div>
+
+{# Évènement #}
+<div class="mb-6 p-4 rounded-lg" style="background-color:var(--c-cream);">
+  <p class="uppercase font-bold mb-2 text-xs text-mute">Événement</p>
+  <div class="grid grid-cols-2 gap-2 text-sm">
+    <p class="text-text">
+      <span class="font-bold">Type :</span>
+      {{ meal_type_labels.get(qr.meal_type, qr.meal_type.value if qr.meal_type else '-') }}
+    </p>
+    <p class="text-text">
+      <span class="font-bold">Date :</span>
+      {% if qr.event_date %}
+        {{ qr.event_date.day }} {{ fr_months_long[qr.event_date.month - 1] }} {{ qr.event_date.year }}
+      {% else %}-
+      {% endif %}
+    </p>
+    <p class="text-text">
+      <span class="font-bold">Lieu :</span>
+      {{ qr.event_city or '-' }}
+    </p>
+    <p class="text-text">
+      <span class="font-bold">Convives :</span>
+      {{ qr.guest_count or 0 }} personnes
+    </p>
+  </div>
+</div>
+
+{# Lines table grouped by section #}
+<table class="w-full text-sm mb-6">
+  <thead>
+    <tr style="background-color:var(--c-navy);color:#fff;">
+      <th class="text-left px-3 py-2 font-bold uppercase text-xs">Désignation</th>
+      <th class="text-right px-3 py-2 font-bold uppercase text-xs">Qté</th>
+      <th class="text-right px-3 py-2 font-bold uppercase text-xs">PU HT</th>
+      <th class="text-right px-3 py-2 font-bold uppercase text-xs">TVA</th>
+      <th class="text-right px-3 py-2 font-bold uppercase text-xs">Total HT</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for sect in section_order %}
+      {% if pdf_preview.lines_by_section.get(sect) %}
+      <tr>
+        <td colspan="5" class="font-bold uppercase text-xs px-3 py-2 text-mute" style="background-color:var(--c-cream);">
+          {{ section_labels[sect] }}
+        </td>
+      </tr>
+        {% for ln in pdf_preview.lines_by_section[sect] %}
+        <tr class="border-t border-soft">
+          <td class="px-3 py-2 font-bold text-text">{{ ln.description or '' }}</td>
+          <td class="px-3 py-2 text-right text-text">{{ "%g"|format(ln.quantity|float) }}</td>
+          <td class="px-3 py-2 text-right text-text">{{ "%.2f"|format(ln.unit_price_ht|float) }} €</td>
+          <td class="px-3 py-2 text-right text-text">{{ "%g"|format(ln.tva_rate|float) }} %</td>
+          <td class="px-3 py-2 text-right font-bold text-text">{{ "%.2f"|format((ln.quantity * ln.unit_price_ht)|float) }} €</td>
+        </tr>
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+
+{# Caterer's prestation subtotal block (right-aligned) #}
+<div class="mb-6 ml-auto" style="max-width:400px;">
+  <dl class="space-y-1 text-sm">
+    <div class="flex justify-between">
+      <dt class="text-mute">Montant HT</dt>
+      <dd class="font-bold text-text">{{ "%.2f"|format(pdf_preview.totals.total_ht|float) }} €</dd>
+    </div>
+    {% for rate, parts in pdf_preview.totals.tva_totals.items() | sort %}
+    <div class="flex justify-between">
+      <dt class="text-mute">TVA {{ "%g"|format(rate|float) }} %</dt>
+      <dd class="font-bold text-text">{{ "%.2f"|format(parts.tva|float) }} €</dd>
+    </div>
+    {% endfor %}
+    <div class="flex justify-between border-t border-soft pt-1">
+      <dt class="font-bold text-text">Sous-total TTC</dt>
+      <dd class="font-bold text-text">{{ "%.2f"|format(pdf_preview.totals.total_ttc|float) }} €</dd>
+    </div>
+  </dl>
+</div>
+
+{# Platform fee block #}
+<div class="mb-6">
+  <p class="uppercase font-bold mb-2 text-xs text-mute">Frais de mise en relation (5% ajoutés)</p>
+  <dl class="space-y-1 text-sm ml-auto" style="max-width:400px;">
+    <div class="flex justify-between">
+      <dt class="text-mute">Montant HT</dt>
+      <dd class="font-bold text-text">{{ "%.2f"|format(pdf_preview.totals.platform_fee_ht|float) }} €</dd>
+    </div>
+    <div class="flex justify-between">
+      <dt class="text-mute">TVA 20 %</dt>
+      <dd class="font-bold text-text">{{ "%.2f"|format(pdf_preview.totals.platform_fee_tva|float) }} €</dd>
+    </div>
+    <div class="flex justify-between border-t border-soft pt-1">
+      <dt class="font-bold text-text">Sous-total TTC</dt>
+      <dd class="font-bold text-text">{{ "%.2f"|format(pdf_preview.totals.platform_fee_ttc|float) }} €</dd>
+    </div>
+  </dl>
+</div>
+
+{# Grand total banner #}
+{% set grand_total = (pdf_preview.totals.total_ttc + pdf_preview.totals.platform_fee_ttc)|float %}
+<div class="p-4 rounded-lg flex items-center justify-between" style="background-color:var(--c-cream);">
+  <div>
+    <p class="font-display font-bold text-lg text-text">Total à payer</p>
+    {% if qr.guest_count and qr.guest_count > 0 %}
+    <p class="text-xs mt-1 text-mute">soit {{ "%.2f"|format(grand_total / qr.guest_count) }} € / personne</p>
+    {% endif %}
+  </div>
+  <p class="font-display font-bold text-2xl text-text">{{ "%.2f"|format(grand_total) }} €</p>
+</div>
+
+{# Legal footer #}
+<div class="mt-6 text-xs space-y-1 text-mute">
+  <p>Devis émis par la plateforme Les Traiteurs Engagés, agissant en qualité de mandataire du Traiteur {{ caterer.name }}.</p>
+  <p>La prestation de restauration sera réalisée par le Traiteur {{ caterer.name }}, seul responsable de son exécution.</p>
+  <p>Ce devis est soumis aux conditions générales de vente du traiteur.</p>
+  <p>Les frais de service plateforme correspondent aux services de mise en relation, coordination et gestion administrative.</p>
+</div>

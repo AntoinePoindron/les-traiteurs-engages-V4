@@ -1,11 +1,8 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import back_button %}
 {% block title %}Conversation avec {{ other_user.first_name }} {{ other_user.last_name }} — Les Traiteurs Engages{% endblock %}
 {% block content %}
-<div class="mb-4">
-  <a href="{{ url_for('caterer.messages') }}" class="inline-flex items-center gap-1 text-xs font-bold text-navy">
-    <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-navy"></i> Retour aux messages
-  </a>
-</div>
+<div class="mb-4">{{ back_button(label="Retour aux messages") }}</div>
 
 <div class="h-chat-narrow bg-white rounded-lg flex flex-col">
   <div class="px-4 py-3 flex items-center gap-3 border-b border-soft">

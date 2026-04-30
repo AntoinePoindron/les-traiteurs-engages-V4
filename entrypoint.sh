@@ -15,4 +15,12 @@ if [ "${ENABLE_DEMO_SEED}" = "1" ]; then
 fi
 
 echo "Starting gunicorn..."
-exec gunicorn --bind 0.0.0.0:${PORT:-8000} "app:create_app()"
+# Local dev: GUNICORN_RELOAD=1 (set in docker-compose.dev.yml) makes gunicorn
+# watch the mounted source tree and restart workers on every save. Stays
+# off in staging/prod where workers should be stable.
+GUNICORN_OPTS=""
+if [ "${GUNICORN_RELOAD}" = "1" ]; then
+    echo "GUNICORN_RELOAD=1 — enabling --reload (dev mode)."
+    GUNICORN_OPTS="--reload"
+fi
+exec gunicorn --bind 0.0.0.0:${PORT:-8000} ${GUNICORN_OPTS} "app:create_app()"

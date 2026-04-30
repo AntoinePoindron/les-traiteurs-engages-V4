@@ -13,6 +13,10 @@
   {# Lucide icons — bundled locally (audit VULN-105) to remove the CDN
      supply-chain risk and tighten the CSP to script-src 'self'. #}
   <script src="{{ url_for('static', filename='js/vendor/lucide.min.js') }}" defer></script>
+  {# Global "Retour" button handler — picks up data-action="history-back"
+     anywhere on the page. CSP-compliant since the back_button macro
+     can't use an inline onclick. #}
+  <script src="{{ url_for('static', filename='js/history-back.js') }}" defer></script>
   {% block head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-cream">
@@ -142,6 +146,10 @@
         <a href="{{ url_for('admin.companies_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="companies">
           <i data-lucide="building-2" class="w-5 h-5 flex-shrink-0"></i>
           <span>Entreprises</span>
+        </a>
+        <a href="{{ url_for('admin.orders_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="orders">
+          <i data-lucide="shopping-bag" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Commandes</span>
         </a>
         <a href="{{ url_for('admin.payments') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="payments">
           <i data-lucide="banknote" class="w-5 h-5 flex-shrink-0"></i>
