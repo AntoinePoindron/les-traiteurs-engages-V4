@@ -18,7 +18,7 @@
           {{ meal_type_labels.get(qr.meal_type, qr.meal_type or 'Demande de devis') }}
         </h1>
         <div class="flex items-center gap-3 mt-2">
-          {{ status_badge(qr.status) }}
+          {{ status_badge(qr.display_status) }}
           <span class="text-xs text-mute">Creee le {{ qr.created_at.strftime('%d/%m/%Y') }}</span>
         </div>
       </div>

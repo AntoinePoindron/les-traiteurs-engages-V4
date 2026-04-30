@@ -278,6 +278,10 @@ def register(bp):
             .order_by(Quote.created_at.asc())
         ).scalars().all()
 
+        # Same display_status logic as the list page so the header badge
+        # uses a French, user-facing label instead of the raw enum value.
+        qr.display_status = _derive_request_display_status(qr)
+
         # Attach per-quote PDF preview data so the template can render a
         # read-only modal for "Voir le devis" without doing arithmetic in
         # Jinja. quote.pdf_preview stays None for any quote that has no
