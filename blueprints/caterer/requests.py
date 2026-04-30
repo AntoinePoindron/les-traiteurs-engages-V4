@@ -105,6 +105,25 @@ def register(bp):
             .order_by(Order.created_at.desc())
             .limit(5)
         ).all()
+        # When the caterer already has a quote (sent / refused / accepted),
+        # we render a read-only PDF preview as an in-page modal — opened by
+        # the "Voir le devis" button. Pre-compute the aggregates the partial
+        # template needs so the template stays free of arithmetic.
+        pdf_preview = None
+        if existing_quote and existing_quote.lines:
+            line_dicts = [ln.as_dict() for ln in existing_quote.lines]
+            totals = calculate_quote_totals(
+                line_dicts,
+                qr.guest_count,
+                commission_rate=caterer.commission_rate,
+            )
+            lines_by_section: dict[str, list] = {}
+            for ln in existing_quote.lines:
+                lines_by_section.setdefault(ln.section, []).append(ln)
+            pdf_preview = {
+                "lines_by_section": lines_by_section,
+                "totals": totals,
+            }
         return render_template(
             "caterer/requests/detail.html",
             user=g.current_user,
@@ -113,6 +132,7 @@ def register(bp):
             existing_quote=existing_quote,
             previous_orders=previous_orders,
             meal_type_labels=MEAL_TYPE_LABELS,
+            pdf_preview=pdf_preview,
         )
 
     @bp.route("/requests/<uuid:qr_id>/reject", methods=["POST"])
