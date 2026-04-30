@@ -15,4 +15,4 @@ if [ "${ENABLE_DEMO_SEED}" = "1" ]; then
 fi
 
 echo "Starting gunicorn..."
-exec gunicorn --bind 0.0.0.0:8000 "app:create_app()"
+exec gunicorn --bind 0.0.0.0:${PORT:-8000} "app:create_app()"
