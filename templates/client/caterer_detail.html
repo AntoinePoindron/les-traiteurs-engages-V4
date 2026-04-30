@@ -189,8 +189,9 @@
           <p class="text-sm leading-relaxed text-text-soft">{{ caterer.description }}</p>
           {% endif %}
 
-          {# CTA en bas du bloc. #}
-          <a href="{{ url_for('client.requests_new') }}"
+          {# CTA en bas du bloc. caterer_id pre-fills the wizard's
+             target_caterer_id so the demand is sent only to this caterer. #}
+          <a href="{{ url_for('client.requests_new', caterer_id=caterer.id) }}"
              class="block text-center rounded-full text-sm font-bold px-4 py-2.5 btn-navy" style="margin-top:auto;">
             <i data-lucide="send" class="w-4 h-4 inline mr-1"></i>
             Demander un devis

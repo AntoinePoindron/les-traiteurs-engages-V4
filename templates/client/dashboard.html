@@ -93,11 +93,11 @@
               <i data-lucide="file-plus" class="w-6 h-6 text-navy"></i>
             </div>
             <p class="text-sm text-mute mb-4">Vous n'avez encore aucune demande de devis.</p>
-            <a href="{{ url_for('client.requests_new') }}"
-               class="inline-flex items-center gap-2 rounded-full text-xs font-bold px-4 py-2.5 bg-navy text-white">
+            <button type="button" data-action="open-new-request-menu"
+                    class="inline-flex items-center gap-2 rounded-full text-xs font-bold px-4 py-2.5 bg-navy text-white hover:opacity-90 transition-opacity">
               <i data-lucide="plus" class="w-4 h-4"></i>
               Creer une demande
-            </a>
+            </button>
           </div>
           {% endif %}
         </div>
@@ -160,5 +160,11 @@
       </aside>{# /.split-aside #}
     </div>{# /.split-detail #}
 
+    {% include "client/_new_request_modal.html" %}
+
 </main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/new-request-modal.js') }}" defer></script>
 {% endblock %}

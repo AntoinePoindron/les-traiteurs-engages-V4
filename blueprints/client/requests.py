@@ -22,6 +22,7 @@ from models import (
     Caterer,
     CatererStructureType,
     CompanyService,
+    QRCStatus,
     Quote,
     QuoteRequest,
     QuoteRequestCaterer,
@@ -75,7 +76,28 @@ def register(bp):
         services = db.execute(
             select(CompanyService).where(CompanyService.company_id == user.company_id)
         ).scalars().all()
-        return render_template("client/requests/new.html", user=user, services=services)
+        # When the wizard is opened from a specific caterer profile
+        # (?caterer_id=...), prefill target_caterer so the form ships the
+        # demand straight to that caterer and bypasses admin matching.
+        target_caterer = None
+        raw_caterer_id = request.args.get("caterer_id")
+        if raw_caterer_id:
+            try:
+                cid = uuid.UUID(raw_caterer_id)
+            except ValueError:
+                cid = None
+            if cid is not None:
+                target_caterer = db.scalar(
+                    select(Caterer)
+                    .where(Caterer.id == cid)
+                    .where(Caterer.is_validated.is_(True))
+                )
+        return render_template(
+            "client/requests/new.html",
+            user=user,
+            services=services,
+            target_caterer=target_caterer,
+        )
 
     @bp.route("/requests/new", methods=["POST"])
     @login_required
@@ -89,13 +111,49 @@ def register(bp):
             services = db.execute(
                 select(CompanyService).where(CompanyService.company_id == user.company_id)
             ).scalars().all()
-            return render_template("client/requests/new.html", user=user, services=services), 400
+            return render_template(
+                "client/requests/new.html",
+                user=user,
+                services=services,
+                target_caterer=None,
+            ), 400
 
         db = get_db()
         service_id = own_service_id(db, user, form.company_service_id.data)
 
-        is_compare = form.is_compare_mode.data
-        status = QuoteRequestStatus.pending_review if is_compare else QuoteRequestStatus.sent_to_caterers
+        # Resolve target caterer (single-caterer flow). Validate UUID
+        # AND that the caterer actually exists + is validated, so a
+        # tampered hidden input can't sneak through.
+        target_caterer = None
+        raw_target = (form.target_caterer_id.data or "").strip()
+        if raw_target:
+            try:
+                cid = uuid.UUID(raw_target)
+            except ValueError:
+                cid = None
+            if cid is not None:
+                target_caterer = db.scalar(
+                    select(Caterer)
+                    .where(Caterer.id == cid)
+                    .where(Caterer.is_validated.is_(True))
+                )
+
+        if target_caterer is not None:
+            # Single-caterer demand: skip admin review entirely, send
+            # directly to that caterer with a QRC in 'selected' state
+            # (= awaiting the caterer's response, like the admin had
+            # transmitted it).
+            status = QuoteRequestStatus.sent_to_caterers
+            is_compare = False
+        else:
+            # Standard wizard ("Recevoir 3 devis"): admin curates the
+            # candidate list, status sits in pending_review until then.
+            is_compare = bool(form.is_compare_mode.data)
+            status = (
+                QuoteRequestStatus.pending_review
+                if is_compare
+                else QuoteRequestStatus.sent_to_caterers
+            )
 
         qr = QuoteRequest(
             company_id=user.company_id,
@@ -104,8 +162,19 @@ def register(bp):
             status=status,
         )
         apply_quote_request_form(qr, form)
+        # Force the persisted is_compare_mode to match the resolved flow
+        # (apply_quote_request_form may have written it from the form).
+        qr.is_compare_mode = is_compare
         db.add(qr)
         db.flush()
+
+        if target_caterer is not None:
+            db.add(QuoteRequestCaterer(
+                quote_request_id=qr.id,
+                caterer_id=target_caterer.id,
+                status=QRCStatus.selected,
+            ))
+
         qr_id = qr.id
         db.commit()
 
