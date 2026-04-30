@@ -7,6 +7,8 @@ Trust nothing the client tells us about the file. Validate:
    create_app() is the outer layer; this keeps an unrealistic 12 MB logo
    from filling the disk even though it is technically under 16 MB).
 
+Storage backend: S3-compatible when S3_BUCKET is set, local disk otherwise.
+
 Returns None on any rejection so the caller can flash a generic error.
 Logs at WARNING for postmortem debugging.
 
@@ -17,6 +19,7 @@ import logging
 import os
 import uuid
 
+from botocore.exceptions import BotocoreError, ClientError
 from werkzeug.utils import secure_filename
 
 logger = logging.getLogger(__name__)
@@ -25,6 +28,12 @@ ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp", "pdf"}
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "uploads")
 MAX_FILENAME_LENGTH = 80
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB per file (global cap is 16 MB total request)
+
+_CONTENT_TYPES = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg",
+    "png": "image/png", "gif": "image/gif",
+    "webp": "image/webp", "pdf": "application/pdf",
+}
 
 # Magic byte signatures. Polyglot files (e.g. an HTML page that begins with
 # the PNG signature) are still possible but no consumer of these uploads
@@ -47,6 +56,33 @@ _EXTENSION_ALIASES = {
     "jpeg": {"jpg", "jpeg"},
 }
 
+# --- S3 client (lazy singleton) ------------------------------------------------
+
+_s3_client = None
+
+
+def _get_s3():
+    global _s3_client
+    if _s3_client is None:
+        import boto3
+        from config import settings
+        kwargs = {
+            "aws_access_key_id": settings.s3_access_key,
+            "aws_secret_access_key": settings.s3_secret_key.get_secret_value() if settings.s3_secret_key else None,
+            "region_name": settings.s3_region,
+        }
+        if settings.s3_endpoint_url:
+            kwargs["endpoint_url"] = settings.s3_endpoint_url
+        _s3_client = boto3.client("s3", **kwargs)
+    return _s3_client
+
+
+def _s3_enabled() -> bool:
+    from config import settings
+    return bool(settings.s3_bucket)
+
+
+# --- Validation helpers --------------------------------------------------------
 
 def _detect_real_type(head: bytes) -> str | None:
     """Return the extension key that matches the byte signature, or None."""
@@ -70,7 +106,10 @@ def allowed_extension(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def save_upload(file, subfolder: str = "general") -> str | None:
+# --- Save (public API) ---------------------------------------------------------
+
+def _validate(file):
+    """Validate the upload. Returns (declared_ext, safe_name) or None on rejection."""
     if not file or not file.filename:
         return None
 
@@ -103,11 +142,45 @@ def save_upload(file, subfolder: str = "general") -> str | None:
         logger.warning("upload rejected: empty file")
         return None
 
-    target_dir = os.path.join(UPLOAD_DIR, subfolder)
-    os.makedirs(target_dir, exist_ok=True)
-    # secure_filename strips path separators / NUL bytes / parent traversal.
-    # Length-cap protects against POSIX 255-byte filename limit and weird unicode.
     clean = secure_filename(file.filename)[:MAX_FILENAME_LENGTH] or "file"
     safe_name = f"{uuid.uuid4().hex}_{clean}"
+    return declared_ext, safe_name
+
+
+def _save_local(file, subfolder: str, safe_name: str) -> str:
+    target_dir = os.path.join(UPLOAD_DIR, subfolder)
+    os.makedirs(target_dir, exist_ok=True)
     file.save(os.path.join(target_dir, safe_name))
     return f"/static/uploads/{subfolder}/{safe_name}"
+
+
+def _save_s3(file, subfolder: str, safe_name: str, declared_ext: str) -> str:
+    from config import settings
+    key = f"uploads/{subfolder}/{safe_name}"
+    _get_s3().upload_fileobj(
+        file.stream,
+        settings.s3_bucket,
+        key,
+        ExtraArgs={
+            "ContentType": _CONTENT_TYPES.get(declared_ext, "application/octet-stream"),
+            "CacheControl": "public, max-age=31536000, immutable",
+        },
+    )
+    base = settings.s3_public_url or f"https://{settings.s3_bucket}.s3.{settings.s3_region}.amazonaws.com"
+    return f"{base.rstrip('/')}/{key}"
+
+
+def save_upload(file, subfolder: str = "general") -> str | None:
+    result = _validate(file)
+    if result is None:
+        return None
+    declared_ext, safe_name = result
+
+    if _s3_enabled():
+        try:
+            return _save_s3(file, subfolder, safe_name, declared_ext)
+        except (BotocoreError, ClientError):
+            logger.exception("S3 upload failed for %s", safe_name)
+            return None
+
+    return _save_local(file, subfolder, safe_name)

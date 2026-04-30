@@ -1,0 +1,85 @@
+{
+  "name": "Les Traiteurs Engages",
+  "description": "Plateforme de mise en relation traiteurs engages",
+  "website": "https://les-traiteurs-engages.fr",
+  "scripts": {
+    "postdeploy": "alembic upgrade head && python init_db.py"
+  },
+  "addons": [
+    "postgresql:postgresql-starter-512",
+    "redis:redis-starter-256"
+  ],
+  "env": {
+    "SECRET_KEY": {
+      "description": "Application secret key (min 32 chars). Generate with: python -c 'import secrets; print(secrets.token_hex(32))'",
+      "required": true,
+      "generator": "secret"
+    },
+    "SECURE_COOKIES": {
+      "description": "Set to true — Scalingo terminates TLS at the router",
+      "value": "true"
+    },
+    "TRUST_PROXY_HEADERS": {
+      "description": "Set to true — Scalingo's router is the reverse proxy",
+      "value": "true"
+    },
+    "ADMIN_EMAIL": {
+      "description": "Email for the bootstrap admin account",
+      "value": "admin@traiteurs-engages.fr"
+    },
+    "ADMIN_INITIAL_PASSWORD": {
+      "description": "Password for the bootstrap admin (leave empty to skip)",
+      "required": false
+    },
+    "STRIPE_SECRET_KEY": {
+      "description": "Stripe API secret key (leave empty to disable Stripe)",
+      "required": false
+    },
+    "STRIPE_PUBLISHABLE_KEY": {
+      "description": "Stripe publishable key",
+      "required": false
+    },
+    "STRIPE_WEBHOOK_SECRET": {
+      "description": "Stripe webhook signing secret",
+      "required": false
+    },
+    "STRIPE_CONNECT_CLIENT_ID": {
+      "description": "Stripe Connect OAuth client ID",
+      "required": false
+    },
+    "S3_BUCKET": {
+      "description": "S3 bucket name for file uploads (required for persistent storage)",
+      "required": true
+    },
+    "S3_REGION": {
+      "description": "S3 region (e.g. fr-par, eu-west-1)",
+      "required": true
+    },
+    "S3_ACCESS_KEY": {
+      "description": "S3 access key ID",
+      "required": true
+    },
+    "S3_SECRET_KEY": {
+      "description": "S3 secret access key",
+      "required": true
+    },
+    "S3_ENDPOINT_URL": {
+      "description": "S3 endpoint URL (required for Scaleway/MinIO, omit for AWS)",
+      "required": false
+    },
+    "S3_PUBLIC_URL": {
+      "description": "Public base URL for uploaded files (e.g. https://bucket.s3.fr-par.scw.cloud)",
+      "required": false
+    }
+  },
+  "formation": {
+    "web": {
+      "amount": 1,
+      "size": "M"
+    },
+    "worker": {
+      "amount": 1,
+      "size": "S"
+    }
+  }
+}

@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import config
@@ -95,6 +96,12 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
 
+    # Per-blueprint rate limits (on top of the global default).
+    # Write-heavy blueprints get tighter caps; API gets its own ceiling.
+    limiter.limit("30 per minute", per_method=True, methods=["POST"])(client_bp)
+    limiter.limit("30 per minute", per_method=True, methods=["POST"])(caterer_bp)
+    limiter.limit("20 per minute", per_method=True, methods=["POST"])(admin_bp)
+
     # Dev-only account switcher. Tied to the same env flag that seeds the
     # demo data so production (where the flag is empty) never registers
     # the route. See blueprints/devtools.py for the safety rationale.
@@ -174,7 +181,7 @@ def create_app():
         # raises again. Reset the session so the error template renders cleanly.
         try:
             ScopedSession.rollback()
-        except Exception:
+        except SQLAlchemyError:
             pass
         return render_template("errors/500.html"), 500
 
@@ -203,7 +210,7 @@ def create_app():
             db = get_db()
             db.execute(text("SELECT 1"))
             return jsonify({"status": "ok", "database": "connected"})
-        except Exception:
+        except SQLAlchemyError:
             return jsonify({"status": "degraded", "database": "disconnected"}), 503
 
     @app.route("/")
