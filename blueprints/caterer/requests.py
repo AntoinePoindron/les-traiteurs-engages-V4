@@ -146,9 +146,14 @@ def register(bp):
     @role_required("caterer")
     def quote_new(qr_id):
         caterer = g.current_user.caterer
+        db = get_db()
         qrc = get_caterer_qrc(qr_id, caterer.id)
         qr = qrc.quote_request
         _ = qr.company
+        # Pre-compute a reference to display read-only in the editor.
+        # The server re-generates the real reference at POST time so this
+        # is informational only and cannot be tampered with by the client.
+        preview_reference = generate_quote_reference(db, caterer)
         return render_template(
             "caterer/quotes/editor.html",
             user=g.current_user,
@@ -156,6 +161,8 @@ def register(bp):
             qrc=qrc,
             quote=None,
             initial_lines=[],
+            preview_reference=preview_reference,
+            meal_type_labels=MEAL_TYPE_LABELS,
         )
 
     @bp.route("/requests/<uuid:qr_id>/quote", methods=["POST"])
@@ -176,6 +183,8 @@ def register(bp):
                 qrc=qrc,
                 quote=None,
                 initial_lines=[],
+                preview_reference=generate_quote_reference(db, caterer),
+                meal_type_labels=MEAL_TYPE_LABELS,
             ), 400
         try:
             line_dicts = json.loads(form.details.data or "[]")
@@ -192,6 +201,8 @@ def register(bp):
                 qrc=qrc,
                 quote=None,
                 initial_lines=line_dicts,
+                preview_reference=generate_quote_reference(db, caterer),
+                meal_type_labels=MEAL_TYPE_LABELS,
             ), 400
         totals = calculate_quote_totals(line_dicts, qr.guest_count, commission_rate=caterer.commission_rate)
         reference = generate_quote_reference(db, caterer)
@@ -209,7 +220,23 @@ def register(bp):
         )
         db.add(quote)
         db.commit()
-        flash("Devis enregistre en brouillon.", "success")
+        # action=send saves the draft AND sends it in one go, so the caterer
+        # doesn't have to navigate away and come back. Default is 'draft'.
+        action = flask_request.form.get("action", "draft")
+        if action == "send":
+            try:
+                workflow.submit_quote(
+                    db,
+                    request_id=qr_id,
+                    quote_id=quote.id,
+                    caterer=caterer,
+                )
+                db.commit()
+            except workflow.QuoteNotFound:
+                abort(404)
+            flash("Devis enregistre et envoye au client.", "success")
+        else:
+            flash("Devis enregistre en brouillon.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
 
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/edit", methods=["GET"])
@@ -228,6 +255,8 @@ def register(bp):
             qrc=qrc,
             quote=quote,
             initial_lines=[ln.as_dict() for ln in quote.lines],
+            preview_reference=quote.reference,
+            meal_type_labels=MEAL_TYPE_LABELS,
         )
 
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/edit", methods=["POST"])
@@ -252,6 +281,8 @@ def register(bp):
                 qrc=qrc,
                 quote=quote,
                 initial_lines=[ln.as_dict() for ln in quote.lines],
+                preview_reference=quote.reference,
+                meal_type_labels=MEAL_TYPE_LABELS,
             ), 400
         try:
             line_dicts = json.loads(form.details.data or "[]")
@@ -268,6 +299,8 @@ def register(bp):
                 qrc=qrc,
                 quote=quote,
                 initial_lines=line_dicts,
+                preview_reference=quote.reference,
+                meal_type_labels=MEAL_TYPE_LABELS,
             ), 400
         totals = calculate_quote_totals(line_dicts, qr.guest_count, commission_rate=caterer.commission_rate)
         quote.lines = new_lines
@@ -277,7 +310,23 @@ def register(bp):
         quote.notes = form.notes.data or ""
         quote.valid_until = form.valid_until.data if form.valid_until.data else quote.valid_until
         db.commit()
-        flash("Devis mis a jour.", "success")
+        # Same as quote_create: action=send chains save + send so the
+        # caterer can ship the quote without leaving the editor.
+        action = flask_request.form.get("action", "draft")
+        if action == "send":
+            try:
+                workflow.submit_quote(
+                    db,
+                    request_id=qr_id,
+                    quote_id=quote.id,
+                    caterer=caterer,
+                )
+                db.commit()
+            except workflow.QuoteNotFound:
+                abort(404)
+            flash("Devis mis a jour et envoye au client.", "success")
+        else:
+            flash("Devis mis a jour.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
 
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/send", methods=["POST"])
