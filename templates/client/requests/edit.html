@@ -1,14 +1,12 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import back_button %}
 
 {% block title %}Modifier la demande - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
 <main class="bg-cream min-h-screen">
 
-    <!-- Back button -->
-    <a href="{{ url_for('client.request_detail', request_id=qr.id) }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
-      <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
-    </a>
+    <div class="mb-6">{{ back_button() }}</div>
 
     <h1 class="font-display font-bold text-4xl mb-2 text-text">Modifier la demande</h1>
     <p class="text-sm mb-6 text-mute">Mettez a jour les informations de votre demande de devis.</p>

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
 {% from "components/structure_type_badge.html" import structure_type_badge %}
+{% from "components/ui.html" import back_button %}
 
 {% block title %}Demande #{{ qr.id | string | truncate(8, True, '') }} - Les Traiteurs Engages{% endblock %}
 
@@ -8,9 +9,7 @@
 <main class="bg-cream min-h-screen">
 
     <!-- Back button -->
-    <a href="{{ url_for('client.requests_list') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
-      <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
-    </a>
+    <div class="mb-6">{{ back_button() }}</div>
 
     <div class="flex items-center justify-between mb-6">
       <div>

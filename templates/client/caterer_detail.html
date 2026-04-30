@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/structure_type_badge.html" import structure_type_badge %}
+{% from "components/ui.html" import back_button %}
 
 {% block title %}{{ caterer.name }} - Catalogue{% endblock %}
 
@@ -7,9 +8,7 @@
 <main class="bg-cream min-h-screen">
 
     <!-- Back button -->
-    <a href="{{ url_for('client.search') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
-      <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
-    </a>
+    <div class="mb-6">{{ back_button() }}</div>
 
     {# Layout 70/30 : photos + details a gauche, identite + CTA dans la sidebar a droite. #}
     <div class="split-detail">

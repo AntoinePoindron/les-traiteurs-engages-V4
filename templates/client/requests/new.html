@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import back_button %}
 
 {% block title %}Nouvelle demande de devis - Les Traiteurs Engages{% endblock %}
 
@@ -6,9 +7,7 @@
 <main class="bg-cream min-h-screen">
 
     <!-- Back button -->
-    <a href="{{ url_for('client.requests_list') }}" class="inline-flex items-center gap-1 text-xs font-bold hover:opacity-70 transition-opacity mb-6 text-navy">
-      <i data-lucide="chevron-left" class="w-4 h-4"></i> Retour
-    </a>
+    <div class="mb-6">{{ back_button() }}</div>
 
     <h1 class="font-display font-bold text-4xl mb-2 text-text">Nouvelle demande de devis</h1>
     <p class="text-sm mb-6 text-mute">Decrivez votre evenement en quelques etapes pour recevoir des propositions de traiteurs engages.</p>

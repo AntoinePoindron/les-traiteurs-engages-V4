@@ -13,6 +13,10 @@
   {# Lucide icons — bundled locally (audit VULN-105) to remove the CDN
      supply-chain risk and tighten the CSP to script-src 'self'. #}
   <script src="{{ url_for('static', filename='js/vendor/lucide.min.js') }}" defer></script>
+  {# Global "Retour" button handler — picks up data-action="history-back"
+     anywhere on the page. CSP-compliant since the back_button macro
+     can't use an inline onclick. #}
+  <script src="{{ url_for('static', filename='js/history-back.js') }}" defer></script>
   {% block head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-cream">
