@@ -35,8 +35,8 @@
   <div class="split-main space-y-6">
 
     {# ---- Card : event summary ---- #}
-    <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-2xl mb-3 text-text">L'événement</h2>
+    <div class="bg-white rounded-lg p-6 space-y-2">
+      <h2 class="font-display font-bold text-2xl text-text">L'événement</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8">
 
         {# Date #}
@@ -85,7 +85,7 @@
 
       {# Optional event-type description block #}
       {% if qr.service_type %}
-      <div class="mt-5 p-4 rounded-lg" style="background-color:var(--c-cream);">
+      <div class="p-4 rounded-lg" style="background-color:var(--c-cream);">
         <p class="text-sm text-text"><span class="font-bold">Type d'événement</span> &middot; {{ qr.service_type }}</p>
       </div>
       {% endif %}
@@ -155,8 +155,8 @@
     ] %}
     {% set has_diet = dietary | selectattr(0) | list %}
     {% if has_diet %}
-    <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-2xl mb-5 text-text">Préférences et contraintes</h2>
+    <div class="bg-white rounded-lg p-6 space-y-2">
+      <h2 class="font-display font-bold text-2xl text-text">Préférences et contraintes</h2>
       <div class="flex flex-wrap gap-2">
         {% for active, label, count in dietary %}
           {% if active %}
@@ -182,8 +182,8 @@
   <aside class="split-aside space-y-6">
 
     {# ---- Card : recap (budget + quote summary or actions) ---- #}
-    <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-2xl mb-3 text-text">Récapitulatif</h2>
+    <div class="bg-white rounded-lg p-6 space-y-2">
+      <h2 class="font-display font-bold text-2xl text-text">Récapitulatif</h2>
 
       <div class="space-y-2">
         {% if qr.budget_global %}
@@ -215,7 +215,7 @@
       {# ----- Status-driven block ----- #}
       {% if qrc.display_status == 'new' %}
         {# Nouvelle : action buttons (accept = create quote, reject = decline) #}
-        <div class="mt-6 space-y-3">
+        <div class="space-y-2">
           {% if existing_quote and existing_quote.status == QuoteStatus.draft %}
           <a href="{{ url_for('caterer.quote_edit', qr_id=qr.id, q_id=existing_quote.id) }}"
              class="block w-full text-center rounded-full text-sm font-bold px-4 py-3 bg-navy text-white hover:opacity-90 transition-opacity">
@@ -240,7 +240,7 @@
 
       {% elif existing_quote and qrc.display_status in ('sent', 'quotes_refused', 'quote_accepted') %}
         {# Quote-aware sub-card : "Votre devis" recap #}
-        <div class="mt-5 p-4 rounded-lg" style="background-color:var(--c-cream);">
+        <div class="p-4 rounded-lg" style="background-color:var(--c-cream);">
           <p class="text-sm font-bold text-text mb-3">Votre devis</p>
           <dl class="space-y-2 text-sm">
             <div class="flex justify-between">
@@ -275,7 +275,7 @@
         </div>
 
         {% if qrc.display_status == 'quotes_refused' and existing_quote.refusal_reason %}
-        <div class="mt-4 p-4 rounded-lg" style="background-color:var(--c-danger-soft);">
+        <div class="p-4 rounded-lg" style="background-color:var(--c-danger-soft);">
           <p class="text-sm font-bold mb-1" style="color:var(--c-danger);">Motif du refus</p>
           <p class="text-sm italic text-text">{{ existing_quote.refusal_reason }}</p>
         </div>
@@ -283,7 +283,7 @@
 
         {% if qrc.display_status == 'quote_accepted' and existing_quote.order %}
         <a href="{{ url_for('caterer.order_detail', order_id=existing_quote.order.id) }}"
-           class="mt-4 flex items-center justify-center gap-2 w-full rounded-full text-sm font-bold px-4 py-3 bg-white border-2 border-navy text-navy hover:opacity-80 transition-opacity">
+           class="flex items-center justify-center gap-2 w-full rounded-full text-sm font-bold px-4 py-3 bg-white border-2 border-navy text-navy hover:opacity-80 transition-opacity">
           <i data-lucide="shopping-bag" class="w-4 h-4"></i>
           Voir la commande
         </a>
