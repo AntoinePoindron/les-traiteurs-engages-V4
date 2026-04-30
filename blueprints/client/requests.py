@@ -29,6 +29,7 @@ from models import (
     QuoteRequestStatus,
 )
 from services import workflow
+from services.quotes import calculate_quote_totals
 
 
 def register(bp):
@@ -199,6 +200,28 @@ def register(bp):
             select(Quote).where(Quote.quote_request_id == request_id)
             .order_by(Quote.created_at.asc())
         ).scalars().all()
+
+        # Attach per-quote PDF preview data so the template can render a
+        # read-only modal for "Voir le devis" without doing arithmetic in
+        # Jinja. quote.pdf_preview stays None for any quote that has no
+        # line items (defensive — the modal opener checks for it).
+        for quote in quotes:
+            if quote.lines:
+                line_dicts = [ln.as_dict() for ln in quote.lines]
+                totals = calculate_quote_totals(
+                    line_dicts,
+                    qr.guest_count,
+                    commission_rate=quote.caterer.commission_rate,
+                )
+                lines_by_section: dict[str, list] = {}
+                for ln in quote.lines:
+                    lines_by_section.setdefault(ln.section, []).append(ln)
+                quote.pdf_preview = {
+                    "lines_by_section": lines_by_section,
+                    "totals": totals,
+                }
+            else:
+                quote.pdf_preview = None
 
         return render_template(
             "client/requests/detail.html",
