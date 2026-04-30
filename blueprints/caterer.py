@@ -9,6 +9,7 @@ from blueprints.middleware import login_required, role_required
 from database import get_db
 from forms.caterer import CatererProfileForm, QuoteForm
 from models import (
+    MEAL_TYPE_LABELS,
     Message,
     Order,
     OrderStatus,
@@ -264,6 +265,7 @@ def requests_list():
         user=g.current_user,
         qrcs=qrcs,
         status_filter=status_filter,
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
