@@ -257,9 +257,27 @@ def requests_list():
         else:
             stmt = stmt.where(QuoteRequestCaterer.status == status_enum)
     qrcs = db.scalars(stmt.order_by(QuoteRequestCaterer.id.desc())).all()
+    # For each candidacy, derive a single human-friendly status that the
+    # caterer cares about (Nouvelle / Devis envoyé / Devis refusé /
+    # Commande créée). The truth lives on the caterer's own Quote, not on
+    # qrc.status — the latter only reflects the admin-side workflow.
     for qrc in qrcs:
-        _ = qrc.quote_request
-        _ = qrc.quote_request.company
+        qr = qrc.quote_request
+        _ = qr.company  # eager load for template
+        caterer_quote = next(
+            (q for q in qr.quotes if q.caterer_id == caterer.id),
+            None,
+        )
+        if caterer_quote is None or caterer_quote.status == QuoteStatus.draft:
+            qrc.display_status = "new"
+        elif caterer_quote.status == QuoteStatus.refused:
+            qrc.display_status = "quotes_refused"
+        elif caterer_quote.status == QuoteStatus.accepted:
+            qrc.display_status = "quote_accepted"
+        else:
+            # sent / expired — both surface as "Devis envoyé" since the
+            # caterer's action (sending the quote) is what matters here.
+            qrc.display_status = "sent"
     return render_template(
         "caterer/requests/list.html",
         user=g.current_user,

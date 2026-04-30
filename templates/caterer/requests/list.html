@@ -103,9 +103,11 @@
         </div>
       </div>
 
-      {# Status badge + chevron #}
+      {# Status badge + chevron. display_status is derived in the blueprint
+         from the caterer's own Quote (Nouvelle / Devis envoyé / Devis refusé /
+         Commande créée) — see requests_list() in blueprints/caterer.py. #}
       <div class="flex items-center gap-2 flex-shrink-0">
-        {{ status_badge(qrc.status) }}
+        {{ status_badge(qrc.display_status) }}
         <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
       </div>
     </a>
