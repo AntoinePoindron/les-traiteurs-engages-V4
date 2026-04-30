@@ -325,6 +325,13 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .opacity-70 { opacity: 0.7; }
 .text-hero  { font-size: 2.625rem; line-height: 1.1; }
 
+/* sm: variants the compiled Tailwind didn't include but that the
+   client catalog cards depend on (image column width). The breakpoint
+   matches the rest of the project's sm: rules at 640px. */
+@media (min-width: 640px) {
+  .sm\:w-72 { width: 18rem; }
+}
+
 /* Notification badge accent (project-specific, was in tailwind.css) */
 .bg-coral-red   { background-color: var(--c-coral-red); }
 .text-coral-red { color: var(--c-coral-red); }
