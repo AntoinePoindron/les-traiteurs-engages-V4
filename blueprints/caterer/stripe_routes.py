@@ -6,6 +6,7 @@ from flask import flash, g, redirect, render_template, url_for
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
+from extensions import limiter
 from services.stripe_service import (
     create_account_link,
     create_connect_account,
@@ -34,6 +35,7 @@ def register(bp):
         return render_template("caterer/stripe.html", user=g.current_user, caterer=caterer)
 
     @bp.route("/stripe/onboard", methods=["POST"])
+    @limiter.limit("5 per minute")
     @login_required
     @role_required("caterer")
     def stripe_onboard():

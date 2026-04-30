@@ -35,7 +35,7 @@ def _limiter_storage_uri() -> str:
 
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["1000 per hour"],  # global sanity cap
+    default_limits=["200 per minute", "1000 per hour"],
     storage_uri=_limiter_storage_uri(),
     # moving-window is more expensive but accurate for auth throttling —
     # better than fixed-window which lets a burst slip through at the edge.

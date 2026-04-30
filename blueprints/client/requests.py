@@ -15,6 +15,7 @@ from blueprints.client._helpers import (
 from blueprints.middleware import login_required, role_required
 from blueprints.scoping import get_company_request
 from database import get_db
+from extensions import limiter
 from forms.client import QuoteAcceptForm, QuoteRefuseForm, QuoteRequestForm
 from models import (
     MEAL_TYPE_LABELS,
@@ -140,6 +141,7 @@ def register(bp):
         )
 
     @bp.route("/requests/<uuid:request_id>/accept-quote", methods=["POST"])
+    @limiter.limit("10 per minute")
     @login_required
     @role_required("client_admin")
     def accept_quote(request_id):

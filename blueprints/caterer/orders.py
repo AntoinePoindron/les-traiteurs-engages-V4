@@ -4,6 +4,7 @@ from sqlalchemy import select
 from blueprints.middleware import login_required, role_required
 from blueprints.scoping import get_caterer_order
 from database import get_db
+from extensions import limiter
 from models import Order, OrderStatus, Quote
 from services import workflow
 
@@ -39,6 +40,7 @@ def register(bp):
         return render_template("caterer/orders/detail.html", user=g.current_user, order=order)
 
     @bp.route("/orders/<uuid:order_id>/deliver", methods=["POST"])
+    @limiter.limit("10 per minute")
     @login_required
     @role_required("caterer")
     def order_deliver(order_id):
