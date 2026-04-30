@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     admin_email: str = "admin@traiteurs-engages.fr"
     admin_initial_password: SecretStr | None = None
 
+    s3_bucket: str | None = None
+    s3_region: str | None = None
+    s3_access_key: str | None = None
+    s3_secret_key: SecretStr | None = None
+    s3_endpoint_url: str | None = None
+    s3_public_url: str | None = None
+
     secure_cookies: bool = False
     # Only True behind a reverse proxy: with the flag on, direct clients
     # can otherwise spoof X-Forwarded-For to bypass rate limits.
@@ -46,6 +53,8 @@ class Settings(BaseSettings):
     @field_validator(
         "stripe_secret_key", "stripe_publishable_key", "stripe_webhook_secret",
         "stripe_connect_client_id", "admin_initial_password",
+        "s3_bucket", "s3_region", "s3_access_key", "s3_secret_key",
+        "s3_endpoint_url", "s3_public_url",
         mode="before",
     )
     @classmethod
