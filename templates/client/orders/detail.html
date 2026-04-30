@@ -29,7 +29,8 @@
       <h3 class="font-display font-bold text-sm mb-4 text-text">Progression</h3>
       {% set statuses = ['confirmed', 'delivered', 'invoiced', 'paid'] %}
       {# `invoicing` (P3.4 phase 2 in flight) shares the `delivered` step. #}
-      {% set effective_status = 'delivered' if order.status.value == 'invoicing' else order.status.value %}
+      {% set raw_status = order.status|string %}
+      {% set effective_status = 'delivered' if raw_status == 'invoicing' else raw_status %}
       {% set current_idx = statuses.index(effective_status) if effective_status in statuses else -1 %}
       <div class="flex items-center justify-between">
         {% for s in statuses %}

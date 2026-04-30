@@ -388,6 +388,116 @@ def stats():
     )
 
 
+ORDER_STATUS_TABS = {
+    "all":       "Toutes",
+    "upcoming":  "À venir",
+    "delivered": "Livrées",
+    "invoiced":  "Facturées",
+    "paid":      "Payées",
+    "disputed":  "Litige",
+}
+
+_TAB_TO_STATUSES = {
+    "upcoming":  (OrderStatus.confirmed,),
+    "delivered": (OrderStatus.delivered,),
+    "invoiced":  (OrderStatus.invoicing, OrderStatus.invoiced),
+    "paid":      (OrderStatus.paid,),
+    "disputed":  (OrderStatus.disputed,),
+}
+
+# Manual transitions the super-admin can apply from the order detail page.
+# Each move requires the order's current status to match the source.
+_ADMIN_ORDER_TRANSITIONS = {
+    "invoice": (OrderStatus.delivered, OrderStatus.invoiced),
+    "pay":     (OrderStatus.invoiced,  OrderStatus.paid),
+}
+
+
+@admin_bp.route("/orders")
+@login_required
+@role_required("super_admin")
+def orders_list():
+    db = get_db()
+    status_filter = request.args.get("status") or "all"
+    if status_filter not in ORDER_STATUS_TABS:
+        status_filter = "all"
+
+    stmt = (
+        select(Order)
+        .options(
+            joinedload(Order.quote)
+            .joinedload(Quote.quote_request)
+            .joinedload(QuoteRequest.company),
+            joinedload(Order.quote).joinedload(Quote.caterer),
+        )
+        .order_by(Order.created_at.desc())
+    )
+    if status_filter != "all":
+        stmt = stmt.where(Order.status.in_(_TAB_TO_STATUSES[status_filter]))
+
+    orders = db.scalars(stmt).unique().all()
+    return render_template(
+        "admin/orders/list.html",
+        user=g.current_user,
+        orders=orders,
+        status_tabs=ORDER_STATUS_TABS,
+        current_tab=status_filter,
+    )
+
+
+@admin_bp.route("/orders/<uuid:order_id>")
+@login_required
+@role_required("super_admin")
+def order_detail(order_id):
+    db = get_db()
+    order = db.get(Order, order_id)
+    if not order:
+        abort(404)
+    _ = order.quote
+    _ = order.quote.quote_request
+    _ = order.quote.quote_request.company
+    _ = order.quote.caterer
+    _ = order.payments
+    return render_template(
+        "admin/orders/detail.html",
+        user=g.current_user,
+        order=order,
+    )
+
+
+@admin_bp.route("/orders/<uuid:order_id>/transition", methods=["POST"])
+@login_required
+@role_required("super_admin")
+def order_transition(order_id):
+    action = request.form.get("action")
+    if action not in _ADMIN_ORDER_TRANSITIONS:
+        abort(400)
+    expected, target = _ADMIN_ORDER_TRANSITIONS[action]
+
+    db = get_db()
+    order = db.get(Order, order_id)
+    if not order:
+        abort(404)
+
+    if order.status != expected:
+        flash(
+            f"Transition impossible : la commande est en statut {order.status.value}.",
+            "error",
+        )
+        return redirect(url_for("admin.order_detail", order_id=order_id))
+
+    previous = OrderStatus(order.status) if isinstance(order.status, str) else order.status
+    order.status = target
+    log_admin_action(
+        db, g.current_user, f"order.{action}",
+        target_type="order", target_id=order_id,
+        extra={"from": previous.value, "to": target.value},
+    )
+    db.commit()
+    flash(f"Commande passée en {target.value}.", "success")
+    return redirect(url_for("admin.order_detail", order_id=order_id))
+
+
 _MESSAGES_PAGE_SIZE = 25
 
 
