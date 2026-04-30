@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
-{% from "components/structure_type_badge.html" import structure_type_badge %}
 
 {% block title %}Commande - Les Traiteurs Engages{% endblock %}
 
@@ -55,55 +54,36 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-      <!-- Traiteur info -->
-      <div class="bg-white rounded-lg p-6">
-        <div class="flex items-center gap-2 mb-4">
-          <i data-lucide="chef-hat" class="w-4 h-4 text-navy"></i>
-          <h3 class="font-display font-bold text-sm text-text">Traiteur</h3>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-            <i data-lucide="chef-hat" class="w-4\.5 h-4\.5 text-navy"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-bold text-text">{{ order.quote.caterer.name }}</span>
-              {{ structure_type_badge(order.quote.caterer.structure_type) }}
-            </div>
-            <span class="text-xs text-mute">{{ order.quote.caterer.city or '' }}</span>
-          </div>
-        </div>
+    {# "Traiteur" card removed — info is already on the client-side sticky
+       sidebar (logo, name, message CTA), so the left column would
+       duplicate it. Kept the "Devis accepté" card and gave it the full
+       width now that it's the sole occupant. #}
+    <div class="bg-white rounded-lg p-6 mb-6">
+      <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
+        <h3 class="font-display font-bold text-sm text-text">Devis accepte</h3>
       </div>
-
-      <!-- Devis info -->
-      <div class="bg-white rounded-lg p-6">
-        <div class="flex items-center gap-2 mb-4">
-          <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
-          <h3 class="font-display font-bold text-sm text-text">Devis accepte</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-xs text-mute">Reference</span>
+          <span class="text-xs font-bold text-text">{{ order.quote.reference }}</span>
         </div>
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between">
-            <span class="text-xs text-mute">Reference</span>
-            <span class="text-xs font-bold text-text">{{ order.quote.reference }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-xs text-mute">Montant HT</span>
-            <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR</span>
-          </div>
-          {% if order.quote.amount_per_person %}
-          <div class="flex justify-between">
-            <span class="text-xs text-mute">Par personne</span>
-            <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.amount_per_person | float) }} EUR</span>
-          </div>
-          {% endif %}
-          {% if order.quote.valorisable_agefiph %}
-          <div class="flex justify-between">
-            <span class="text-xs text-mute">Valorisable AGEFIPH</span>
-            <span class="text-xs font-bold text-navy">{{ "%.2f" | format(order.quote.valorisable_agefiph | float) }} EUR</span>
-          </div>
-          {% endif %}
+        <div class="flex justify-between">
+          <span class="text-xs text-mute">Montant HT</span>
+          <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.total_amount_ht | float) }} EUR</span>
         </div>
+        {% if order.quote.amount_per_person %}
+        <div class="flex justify-between">
+          <span class="text-xs text-mute">Par personne</span>
+          <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.amount_per_person | float) }} EUR</span>
+        </div>
+        {% endif %}
+        {% if order.quote.valorisable_agefiph %}
+        <div class="flex justify-between">
+          <span class="text-xs text-mute">Valorisable AGEFIPH</span>
+          <span class="text-xs font-bold text-navy">{{ "%.2f" | format(order.quote.valorisable_agefiph | float) }} EUR</span>
+        </div>
+        {% endif %}
       </div>
     </div>
 
