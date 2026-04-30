@@ -18,6 +18,7 @@ import uuid
 import dramatiq
 from dramatiq.brokers.redis import RedisBroker
 from dramatiq.brokers.stub import StubBroker
+import stripe
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ def send_invoice_for_order(order_id: str) -> None:
 
         try:
             create_invoice_for_order(db, order)
-        except Exception:
+        except stripe.StripeError:
             # create_invoice_for_order leaves order.status in `invoicing` on
             # failure. The retry CLI (and dramatiq's own retry) will pick
             # it up. Re-raise so dramatiq counts it as a failure.

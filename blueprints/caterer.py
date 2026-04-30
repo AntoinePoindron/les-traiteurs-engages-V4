@@ -29,6 +29,7 @@ from services.quotes import (
     calculate_quote_totals, generate_quote_reference, lines_from_dicts,
 )
 from services.uploads import save_upload
+import stripe
 from services.stripe_service import (
     create_account_link,
     create_connect_account,
@@ -580,7 +581,7 @@ def stripe_status():
             caterer.stripe_charges_enabled = status["charges_enabled"]
             caterer.stripe_payouts_enabled = status["payouts_enabled"]
             db.commit()
-        except Exception:
+        except stripe.StripeError:
             logger.exception("Failed to fetch Stripe account status")
     return render_template("caterer/stripe.html", user=g.current_user, caterer=caterer)
 
@@ -620,7 +621,7 @@ def stripe_complete():
             else:
                 flash("Verification en cours. Certaines fonctionnalites ne sont pas encore actives.", "warning")
             db.commit()
-        except Exception:
+        except stripe.StripeError:
             logger.exception("Failed to verify Stripe account on completion")
             flash("Erreur lors de la verification du compte Stripe.", "error")
     return redirect(url_for("caterer.stripe_status"))

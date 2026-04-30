@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import config
@@ -174,7 +175,7 @@ def create_app():
         # raises again. Reset the session so the error template renders cleanly.
         try:
             ScopedSession.rollback()
-        except Exception:
+        except SQLAlchemyError:
             pass
         return render_template("errors/500.html"), 500
 
@@ -203,7 +204,7 @@ def create_app():
             db = get_db()
             db.execute(text("SELECT 1"))
             return jsonify({"status": "ok", "database": "connected"})
-        except Exception:
+        except SQLAlchemyError:
             return jsonify({"status": "degraded", "database": "disconnected"}), 503
 
     @app.route("/")

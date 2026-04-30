@@ -19,6 +19,7 @@ import logging
 import os
 import uuid
 
+from botocore.exceptions import BotocoreError, ClientError
 from werkzeug.utils import secure_filename
 
 logger = logging.getLogger(__name__)
@@ -178,7 +179,7 @@ def save_upload(file, subfolder: str = "general") -> str | None:
     if _s3_enabled():
         try:
             return _save_s3(file, subfolder, safe_name, declared_ext)
-        except Exception:
+        except (BotocoreError, ClientError):
             logger.exception("S3 upload failed for %s", safe_name)
             return None
 
