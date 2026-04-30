@@ -366,36 +366,14 @@
   </div>
 </div>
 
-<script>
-(function () {
-  // Minimal modal toggling for the read-only PDF preview. Opens when any
-  // [data-action="open-pdf-preview"] is clicked, closes on the X button,
-  // a click on the dimmed backdrop, or the Escape key.
-  var modal = document.getElementById('pdf-preview-modal');
-  if (!modal) return;
-
-  function open() {
-    modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    if (window.lucide) lucide.createIcons();
-  }
-  function close() {
-    modal.classList.add('hidden');
-    document.body.style.overflow = '';
-  }
-
-  document.addEventListener('click', function (ev) {
-    if (ev.target.closest('[data-action="open-pdf-preview"]')) { open(); return; }
-    if (ev.target.closest('[data-action="close-pdf-preview"]')) { close(); return; }
-    // Click on the dim backdrop (modal itself, not its content) closes too.
-    if (ev.target === modal) close();
-  });
-
-  document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && !modal.classList.contains('hidden')) close();
-  });
-})();
-</script>
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+{# CSP is script-src 'self' so the modal toggle can't live inline; the
+   external file is served from /static/ and is therefore allowed. #}
+{% if pdf_preview %}
+<script src="{{ url_for('static', filename='js/pdf-preview-modal.js') }}" defer></script>
+{% endif %}
 {% endblock %}
