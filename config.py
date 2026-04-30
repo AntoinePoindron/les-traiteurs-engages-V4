@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     s3_endpoint_url: str | None = None
     s3_public_url: str | None = None
 
+    db_pool_size: int = 5
+    db_pool_max_overflow: int = 10
+    db_pool_timeout: int = 30
+    db_pool_recycle: int = 1800
+
     secure_cookies: bool = False
     # Only True behind a reverse proxy: with the flag on, direct clients
     # can otherwise spoof X-Forwarded-For to bypass rate limits.
