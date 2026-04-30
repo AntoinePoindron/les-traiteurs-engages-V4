@@ -1,141 +1,179 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
+{% from "components/ui.html" import back_button, info_chip, contact_card %}
 
 {% block title %}Demande - {{ qr.company.name }} - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
+{# French short month names — used for event date formatting like "9 mai 2026" #}
+{% set fr_months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'] %}
+{% set meal_label = meal_type_labels.get(qr.meal_type, qr.meal_type.value if qr.meal_type else 'Demande') %}
+
+{# ---- Top bar : back link ---- #}
 <div class="mb-6">
-  <a href="{{ url_for('caterer.requests_list') }}" class="inline-flex items-center gap-1 text-xs font-bold text-navy">
-    <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-navy"></i> Retour aux demandes
-  </a>
+  {{ back_button(label="Retour", href=url_for('caterer.requests_list')) }}
 </div>
 
-<div class="flex items-center justify-between mb-8">
+{# ---- Header : title + meta + status badge ---- #}
+<div class="flex items-start justify-between gap-4 mb-8">
   <div>
-    <h1 class="font-display font-bold text-3xl text-black">{{ qr.company.name }}</h1>
-    <div class="flex items-center gap-2 mt-1">{{ status_badge(qrc.status) }} {{ status_badge(qr.status) }}</div>
-  </div>
-  <div class="flex gap-3">
-    {% if existing_quote %}
-      {% if existing_quote.status == QuoteStatus.draft %}
-      <a href="{{ url_for('caterer.quote_edit', qr_id=qr.id, q_id=existing_quote.id) }}" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 btn-ghost-navy">
-        <i data-lucide="pencil" class="w-4 h-4"></i> Modifier le devis
-      </a>
-      <form method="POST" action="{{ url_for('caterer.quote_send', qr_id=qr.id, q_id=existing_quote.id) }}" class="inline">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors bg-navy">
-          <i data-lucide="send" class="w-4 h-4"></i> Envoyer le devis
-        </button>
-      </form>
-      {% else %}
-      <span class="text-xs text-mute">Devis {{ existing_quote.reference }} &middot; {{ status_badge(existing_quote.status) }}</span>
+    <h1 class="font-display font-bold text-4xl text-black">
+      {{ meal_label }} &ndash; {{ qr.event_date.strftime('%Y-%m-%d') if qr.event_date else 'Sans date' }}
+    </h1>
+    <p class="text-sm mt-2 text-mute">
+      Créée le {{ qr.created_at.strftime('%d/%m/%Y') }} à {{ qr.created_at.strftime('%H:%M') }}
+      {% if qr.updated_at and qr.updated_at != qr.created_at %}
+        &middot; Mise à jour le {{ qr.updated_at.strftime('%d/%m/%Y') }} à {{ qr.updated_at.strftime('%H:%M') }}
       {% endif %}
-    {% elif qrc.status == QRCStatus.selected %}
-    <a href="{{ url_for('caterer.quote_new', qr_id=qr.id) }}" class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors bg-navy">
-      <i data-lucide="plus" class="w-4 h-4"></i> Creer un devis
-    </a>
-    {% endif %}
+    </p>
   </div>
+  <div class="flex-shrink-0">{{ status_badge(qrc.display_status) }}</div>
 </div>
 
-{# Layout 70/30 : details empilés à gauche, budget + devis dans la sidebar à droite. #}
+{# Layout 70/30 : prestation details on the left, summary + actions on the right. #}
 <div class="split-detail">
   <div class="split-main space-y-6">
 
-    {# Évènement #}
+    {# ---- Card : event summary ---- #}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4 text-text">Evenement</h2>
-      <dl class="space-y-3">
-        <div class="flex justify-between">
-          <dt class="text-sm text-mute">Type</dt>
-          <dd class="text-sm font-bold text-text">{{ qr.meal_type.value if qr.meal_type else '-' }}</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-sm text-mute">Date</dt>
-          <dd class="text-sm font-bold text-text">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-sm text-mute">Convives</dt>
-          <dd class="text-sm font-bold text-text">{{ qr.guest_count or '-' }}</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-sm text-mute">Lieu</dt>
-          <dd class="text-sm font-bold text-right text-text">{{ qr.event_address or '' }}<br>{{ qr.event_city or '' }} {{ qr.event_zip_code or '' }}</dd>
-        </div>
-      </dl>
-    </div>
+      <h2 class="font-display font-bold text-2xl mb-5 text-text">L'événement</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
 
-    {# Régimes alimentaires #}
-    <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4 text-text">Regimes alimentaires</h2>
-      <div class="flex flex-wrap gap-2">
-        {% set dietary = [
-          (qr.dietary_vegetarian, 'Vegetarien', qr.vegetarian_count),
-          (qr.dietary_vegan, 'Vegan', qr.vegan_count),
-          (qr.dietary_halal, 'Halal', qr.halal_count),
-          (qr.dietary_casher, 'Casher', qr.casher_count),
-          (qr.dietary_gluten_free, 'Sans gluten', qr.gluten_free_count),
-          (qr.dietary_lactose_free, 'Sans lactose', qr.lactose_free_count),
-        ] %}
-        {% set has_diet = dietary | selectattr(0) | list %}
-        {% if has_diet %}
-          {% for active, label, count in dietary %}
-            {% if active %}
-            <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
-              {{ label }}{% if count %} ({{ count }}){% endif %}
-            </span>
+        {# Date #}
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="calendar" class="w-5 h-5 text-text-soft"></i>
+          </div>
+          <span class="text-sm font-bold text-text">
+            {% if qr.event_date %}
+              {{ qr.event_date.day }} {{ fr_months[qr.event_date.month - 1] }} {{ qr.event_date.year }}
+            {% else %}
+              Date à définir
             {% endif %}
-          {% endfor %}
-        {% else %}
-        <p class="text-xs text-mute">Aucun regime particulier</p>
-        {% endif %}
+          </span>
+        </div>
+
+        {# Location #}
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="map-pin" class="w-5 h-5 text-text-soft"></i>
+          </div>
+          <span class="text-sm font-bold text-text">
+            {% if qr.event_address %}{{ qr.event_address }}{% if qr.event_city %}, {{ qr.event_city }}{% endif %}{% if qr.event_zip_code %} {{ qr.event_zip_code }}{% endif %}
+            {% elif qr.event_city %}{{ qr.event_city }}
+            {% else %}Lieu à définir
+            {% endif %}
+          </span>
+        </div>
+
+        {# Guest count #}
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="users" class="w-5 h-5 text-text-soft"></i>
+          </div>
+          <span class="text-sm font-bold text-text">{{ qr.guest_count or '?' }} personnes</span>
+        </div>
+
+        {# Meal type #}
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="utensils" class="w-5 h-5 text-text-soft"></i>
+          </div>
+          <span class="text-sm font-bold text-text">{{ meal_label }}</span>
+        </div>
       </div>
+
+      {# Optional event-type description block #}
+      {% if qr.service_type %}
+      <div class="mt-5 p-4 rounded-lg" style="background-color:var(--c-cream);">
+        <p class="text-sm text-text"><span class="font-bold">Type d'événement</span> &middot; {{ qr.service_type }}</p>
+      </div>
+      {% endif %}
     </div>
 
-    {# Services demandés #}
+    {# ---- Card : prestation (drinks + additional services) ---- #}
+    {% set has_drinks = qr.drinks_alcohol or qr.drinks_details %}
+    {% set has_services = qr.wants_waitstaff or qr.wants_equipment or qr.wants_decoration or qr.wants_setup or qr.wants_cleanup %}
+    {% if has_drinks or has_services %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4 text-text">Services demandes</h2>
-      <div class="space-y-2">
-        {% set has_service = qr.drinks_alcohol or qr.wants_waitstaff or qr.wants_equipment or qr.wants_decoration or qr.wants_setup or qr.wants_cleanup %}
-        {% if qr.drinks_alcohol %}
-        <div class="flex items-center gap-2 text-sm text-text">
-          <i data-lucide="wine" class="w-4 h-4 text-navy"></i> Boissons avec alcool
+      <h2 class="font-display font-bold text-2xl mb-5 text-text">La prestation</h2>
+
+      {% if has_drinks %}
+      <div>
+        <p class="text-xs uppercase font-bold tracking-wider text-text-soft mb-3">Boissons</p>
+        <div class="space-y-2">
+          {% if qr.drinks_alcohol %}
+          <div class="text-sm text-text">Boissons avec alcool</div>
+          {% endif %}
+          {% if qr.drinks_details %}
+          <div class="text-sm text-text">{{ qr.drinks_details }}</div>
+          {% endif %}
         </div>
-        {% endif %}
-        {% if qr.drinks_details %}
-        <p class="text-xs ml-6 text-mute">{{ qr.drinks_details }}</p>
-        {% endif %}
-        {% if qr.wants_waitstaff %}
-        <div class="flex items-center gap-2 text-sm text-text">
-          <i data-lucide="users" class="w-4 h-4 text-navy"></i> Service / Personnel
+      </div>
+      {% endif %}
+
+      {% if has_drinks and has_services %}
+      <hr class="my-5 border-t border-soft">
+      {% endif %}
+
+      {% if has_services %}
+      <div>
+        <p class="text-xs uppercase font-bold tracking-wider text-text-soft mb-3">Services additionnels</p>
+        <div class="space-y-2">
+          {% if qr.wants_waitstaff %}
+          <div class="flex items-start justify-between gap-4 text-sm text-text">
+            <span>Personnel</span>
+            {% if qr.service_waitstaff_details %}<span class="font-bold text-right">{{ qr.service_waitstaff_details }}</span>{% endif %}
+          </div>
+          {% endif %}
+          {% if qr.wants_equipment %}
+          <div class="text-sm text-text">Matériel</div>
+          {% endif %}
+          {% if qr.wants_decoration %}
+          <div class="text-sm text-text">Décoration</div>
+          {% endif %}
+          {% if qr.wants_setup %}
+          <div class="text-sm text-text">Installation et mise en place</div>
+          {% endif %}
+          {% if qr.wants_cleanup %}
+          <div class="text-sm text-text">Nettoyage</div>
+          {% endif %}
         </div>
-        {% endif %}
-        {% if qr.service_waitstaff_details %}
-        <p class="text-xs ml-6 text-mute">{{ qr.service_waitstaff_details }}</p>
-        {% endif %}
-        {% if qr.wants_equipment %}
-        <div class="flex items-center gap-2 text-sm text-text"><i data-lucide="package" class="w-4 h-4 text-navy"></i> Materiel / Vaisselle</div>
-        {% endif %}
-        {% if qr.wants_decoration %}
-        <div class="flex items-center gap-2 text-sm text-text"><i data-lucide="flower-2" class="w-4 h-4 text-navy"></i> Decoration</div>
-        {% endif %}
-        {% if qr.wants_setup %}
-        <div class="flex items-center gap-2 text-sm text-text"><i data-lucide="hammer" class="w-4 h-4 text-navy"></i> Installation</div>
-        {% endif %}
-        {% if qr.wants_cleanup %}
-        <div class="flex items-center gap-2 text-sm text-text"><i data-lucide="sparkles" class="w-4 h-4 text-navy"></i> Nettoyage</div>
-        {% endif %}
-        {% if not has_service %}
-        <p class="text-xs text-mute">Aucun service complementaire demande</p>
-        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# ---- Card : preferences and constraints (dietary tags) ---- #}
+    {% set dietary = [
+      (qr.dietary_vegetarian, 'Végétarien', qr.vegetarian_count),
+      (qr.dietary_vegan, 'Vegan', qr.vegan_count),
+      (qr.dietary_halal, 'Halal', qr.halal_count),
+      (qr.dietary_casher, 'Casher', qr.casher_count),
+      (qr.dietary_gluten_free, 'Sans gluten', qr.gluten_free_count),
+      (qr.dietary_lactose_free, 'Sans lactose', qr.lactose_free_count),
+    ] %}
+    {% set has_diet = dietary | selectattr(0) | list %}
+    {% if has_diet %}
+    <div class="bg-white rounded-lg p-6">
+      <h2 class="font-display font-bold text-2xl mb-5 text-text">Préférences et contraintes</h2>
+      <div class="flex flex-wrap gap-2">
+        {% for active, label, count in dietary %}
+          {% if active %}
+          <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-cream text-text-soft">
+            {{ label }}{% if count %} &middot; {{ count }} pers.{% endif %}
+          </span>
+          {% endif %}
+        {% endfor %}
       </div>
     </div>
+    {% endif %}
 
-    {# Message du client (conditionnel) #}
+    {# ---- Card : message from client (conditional) ---- #}
     {% if qr.message_to_caterer %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-3 text-text">Message du client</h2>
-      <p class="text-sm whitespace-pre-wrap text-text">{{ qr.message_to_caterer }}</p>
+      <h2 class="font-display font-bold text-2xl mb-3 text-text">Message du client</h2>
+      <p class="text-sm whitespace-pre-wrap text-text border-l-2 border-navy pl-4 italic">{{ qr.message_to_caterer }}</p>
     </div>
     {% endif %}
 
@@ -143,49 +181,155 @@
 
   <aside class="split-aside space-y-6">
 
-    {# Budget #}
+    {# ---- Card : recap (budget + quote summary or actions) ---- #}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4 text-text">Budget</h2>
-      <dl class="space-y-3">
-        <div class="flex justify-between">
-          <dt class="text-sm text-mute">Budget global</dt>
-          <dd class="text-sm font-bold text-text">
-            {% if qr.budget_global %}{{ "%.2f"|format(qr.budget_global) }} &euro;{% else %}-{% endif %}
-          </dd>
+      <h2 class="font-display font-bold text-2xl mb-5 text-text">Récapitulatif</h2>
+
+      <div class="space-y-4">
+        {% if qr.budget_global %}
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="euro" class="w-5 h-5 text-text-soft"></i>
+          </div>
+          <span class="text-sm font-bold text-text">{{ "%.0f"|format(qr.budget_global) }} &euro;</span>
         </div>
-        <div class="flex justify-between">
-          <dt class="text-sm text-mute">Budget par personne</dt>
-          <dd class="text-sm font-bold text-text">
-            {% if qr.budget_per_person %}{{ "%.2f"|format(qr.budget_per_person) }} &euro;{% else %}-{% endif %}
-          </dd>
+        {% endif %}
+
+        {% if qr.budget_per_person %}
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="users" class="w-5 h-5 text-text-soft"></i>
+          </div>
+          <span class="text-sm font-bold text-text">{{ "%.2f"|format(qr.budget_per_person) }} &euro; / pers.</span>
         </div>
-      </dl>
+        {% endif %}
+
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="percent" class="w-5 h-5 text-text-soft"></i>
+          </div>
+          <span class="text-sm font-bold text-text">Flexible (&plusmn; 10%)</span>
+        </div>
+      </div>
+
+      {# ----- Status-driven block ----- #}
+      {% if qrc.display_status == 'new' %}
+        {# Nouvelle : action buttons (accept = create quote, reject = decline) #}
+        <div class="mt-6 space-y-3">
+          {% if existing_quote and existing_quote.status == QuoteStatus.draft %}
+          <a href="{{ url_for('caterer.quote_edit', qr_id=qr.id, q_id=existing_quote.id) }}"
+             class="block w-full text-center rounded-full text-sm font-bold px-4 py-3 bg-navy text-white hover:opacity-90 transition-opacity">
+            Continuer le devis
+          </a>
+          {% else %}
+          <a href="{{ url_for('caterer.quote_new', qr_id=qr.id) }}"
+             class="block w-full text-center rounded-full text-sm font-bold px-4 py-3 bg-navy text-white hover:opacity-90 transition-opacity">
+            Accepter et envoyer un devis
+          </a>
+          {% endif %}
+          <form method="POST" action="{{ url_for('caterer.request_reject', qr_id=qr.id) }}"
+                onsubmit="return confirm('Refuser cette demande ? Cette action est definitive.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="block w-full text-center rounded-full text-sm font-bold px-4 py-3 bg-white border-2 transition-colors"
+                    style="border-color:var(--c-danger);color:var(--c-danger);">
+              Refuser la demande
+            </button>
+          </form>
+        </div>
+
+      {% elif existing_quote and qrc.display_status in ('sent', 'quotes_refused', 'quote_accepted') %}
+        {# Quote-aware sub-card : "Votre devis" recap #}
+        <div class="mt-5 p-4 rounded-lg" style="background-color:var(--c-cream);">
+          <p class="text-sm font-bold text-text mb-3">Votre devis</p>
+          <dl class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-mute">Montant HT</dt>
+              <dd class="font-bold text-text">{{ "%.0f"|format(existing_quote.total_amount_ht or 0) }} &euro;</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-mute">Par personne</dt>
+              <dd class="font-bold text-text">{{ "%.2f"|format(existing_quote.amount_per_person or 0) }} &euro;</dd>
+            </div>
+            {% if existing_quote.valid_until %}
+            <div class="flex justify-between">
+              <dt class="text-mute">Valide jusqu'au</dt>
+              <dd class="font-bold text-text">{{ existing_quote.valid_until.strftime('%d/%m/%Y') }}</dd>
+            </div>
+            {% endif %}
+          </dl>
+
+          <a href="{{ url_for('caterer.quote_edit', qr_id=qr.id, q_id=existing_quote.id) }}"
+             class="mt-4 flex items-center justify-between gap-3 p-3 rounded-lg bg-white hover:opacity-90 transition-opacity">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+                <i data-lucide="file-text" class="w-4 h-4 text-text-soft"></i>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-bold text-text">Voir le devis</p>
+                <p class="text-xs text-mute truncate">Réf. {{ existing_quote.reference }}</p>
+              </div>
+            </div>
+            <i data-lucide="arrow-up-right" class="w-4 h-4 text-text-soft flex-shrink-0"></i>
+          </a>
+        </div>
+
+        {% if qrc.display_status == 'quotes_refused' and existing_quote.refusal_reason %}
+        <div class="mt-4 p-4 rounded-lg" style="background-color:var(--c-danger-soft);">
+          <p class="text-sm font-bold mb-1" style="color:var(--c-danger);">Motif du refus</p>
+          <p class="text-sm italic text-text">{{ existing_quote.refusal_reason }}</p>
+        </div>
+        {% endif %}
+
+        {% if qrc.display_status == 'quote_accepted' and existing_quote.order %}
+        <a href="{{ url_for('caterer.order_detail', order_id=existing_quote.order.id) }}"
+           class="mt-4 flex items-center justify-center gap-2 w-full rounded-full text-sm font-bold px-4 py-3 bg-white border-2 border-navy text-navy hover:opacity-80 transition-opacity">
+          <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+          Voir la commande
+        </a>
+        {% endif %}
+      {% endif %}
     </div>
 
-    {# Devis (conditionnel) #}
-    {% if existing_quote %}
+    {# ---- Card : client (logo, name, contact, message button) ---- #}
+    {% set client_user = qr.user %}
+    {{ contact_card(
+      entity_type='client',
+      entity_name=qr.company.name,
+      entity_logo_url=qr.company.logo_url if qr.company.logo_url else None,
+      contact_user_id=client_user.id if client_user else None,
+      contact_first_name=client_user.first_name if client_user else None,
+      contact_last_name=client_user.last_name if client_user else None,
+      contact_email=client_user.email if client_user else None,
+      messages_href=url_for('caterer.messages')
+    ) }}
+
+    {# ---- Card : history with this client ---- #}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-3 text-text">Devis {{ existing_quote.reference }}</h2>
-      <dl class="space-y-3">
-        <div class="flex justify-between">
-          <dt class="text-xs text-mute">Total HT</dt>
-          <dd class="font-bold text-text">{{ "%.2f"|format(existing_quote.total_amount_ht or 0) }} &euro;</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-xs text-mute">Par personne</dt>
-          <dd class="font-bold text-text">{{ "%.2f"|format(existing_quote.amount_per_person or 0) }} &euro;</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-xs text-mute">AGEFIPH</dt>
-          <dd class="font-bold text-text">{{ "%.2f"|format(existing_quote.valorisable_agefiph or 0) }} &euro;</dd>
-        </div>
-        <div class="flex justify-between items-center pt-2 border-t border-soft">
-          <dt class="text-xs text-mute">Statut</dt>
-          <dd>{{ status_badge(existing_quote.status) }}</dd>
-        </div>
-      </dl>
+      <h2 class="font-display font-bold text-2xl mb-4 text-text">Historique avec ce client</h2>
+      {% if previous_orders %}
+      <div class="space-y-3">
+        {% for order in previous_orders %}
+        <a href="{{ url_for('caterer.order_detail', order_id=order.id) }}"
+           class="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-cream transition-colors">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="shopping-bag" class="w-4 h-4 text-text-soft"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold truncate text-text">{{ order.quote.reference }}</p>
+            <p class="text-xs text-mute">
+              {% if order.delivery_date %}{{ order.delivery_date.strftime('%d/%m/%Y') }}{% endif %}
+              &middot; {{ "%.0f"|format(order.quote.total_amount_ht or 0) }} &euro; HT
+            </p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-disabled flex-shrink-0"></i>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-sm text-mute">Aucune commande précédente.</p>
+      {% endif %}
     </div>
-    {% endif %}
 
   </aside>{# /.split-aside #}
 </div>{# /.split-detail #}

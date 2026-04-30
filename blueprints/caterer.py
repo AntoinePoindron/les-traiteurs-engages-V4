@@ -238,6 +238,31 @@ def profile_save():
     return redirect(url_for("caterer.profile"))
 
 
+def _derive_qrc_display_status(qr, caterer_id):
+    """Map the caterer's own Quote state to a single user-facing badge code.
+
+    Returns one of: 'new', 'sent', 'quotes_refused', 'quote_accepted'.
+    These map to the four labels visible in the caterer UI:
+    Nouvelle / Devis envoyé / Devis refusé / Commande créée.
+
+    The truth lives on the caterer's Quote, not on QRC.status — the
+    latter only tracks the admin-side workflow (selected, transmitted, …).
+    """
+    caterer_quote = next(
+        (q for q in qr.quotes if q.caterer_id == caterer_id),
+        None,
+    )
+    if caterer_quote is None or caterer_quote.status == QuoteStatus.draft:
+        return "new"
+    if caterer_quote.status == QuoteStatus.refused:
+        return "quotes_refused"
+    if caterer_quote.status == QuoteStatus.accepted:
+        return "quote_accepted"
+    # sent / expired collapse to "Devis envoyé" — what matters here is
+    # that the caterer has already acted on the request.
+    return "sent"
+
+
 @caterer_bp.route("/requests")
 @login_required
 @role_required("caterer")
@@ -257,27 +282,10 @@ def requests_list():
         else:
             stmt = stmt.where(QuoteRequestCaterer.status == status_enum)
     qrcs = db.scalars(stmt.order_by(QuoteRequestCaterer.id.desc())).all()
-    # For each candidacy, derive a single human-friendly status that the
-    # caterer cares about (Nouvelle / Devis envoyé / Devis refusé /
-    # Commande créée). The truth lives on the caterer's own Quote, not on
-    # qrc.status — the latter only reflects the admin-side workflow.
     for qrc in qrcs:
         qr = qrc.quote_request
         _ = qr.company  # eager load for template
-        caterer_quote = next(
-            (q for q in qr.quotes if q.caterer_id == caterer.id),
-            None,
-        )
-        if caterer_quote is None or caterer_quote.status == QuoteStatus.draft:
-            qrc.display_status = "new"
-        elif caterer_quote.status == QuoteStatus.refused:
-            qrc.display_status = "quotes_refused"
-        elif caterer_quote.status == QuoteStatus.accepted:
-            qrc.display_status = "quote_accepted"
-        else:
-            # sent / expired — both surface as "Devis envoyé" since the
-            # caterer's action (sending the quote) is what matters here.
-            qrc.display_status = "sent"
+        qrc.display_status = _derive_qrc_display_status(qr, caterer.id)
     return render_template(
         "caterer/requests/list.html",
         user=g.current_user,
@@ -302,18 +310,66 @@ def request_detail(qr_id):
         abort(404)
     qr = qrc.quote_request
     _ = qr.company
+    _ = qr.user  # contact for the right-hand client card
     existing_quote = db.scalar(
         select(Quote)
         .where(Quote.quote_request_id == qr_id)
         .where(Quote.caterer_id == caterer.id)
     )
+    qrc.display_status = _derive_qrc_display_status(qr, caterer.id)
+    # Past orders this caterer fulfilled for the same client (excluding the
+    # current request). Powers the "Historique avec ce client" card.
+    previous_orders = db.scalars(
+        select(Order)
+        .join(Quote, Order.quote_id == Quote.id)
+        .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
+        .where(Quote.caterer_id == caterer.id)
+        .where(QuoteRequest.company_id == qr.company_id)
+        .where(QuoteRequest.id != qr.id)
+        .order_by(Order.created_at.desc())
+        .limit(5)
+    ).all()
     return render_template(
         "caterer/requests/detail.html",
         user=g.current_user,
         qr=qr,
         qrc=qrc,
         existing_quote=existing_quote,
+        previous_orders=previous_orders,
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
+
+
+@caterer_bp.route("/requests/<uuid:qr_id>/reject", methods=["POST"])
+@login_required
+@role_required("caterer")
+def request_reject(qr_id):
+    """Caterer declines a request before sending any quote.
+
+    Flips QRC.status to rejected. Refused once a quote has already left
+    the draft stage — at that point the workflow is the client's call.
+    """
+    caterer = g.current_user.caterer
+    db = get_db()
+    qrc = db.scalar(
+        select(QuoteRequestCaterer)
+        .where(QuoteRequestCaterer.quote_request_id == qr_id)
+        .where(QuoteRequestCaterer.caterer_id == caterer.id)
+    )
+    if not qrc:
+        abort(404)
+    existing_quote = db.scalar(
+        select(Quote)
+        .where(Quote.quote_request_id == qr_id)
+        .where(Quote.caterer_id == caterer.id)
+    )
+    if existing_quote and existing_quote.status != QuoteStatus.draft:
+        flash("Impossible de refuser une demande après envoi du devis.", "error")
+        return redirect(url_for("caterer.request_detail", qr_id=qr_id))
+    qrc.status = QRCStatus.rejected
+    db.commit()
+    flash("La demande a été refusée.", "info")
+    return redirect(url_for("caterer.requests_list"))
 
 
 @caterer_bp.route("/requests/<uuid:qr_id>/quote/new", methods=["GET"])
