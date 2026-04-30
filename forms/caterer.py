@@ -3,6 +3,7 @@ from flask_wtf import FlaskForm
 from wtforms import (
     BooleanField,
     DateField,
+    DecimalField,
     IntegerField,
     StringField,
     TextAreaField,
@@ -30,6 +31,15 @@ class CatererProfileForm(FlaskForm):
     specialties = StringField(validators=[Optional(), Length(max=2000)])
     service_config = TextAreaField(validators=[Optional(), Length(max=10000)])
     # photos handled separately via request.files
+
+    # Catalog metadata (mirrors the columns added in migration
+    # c1ab2d3e4f56_caterer_catalog_fields). service_offerings comes
+    # through as a list via request.form.getlist("service_offerings")
+    # in the profile POST handler — WTForms doesn't have a clean
+    # multi-checkbox primitive that fits this small fixed list.
+    price_per_person_min = DecimalField(places=2, validators=[Optional(), NumberRange(min=0, max=100000)])
+    price_per_person_max = DecimalField(places=2, validators=[Optional(), NumberRange(min=0, max=100000)])
+    min_advance_days = IntegerField(validators=[Optional(), NumberRange(min=0, max=365)])
 
 
 class QuoteForm(FlaskForm):

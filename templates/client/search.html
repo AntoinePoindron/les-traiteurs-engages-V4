@@ -4,9 +4,8 @@
 {% block title %}Trouvez votre traiteur inclusif{% endblock %}
 
 {% block content %}
-{# Hard-coded "advance days" displayed under each card. The DB doesn't carry
-   a per-caterer lead-time yet — this is a sensible default until we add
-   a column on Caterer. Override per row if/when the model gains the field. #}
+{# Fallback advance time used when a caterer hasn't filled in
+   min_advance_days yet on its profile. #}
 {% set DEFAULT_ADVANCE_DAYS = 3 %}
 
 <main class="bg-cream min-h-screen">
@@ -71,23 +70,13 @@
           <h3 class="font-display font-bold text-base text-text">Filtres</h3>
 
           {# ----- Type de prestation ----- #}
-          {# UI-only filter for now. To wire it up, give Caterer a
-             `service_offerings` JSON column (or reuse `specialties`)
-             and filter on it in blueprints/client/requests.py:search. #}
           <div>
             <p class="text-xs uppercase font-bold tracking-wider mb-3 text-mute">Type de prestation</p>
             <div class="space-y-2">
-              {% set service_options = [
-                ('petit_dejeuner', 'Petit déjeuner'),
-                ('pause_gourmande', 'Pause gourmande'),
-                ('plateaux_repas', 'Plateaux repas'),
-                ('cocktail_dinatoire', 'Cocktail dinatoire'),
-                ('cocktail_dejeunatoire', 'Cocktail déjeunatoire'),
-                ('aperitif', 'Apéritif'),
-              ] %}
-              {% for value, label in service_options %}
+              {% for value, label in service_offering_labels.items() %}
               <label class="flex items-center gap-2 cursor-pointer text-sm text-text-soft hover:text-text">
-                <input type="checkbox" name="service_offering" value="{{ value }}" class="w-4 h-4 rounded accent-navy">
+                <input type="checkbox" name="service_offering" value="{{ value }}" class="w-4 h-4 rounded accent-navy"
+                       {% if value in service_offerings %}checked{% endif %}>
                 {{ label }}
               </label>
               {% endfor %}
@@ -105,7 +94,7 @@
               {% for value, label in structure_options %}
               <label class="flex items-center gap-2 cursor-pointer text-sm text-text-soft hover:text-text">
                 <input type="checkbox" name="structure_type_multi" value="{{ value }}" class="w-4 h-4 rounded accent-navy"
-                       {% if structure_type == value %}checked{% endif %}>
+                       {% if value in structure_groups or structure_type == value %}checked{% endif %}>
                 {{ label }}
               </label>
               {% endfor %}
@@ -113,8 +102,6 @@
           </div>
 
           {# ----- Budget / personne ----- #}
-          {# UI-only filter; the per-caterer pricing range isn't on the
-             Caterer model. Wire to a future `price_range_min/max` pair. #}
           <div>
             <p class="text-xs uppercase font-bold tracking-wider mb-3 text-mute">Budget / personne</p>
             <div class="space-y-2">
@@ -126,7 +113,8 @@
               ] %}
               {% for value, label in budget_options %}
               <label class="flex items-center gap-2 cursor-pointer text-sm text-text-soft hover:text-text">
-                <input type="checkbox" name="budget_range" value="{{ value }}" class="w-4 h-4 rounded accent-navy">
+                <input type="checkbox" name="budget_range" value="{{ value }}" class="w-4 h-4 rounded accent-navy"
+                       {% if value in budget_bands %}checked{% endif %}>
                 {{ label }}
               </label>
               {% endfor %}
@@ -261,7 +249,7 @@
               <p class="text-xs text-mute inline-flex items-center gap-1">
                 <i data-lucide="clock" class="w-3.5 h-3.5"></i>
                 À commander
-                <span class="font-bold text-text">{{ DEFAULT_ADVANCE_DAYS }} jours</span>
+                <span class="font-bold text-text">{{ c.min_advance_days or DEFAULT_ADVANCE_DAYS }} jours</span>
                 à l'avance
               </p>
               <a href="{{ url_for('client.caterer_detail', caterer_id=c.id) }}"

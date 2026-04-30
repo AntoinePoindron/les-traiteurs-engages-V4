@@ -120,6 +120,13 @@ def seed():
             dietary_halal=True,
             is_validated=True,
             invoice_prefix="ESAT1",
+            service_offerings=[
+                "petit_dejeuner", "pause_gourmande",
+                "plateaux_repas", "cocktail_dinatoire",
+            ],
+            price_per_person_min=Decimal("18"),
+            price_per_person_max=Decimal("45"),
+            min_advance_days=8,
         )
         cat_ea = Caterer(
             name="EA Traiteur & Co",
@@ -139,6 +146,13 @@ def seed():
             dietary_gluten_free=True,
             is_validated=True,
             invoice_prefix="EATCO",
+            service_offerings=[
+                "plateaux_repas", "cocktail_dinatoire",
+                "cocktail_dejeunatoire", "aperitif",
+            ],
+            price_per_person_min=Decimal("32"),
+            price_per_person_max=Decimal("75"),
+            min_advance_days=5,
         )
         cat_ei = Caterer(
             name="EI Delices Engages",
@@ -159,6 +173,12 @@ def seed():
             dietary_casher=True,
             is_validated=True,
             invoice_prefix="EIDEL",
+            service_offerings=[
+                "petit_dejeuner", "pause_gourmande", "aperitif",
+            ],
+            price_per_person_min=Decimal("12"),
+            price_per_person_max=Decimal("28"),
+            min_advance_days=3,
         )
         db.add_all([cat_esat, cat_ea, cat_ei])
         db.flush()

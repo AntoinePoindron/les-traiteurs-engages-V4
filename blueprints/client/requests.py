@@ -2,7 +2,7 @@ import math
 import uuid
 
 from flask import abort, flash, g, redirect, render_template, request, url_for
-from sqlalchemy import func, or_, select
+from sqlalchemy import String, and_, cast, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from blueprints.client._helpers import (
@@ -20,6 +20,8 @@ from extensions import limiter
 from forms.client import QuoteAcceptForm, QuoteRefuseForm, QuoteRequestForm
 from models import (
     MEAL_TYPE_LABELS,
+    PRICE_BAND_BOUNDS,
+    SERVICE_OFFERING_LABELS,
     Caterer,
     CatererStructureType,
     CompanyService,
@@ -447,21 +449,40 @@ def register(bp):
         page = request.args.get("page", 1, type=int)
         q = request.args.get("q", "").strip()
         location = request.args.get("location", "").strip()
+        # The structure filter is a multi-select in the new UI: 0..n of
+        # ("STPA", "SIAE"). Kept the legacy single-value `structure_type`
+        # as fallback so existing query strings don't break.
+        structure_groups = request.args.getlist("structure_type_multi")
         structure_type = request.args.get("structure_type", "")
         dietary = request.args.getlist("dietary")
         capacity = request.args.get("capacity", type=int)
+        service_offerings = request.args.getlist("service_offering")
+        # Validate price-band slugs against the canonical list — anything
+        # we don't recognize is silently dropped to keep query strings
+        # tamper-safe.
+        budget_bands = [
+            b for b in request.args.getlist("budget_range") if b in PRICE_BAND_BOUNDS
+        ]
         service_type = request.args.get("service_type", "")
 
         db = get_db()
         stmt = select(Caterer).where(Caterer.is_validated.is_(True))
 
+        # Structure filter: collapse the multi-select groups + legacy
+        # single value into one IN clause.
+        struct_codes: set[str] = set()
+        for group in structure_groups:
+            if group in STRUCTURE_GROUPS:
+                struct_codes.update(STRUCTURE_GROUPS[group])
+            elif group:
+                struct_codes.add(group)
         if structure_type:
             if structure_type in STRUCTURE_GROUPS:
-                stmt = stmt.where(Caterer.structure_type.in_(
-                    STRUCTURE_GROUPS[structure_type]
-                ))
+                struct_codes.update(STRUCTURE_GROUPS[structure_type])
             else:
-                stmt = stmt.where(Caterer.structure_type == structure_type)
+                struct_codes.add(structure_type)
+        if struct_codes:
+            stmt = stmt.where(Caterer.structure_type.in_(struct_codes))
 
         for flag in dietary:
             col = getattr(Caterer, f"dietary_{flag}", None)
@@ -483,6 +504,47 @@ def register(bp):
                     Caterer.zip_code.ilike(loc_pattern),
                 )
             )
+
+        # service_offerings filter (Type de prestation): caterer matches
+        # if its service_offerings JSON contains any of the requested
+        # slugs. JSON-array-contains is portable enough across Postgres
+        # and SQLite when expressed as a LIKE on the JSON-encoded text.
+        for slug in service_offerings:
+            if slug in SERVICE_OFFERING_LABELS:
+                # Match the slug between quotes so "petit_dejeuner" doesn't
+                # also match a hypothetical "petit_dejeuner_xyz".
+                stmt = stmt.where(
+                    cast(Caterer.service_offerings, String).ilike(f'%"{slug}"%')
+                )
+
+        # Budget bands (per person): the caterer's [min, max] range must
+        # overlap with the requested band's bounds. Implemented per-band
+        # then OR'd together so multiple bands act as a union.
+        if budget_bands:
+            band_clauses = []
+            for band in budget_bands:
+                band_min, band_max = PRICE_BAND_BOUNDS[band]
+                clauses = []
+                if band_min is not None:
+                    # caterer's max price must reach the band floor
+                    clauses.append(
+                        or_(
+                            Caterer.price_per_person_max.is_(None),
+                            Caterer.price_per_person_max >= band_min,
+                        )
+                    )
+                if band_max is not None:
+                    # caterer's min price must be under the band ceiling
+                    clauses.append(
+                        or_(
+                            Caterer.price_per_person_min.is_(None),
+                            Caterer.price_per_person_min <= band_max,
+                        )
+                    )
+                if clauses:
+                    band_clauses.append(and_(*clauses))
+            if band_clauses:
+                stmt = stmt.where(or_(*band_clauses))
 
         if q:
             pattern = f"%{q}%"
@@ -512,12 +574,16 @@ def register(bp):
             total=total,
             q=q,
             location=location,
+            structure_groups=structure_groups,
             structure_type=structure_type,
             dietary=dietary,
             capacity=capacity,
             service_type=service_type,
+            service_offerings=service_offerings,
+            budget_bands=budget_bands,
             dietary_flags=DIETARY_FLAGS,
             meal_type_labels=MEAL_TYPE_LABELS,
+            service_offering_labels=SERVICE_OFFERING_LABELS,
         )
 
     @bp.route("/caterers/<uuid:caterer_id>")

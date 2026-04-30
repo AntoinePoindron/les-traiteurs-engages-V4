@@ -117,6 +117,30 @@ MEAL_TYPE_LABELS: dict[MealType, str] = {
 }
 
 
+# Canonical list of "Type de prestation" the client catalog filters on.
+# Stored as a JSON list of slugs on Caterer.service_offerings.
+# Order matters — it defines the order of checkboxes in the search UI.
+SERVICE_OFFERING_LABELS: dict[str, str] = {
+    "petit_dejeuner":         "Petit déjeuner",
+    "pause_gourmande":        "Pause gourmande",
+    "plateaux_repas":         "Plateaux repas",
+    "cocktail_dinatoire":     "Cocktail dinatoire",
+    "cocktail_dejeunatoire":  "Cocktail déjeunatoire",
+    "aperitif":               "Apéritif",
+}
+
+
+# Per-person price band slugs the client search uses, with the matching
+# numeric bounds (in EUR). A caterer matches a band when its price range
+# overlaps with the band's [min, max].
+PRICE_BAND_BOUNDS: dict[str, tuple[Decimal | None, Decimal | None]] = {
+    "lt15":  (None,           Decimal("15")),
+    "15_30": (Decimal("15"),  Decimal("30")),
+    "30_50": (Decimal("30"),  Decimal("50")),
+    "gt50":  (Decimal("50"),  None),
+}
+
+
 class PaymentStatus(str, Enum):
     pending = "pending"
     processing = "processing"
@@ -171,6 +195,13 @@ class Caterer(DietaryMixin, Base):
     logo_url: Mapped[str | None] = mapped_column(String(500))
     delivery_radius_km: Mapped[int | None] = mapped_column(Integer)
     service_config: Mapped[dict | None] = mapped_column(JSON)
+    # Catalog metadata: drives the /client/search filters and listing.
+    # service_offerings is a list of slug strings — see SERVICE_OFFERING_LABELS
+    # below for the canonical (slug, label) pairs.
+    service_offerings: Mapped[list | None] = mapped_column(JSON)
+    price_per_person_min: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    price_per_person_max: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    min_advance_days: Mapped[int | None] = mapped_column(Integer)
     stripe_account_id: Mapped[str | None] = mapped_column(String(255))
     stripe_onboarded_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
     stripe_charges_enabled: Mapped[bool | None] = mapped_column(Boolean)

@@ -118,6 +118,50 @@
     </div>
   </div>
 
+  {# Catalog metadata — feeds the /client/search filters and listing. #}
+  <div class="bg-white rounded-lg p-6">
+    <h2 class="font-display font-bold text-xl mb-4 text-text">Catalogue & tarifs</h2>
+
+    <div class="mb-6">
+      <p class="text-sm font-bold mb-3 text-text">Types de prestation proposés</p>
+      {% set offered = caterer.service_offerings or [] %}
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {% for slug, label in service_offering_labels.items() %}
+        <label class="flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors hover:bg-cream border border-default">
+          <input type="checkbox" name="service_offerings" value="{{ slug }}"
+                 {% if slug in offered %}checked{% endif %}
+                 class="w-4 h-4 rounded accent-navy">
+          <span class="text-sm text-text">{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <label for="price_per_person_min" class="block text-sm font-bold mb-1 text-text">Prix min / personne (€)</label>
+        <input type="number" step="0.01" min="0" id="price_per_person_min" name="price_per_person_min"
+               value="{{ caterer.price_per_person_min or '' }}"
+               class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
+      </div>
+      <div>
+        <label for="price_per_person_max" class="block text-sm font-bold mb-1 text-text">Prix max / personne (€)</label>
+        <input type="number" step="0.01" min="0" id="price_per_person_max" name="price_per_person_max"
+               value="{{ caterer.price_per_person_max or '' }}"
+               class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
+      </div>
+      <div>
+        <label for="min_advance_days" class="block text-sm font-bold mb-1 text-text">Délai mini (jours)</label>
+        <input type="number" min="0" id="min_advance_days" name="min_advance_days"
+               value="{{ caterer.min_advance_days or '' }}"
+               class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
+      </div>
+    </div>
+    <p class="text-xs mt-2 text-mute">
+      Ces informations apparaissent sur le catalogue et alimentent les filtres de recherche des clients.
+    </p>
+  </div>
+
   <div class="bg-white rounded-lg p-6">
     <h2 class="font-display font-bold text-xl mb-4 text-text">Configuration des services</h2>
     <div>
