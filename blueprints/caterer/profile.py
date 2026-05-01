@@ -1,5 +1,6 @@
 import json
 import logging
+from decimal import Decimal, InvalidOperation
 
 from flask import flash, g, redirect, render_template, request, url_for
 from pydantic import ValidationError
@@ -12,6 +13,69 @@ from services.json_schemas import ServiceConfig
 from services.uploads import save_upload
 
 logger = logging.getLogger(__name__)
+
+
+# Numeric fields stored per service offering. Keys map to input names like
+# `spec[<slug>][capacity_min]` in the profile form.
+_OFFERING_INT_FIELDS = ("capacity_min", "capacity_max", "min_advance_days")
+_OFFERING_DECIMAL_FIELDS = ("price_per_person_min", "total_min")
+
+
+def _parse_offering_specs(form) -> dict:
+    """Read `spec[<slug>][<field>]` inputs into a clean dict.
+
+    Unknown slugs are dropped, non-numeric values are silently coerced to
+    None so a half-filled row doesn't crash the save. The returned shape
+    is `{slug: {field: number_or_None}}` with empty rows omitted.
+    """
+    out: dict = {}
+    for slug in SERVICE_OFFERING_LABELS:
+        row: dict = {}
+        for field in _OFFERING_INT_FIELDS:
+            raw = form.get(f"spec[{slug}][{field}]") or ""
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                row[field] = int(raw)
+            except ValueError:
+                continue
+        for field in _OFFERING_DECIMAL_FIELDS:
+            raw = form.get(f"spec[{slug}][{field}]") or ""
+            raw = raw.strip().replace(",", ".")
+            if not raw:
+                continue
+            try:
+                row[field] = float(Decimal(raw))
+            except (InvalidOperation, ValueError):
+                continue
+        if row:
+            out[slug] = row
+    return out
+
+
+def _aggregate_legacy_fields(caterer, specs: dict) -> None:
+    """Mirror per-offering specs onto the legacy global columns.
+
+    Search/matching still reads caterer.capacity_min/max, price_per_person_min
+    and min_advance_days, so we recompute them from the per-offering specs
+    (min of mins, max of maxes) — keeping both surfaces consistent without a
+    bigger refactor.
+    """
+    if not specs:
+        return
+    cap_mins = [s["capacity_min"] for s in specs.values() if s.get("capacity_min") is not None]
+    cap_maxs = [s["capacity_max"] for s in specs.values() if s.get("capacity_max") is not None]
+    price_mins = [s["price_per_person_min"] for s in specs.values() if s.get("price_per_person_min") is not None]
+    advance = [s["min_advance_days"] for s in specs.values() if s.get("min_advance_days") is not None]
+    if cap_mins:
+        caterer.capacity_min = min(cap_mins)
+    if cap_maxs:
+        caterer.capacity_max = max(cap_maxs)
+    if price_mins:
+        caterer.price_per_person_min = Decimal(str(min(price_mins)))
+    if advance:
+        caterer.min_advance_days = min(advance)
 
 
 def register(bp):
@@ -52,16 +116,11 @@ def register(bp):
             caterer.city = form.city.data or caterer.city
         if form.zip_code.data is not None:
             caterer.zip_code = form.zip_code.data or caterer.zip_code
-        if form.capacity_min.data is not None:
-            caterer.capacity_min = form.capacity_min.data
-        if form.capacity_max.data is not None:
-            caterer.capacity_max = form.capacity_max.data
         if form.delivery_radius_km.data is not None:
             caterer.delivery_radius_km = form.delivery_radius_km.data
         caterer.dietary_vegetarian = form.dietary_vegetarian.data
         caterer.dietary_vegan = form.dietary_vegan.data
         caterer.dietary_halal = form.dietary_halal.data
-        caterer.dietary_casher = form.dietary_casher.data
         caterer.dietary_gluten_free = form.dietary_gluten_free.data
         caterer.dietary_lactose_free = form.dietary_lactose_free.data
 
@@ -104,9 +163,6 @@ def register(bp):
         elif request.form.get("logo_delete") == "1":
             caterer.logo_url = None
 
-        specialties_raw = form.specialties.data or ""
-        caterer.specialties = [s.strip() for s in specialties_raw.split(",") if s.strip()] if specialties_raw else caterer.specialties
-
         # Catalog metadata. service_offerings comes through as a list of
         # checkbox values; validate against the canonical slug map so a
         # tampered request can't write an unknown slug to the JSON column.
@@ -115,12 +171,13 @@ def register(bp):
             if v in SERVICE_OFFERING_LABELS
         ]
         caterer.service_offerings = offered or None
-        if form.price_per_person_min.data is not None:
-            caterer.price_per_person_min = form.price_per_person_min.data
-        if form.price_per_person_max.data is not None:
-            caterer.price_per_person_max = form.price_per_person_max.data
-        if form.min_advance_days.data is not None:
-            caterer.min_advance_days = form.min_advance_days.data
+
+        # Per-offering specs replace the standalone capacity/price/délai
+        # inputs. Only keep specs for offerings the caterer actually offers.
+        all_specs = _parse_offering_specs(request.form)
+        kept_specs = {slug: row for slug, row in all_specs.items() if slug in (offered or [])}
+        caterer.service_offering_specs = kept_specs or None
+        _aggregate_legacy_fields(caterer, kept_specs)
 
         service_config_raw = form.service_config.data or ""
         if service_config_raw:

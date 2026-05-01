@@ -45,13 +45,19 @@
     <!-- Services -->
     <div class="mb-6">
       <div class="bg-white rounded-lg p-6">
-        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2 text-text">
-          <i data-lucide="folders" class="w-[18px] h-[18px] text-navy"></i>
-          Services
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display font-bold text-xl flex items-center gap-2 text-text">
+            <i data-lucide="folders" class="w-[18px] h-[18px] text-navy"></i>
+            Services
+          </h2>
+          <button type="button" data-action="dialog-open" data-target="modal-service-new"
+                  class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2 btn-navy">
+            <i data-lucide="plus" class="w-4 h-4"></i> Nouveau service
+          </button>
+        </div>
 
         {% if services %}
-        <div class="space-y-3 mb-4">
+        <div class="space-y-3">
           {% for s in services %}
           <div class="p-4 rounded-lg border border-soft">
             <div class="flex items-center justify-between mb-2">
@@ -86,36 +92,28 @@
           </div>
           {% endfor %}
         </div>
+        {% else %}
+        <p class="text-sm text-mute">Aucun service pour le moment.</p>
         {% endif %}
-
-        <div class="p-4 rounded-lg bg-cream">
-          <h3 class="text-sm font-bold mb-3 text-text">Ajouter un service</h3>
-          <form method="POST" action="{{ url_for('client.team_service_create') }}" class="space-y-2">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="text" name="name" placeholder="Nom du service" required
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-            <input type="text" name="description" placeholder="Description (optionnel)"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-            <input type="number" name="annual_budget" placeholder="Budget annuel (optionnel)" step="0.01"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-            <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2 btn-navy">
-              <i data-lucide="plus" class="w-4 h-4"></i> Ajouter
-            </button>
-          </form>
-        </div>
       </div>
     </div>
 
-    <!-- Employes -->
+    <!-- Effectifs -->
     <div class="mb-6">
       <div class="bg-white rounded-lg p-6">
-        <h2 class="font-display font-bold text-xl mb-4 flex items-center gap-2 text-text">
-          <i data-lucide="users" class="w-[18px] h-[18px] text-navy"></i>
-          Employes
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display font-bold text-xl flex items-center gap-2 text-text">
+            <i data-lucide="users" class="w-[18px] h-[18px] text-navy"></i>
+            Effectifs
+          </h2>
+          <button type="button" data-action="dialog-open" data-target="modal-employee-new"
+                  class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2 btn-navy">
+            <i data-lucide="plus" class="w-4 h-4"></i> Ajouter un collaborateur
+          </button>
+        </div>
 
         {% if employees %}
-        <div class="mb-4">
+        <div>
           {% for e in employees %}
           <div class="flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-lg border-t-soft">
             <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
@@ -184,32 +182,76 @@
           </div>
           {% endfor %}
         </div>
+        {% else %}
+        <p class="text-sm text-mute">Aucun collaborateur pour le moment.</p>
         {% endif %}
+      </div>
+    </div>
 
-        <div class="p-4 rounded-lg bg-cream">
-          <h3 class="text-sm font-bold mb-3 text-text">Ajouter un employe</h3>
-          <form method="POST" action="{{ url_for('client.team_employee_create') }}" class="flex flex-wrap gap-2 items-end">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {# ---- Modal : nouveau service ---- #}
+    <div id="modal-service-new" class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+         style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
+      <div class="bg-white rounded-xl shadow-2xl w-full flex flex-col" style="max-width:480px;">
+        <div class="flex items-center justify-between gap-3 px-6 py-5 border-b" style="border-color:var(--c-border-soft);">
+          <h3 class="font-display font-bold text-lg text-black">Nouveau service</h3>
+          <button type="button" data-action="dialog-close" data-target="modal-service-new"
+                  class="text-mute-soft hover:text-black transition-colors" aria-label="Fermer">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <form method="POST" action="{{ url_for('client.team_service_create') }}" class="px-6 py-5 space-y-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="text" name="name" placeholder="Nom du service" required
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          <input type="text" name="description" placeholder="Description (optionnel)"
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          <input type="number" name="annual_budget" placeholder="Budget annuel (optionnel)" step="0.01"
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          <div class="flex items-center gap-2 pt-2">
+            <button type="button" data-action="dialog-close" data-target="modal-service-new"
+                    class="flex-1 px-4 py-2.5 rounded-full text-xs font-bold btn-ghost-navy">Annuler</button>
+            <button type="submit" class="flex-1 rounded-full text-xs font-bold px-4 py-2.5 btn-navy">Ajouter</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# ---- Modal : nouveau collaborateur ---- #}
+    <div id="modal-employee-new" class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+         style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
+      <div class="bg-white rounded-xl shadow-2xl w-full flex flex-col" style="max-width:520px;">
+        <div class="flex items-center justify-between gap-3 px-6 py-5 border-b" style="border-color:var(--c-border-soft);">
+          <h3 class="font-display font-bold text-lg text-black">Ajouter un collaborateur</h3>
+          <button type="button" data-action="dialog-close" data-target="modal-employee-new"
+                  class="text-mute-soft hover:text-black transition-colors" aria-label="Fermer">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <form method="POST" action="{{ url_for('client.team_employee_create') }}" class="px-6 py-5 space-y-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input type="text" name="first_name" placeholder="Prenom" required
               class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
             <input type="text" name="last_name" placeholder="Nom" required
               class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-            <input type="email" name="email" placeholder="Email" required
-              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-            <input type="text" name="position" placeholder="Poste (optionnel)"
-              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-            <select name="service_id"
-              class="border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-              <option value="">Aucun service</option>
-              {% for s in services %}
-              <option value="{{ s.id }}">{{ s.name }}</option>
-              {% endfor %}
-            </select>
-            <button type="submit" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2 btn-navy">
-              <i data-lucide="plus" class="w-4 h-4"></i> Ajouter
-            </button>
-          </form>
-        </div>
+          </div>
+          <input type="email" name="email" placeholder="Email" required
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          <input type="text" name="position" placeholder="Poste (optionnel)"
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          <select name="service_id"
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+            <option value="">Aucun service</option>
+            {% for s in services %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="flex items-center gap-2 pt-2">
+            <button type="button" data-action="dialog-close" data-target="modal-employee-new"
+                    class="flex-1 px-4 py-2.5 rounded-full text-xs font-bold btn-ghost-navy">Annuler</button>
+            <button type="submit" class="flex-1 rounded-full text-xs font-bold px-4 py-2.5 btn-navy">Ajouter</button>
+          </div>
+        </form>
       </div>
     </div>
 

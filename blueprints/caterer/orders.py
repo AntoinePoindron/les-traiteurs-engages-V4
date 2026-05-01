@@ -12,23 +12,23 @@ from services import workflow
 # Filter tabs visible on /caterer/orders. Keys map to ?status= URL params,
 # values are the labels rendered in the tab pill.
 ORDER_STATUS_TABS = {
-    "all":       "Toutes",
-    "upcoming":  "À venir",
+    "all": "Toutes",
+    "upcoming": "À venir",
     "delivered": "Livrées",
-    "invoiced":  "Facturées",
-    "paid":      "Payées",
-    "disputed":  "Litige",
+    "invoiced": "Facturées",
+    "paid": "Payées",
+    "disputed": "Litige",
 }
 
 
 # "invoiced" tab covers both `invoicing` (Stripe call in flight) and `invoiced`
 # (invoice issued) — the caterer experiences them as the same stage.
 _TAB_TO_STATUSES = {
-    "upcoming":  (OrderStatus.confirmed,),
+    "upcoming": (OrderStatus.confirmed,),
     "delivered": (OrderStatus.delivered,),
-    "invoiced":  (OrderStatus.invoicing, OrderStatus.invoiced),
-    "paid":      (OrderStatus.paid,),
-    "disputed":  (OrderStatus.disputed,),
+    "invoiced": (OrderStatus.invoicing, OrderStatus.invoiced),
+    "paid": (OrderStatus.paid,),
+    "disputed": (OrderStatus.disputed,),
 }
 
 
@@ -73,8 +73,11 @@ def register(bp):
         _ = order.quote
         _ = order.quote.quote_request
         _ = order.quote.quote_request.company
+        _ = order.quote.quote_request.user
         _ = order.payments
-        return render_template("caterer/orders/detail.html", user=g.current_user, order=order)
+        return render_template(
+            "caterer/orders/detail.html", user=g.current_user, order=order
+        )
 
     @bp.route("/orders/<uuid:order_id>/deliver", methods=["POST"])
     @limiter.limit("10 per minute")
@@ -92,6 +95,7 @@ def register(bp):
             order.status = OrderStatus.invoicing
             db.commit()
             from services.billing_tasks import send_invoice_for_order
+
             send_invoice_for_order.send(order_id=str(order.id))
             flash(
                 "Commande livree. La facture Stripe est en cours de generation.",

@@ -67,7 +67,7 @@
         {% if g.current_user.role in (UserRole.client_admin, UserRole.client_user) %}
         <a href="{{ url_for('client.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
-          <span>Dashboard</span>
+          <span>Tableau de bord</span>
         </a>
         <a href="{{ url_for('client.requests_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="requests">
           <i data-lucide="file-text" class="w-5 h-5 flex-shrink-0"></i>
@@ -99,14 +99,14 @@
         {% if g.current_user.role == UserRole.client_admin %}
         <a href="{{ url_for('client.settings') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="settings">
           <i data-lucide="settings" class="w-5 h-5 flex-shrink-0"></i>
-          <span>Param&#232;tres</span>
+          <span>Param&#232;tres structure</span>
         </a>
         {% endif %}
 
         {% elif g.current_user.role == UserRole.caterer %}
         <a href="{{ url_for('caterer.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
-          <span>Dashboard</span>
+          <span>Tableau de bord</span>
         </a>
         <a href="{{ url_for('caterer.requests_list') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="requests">
           <i data-lucide="file-text" class="w-5 h-5 flex-shrink-0"></i>
@@ -133,7 +133,7 @@
         {% elif g.current_user.role == UserRole.super_admin %}
         <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
-          <span>Dashboard</span>
+          <span>Tableau de bord</span>
         </a>
         <a href="{{ url_for('admin.qualification') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="qualification">
           <i data-lucide="clipboard-check" class="w-5 h-5 flex-shrink-0"></i>

@@ -84,23 +84,10 @@
         </div>
         {% endif %}
 
-        {% if caterer.specialties %}
-        <div class="bg-white rounded-lg p-6">
-          <h2 class="font-display font-bold text-xl mb-3 text-text">Specialites</h2>
-          <div class="flex flex-wrap gap-2">
-            {% for s in caterer.specialties %}
-            <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
-              <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ s }}</span>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
-
         <div class="bg-white rounded-lg p-6">
           <h2 class="font-display font-bold text-xl mb-3 text-text">Options alimentaires</h2>
           <div class="flex flex-wrap gap-2">
-            {% set diet_pills = [("vegetarian", "Vegetarien", "bg-green-100 text-green-700"), ("vegan", "Vegan", "bg-emerald-100 text-emerald-700"), ("halal", "Halal", "bg-blue-100 text-blue-700"), ("casher", "Casher", "bg-purple-100 text-purple-700"), ("gluten_free", "Sans gluten", "bg-amber-100 text-amber-700"), ("lactose_free", "Sans lactose", "bg-pink-100 text-pink-700")] %}
+            {% set diet_pills = [("vegetarian", "Vegetarien", "bg-green-100 text-green-700"), ("vegan", "Vegan", "bg-emerald-100 text-emerald-700"), ("halal", "Halal", "bg-blue-100 text-blue-700"), ("gluten_free", "Sans gluten", "bg-amber-100 text-amber-700"), ("lactose_free", "Sans lactose", "bg-pink-100 text-pink-700")] %}
             {% set ns = namespace(found=false) %}
             {% for key, label, style in diet_pills %}
             {% if caterer["dietary_" + key] %}
@@ -114,16 +101,50 @@
           </div>
         </div>
 
-        {% if caterer.service_config %}
+        {# Catalogue & tarifs : capacité, prix, délai par prestation. Specs
+           proviennent de Caterer.service_offering_specs, alimenté depuis
+           le profil traiteur (templates/caterer/profile.html). #}
+        {% set offered = caterer.service_offerings or [] %}
+        {% set specs = caterer.service_offering_specs or {} %}
+        {% if offered %}
         <div class="bg-white rounded-lg p-6">
-          <h2 class="font-display font-bold text-xl mb-3 text-text">Types de prestations</h2>
-          <div class="flex flex-wrap gap-2">
-            {% for key, val in caterer.service_config.items() %}
-            {% if val %}
-            <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
-              <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ meal_type_labels.get(key, key) }}</span>
+          <h2 class="font-display font-bold text-xl mb-4 text-text">Catalogue & tarifs</h2>
+          <div class="space-y-3">
+            {% for slug in offered %}
+            {% set row = specs.get(slug, {}) %}
+            {% set cap_min = row.get('capacity_min') %}
+            {% set cap_max = row.get('capacity_max') %}
+            {% set price_min = row.get('price_per_person_min') %}
+            {% set total_min = row.get('total_min') %}
+            {% set advance = row.get('min_advance_days') %}
+            <div class="rounded-lg border border-soft p-4">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <p class="text-sm font-bold text-text">{{ service_offering_labels.get(slug, slug) }}</p>
+                {% if price_min is not none %}
+                <span class="text-xs font-bold px-2 py-1 rounded-full bg-cream text-text-soft">à partir de {{ "%.2f"|format(price_min) }} €/pers.</span>
+                {% endif %}
+              </div>
+              <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-mute">
+                {% if cap_min is not none or cap_max is not none %}
+                <span class="inline-flex items-center gap-1">
+                  <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                  {{ cap_min if cap_min is not none else '?' }} - {{ cap_max if cap_max is not none else '?' }} couverts
+                </span>
+                {% endif %}
+                {% if total_min is not none %}
+                <span class="inline-flex items-center gap-1">
+                  <i data-lucide="euro" class="w-3.5 h-3.5"></i>
+                  Commande mini {{ "%.0f"|format(total_min) }} €
+                </span>
+                {% endif %}
+                {% if advance is not none %}
+                <span class="inline-flex items-center gap-1">
+                  <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                  {{ advance }} jour{{ 's' if advance > 1 else '' }} d'avance
+                </span>
+                {% endif %}
+              </div>
             </div>
-            {% endif %}
             {% endfor %}
           </div>
         </div>

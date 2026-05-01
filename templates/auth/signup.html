@@ -64,26 +64,29 @@
         <div>
           <label for="password" class="block text-sm font-medium text-text mb-1.5">Mot de passe</label>
           <div class="relative">
-            <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password"
+            <input type="password" id="password" name="password" required minlength="12" autocomplete="new-password"
               class="w-full px-4 py-2.5 rounded-xl text-text text-sm pr-10 input-coral"
-              placeholder="Minimum 8 caract&#232;res">
+              placeholder="Minimum 12 caract&#232;res">
             <button type="button" data-action="toggle-password" data-target="password" class="absolute right-3 top-1/2 -translate-y-1/2 text-mute-soft">
               <i data-lucide="eye" class="w-4 h-4"></i>
             </button>
           </div>
+          <ul id="password-requirements" class="text-xs space-y-1 mt-2 text-mute" aria-live="polite">
+            <li data-rule="length" class="flex items-center gap-1.5">
+              <i data-lucide="circle" class="w-3 h-3"></i>
+              <span>Au moins 12 caract&#232;res</span>
+            </li>
+            <li data-rule="categories" class="flex items-center gap-1.5">
+              <i data-lucide="circle" class="w-3 h-3"></i>
+              <span>Au moins 3 cat&#233;gories parmi&nbsp;: minuscule, majuscule, chiffre, caract&#232;re sp&#233;cial</span>
+            </li>
+          </ul>
         </div>
         <div>
           <label for="siret" class="block text-sm font-medium text-text mb-1.5">SIRET</label>
           <input type="text" id="siret" name="siret" required pattern="\d{14}" maxlength="14"
             class="w-full px-4 py-2.5 rounded-xl text-text text-sm input-coral"
             placeholder="14 chiffres">
-        </div>
-
-        <!-- Client-specific fields -->
-        <div id="client-fields" class="hidden">
-          <label for="company_name" class="block text-sm font-medium text-text mb-1.5">Nom de l'entreprise</label>
-          <input type="text" id="company_name" name="company_name"
-            class="w-full px-4 py-2.5 rounded-xl text-text text-sm input-coral">
         </div>
 
         <!-- Caterer-specific fields -->
@@ -123,10 +126,13 @@
           </div>
         </div>
 
-        <button type="submit"
-          class="w-full py-3 rounded-xl font-medium btn-coral">
+        <button type="submit" id="signup-submit" disabled
+          class="w-full py-3 rounded-xl font-medium btn-coral signup-submit-disabled">
           Cr&#233;er mon compte
         </button>
+        <p id="signup-hint" class="text-xs text-center mt-2 text-mute">
+          Remplissez tous les champs et choisissez un mot de passe valide.
+        </p>
       </form>
     </div>
 

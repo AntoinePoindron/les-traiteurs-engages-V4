@@ -14,29 +14,27 @@
 
   <form method="GET" action="{{ url_for('client.search') }}">
 
-    {# ---- Top header card : location + capacity ---- #}
+    {# ---- Top header card : location + capacity + search submit ---- #}
     <div class="bg-white rounded-lg p-6 mb-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
         <div>
-          <label for="location" class="block text-xs uppercase font-bold tracking-wider mb-2 text-mute">Localisation</label>
-          <div class="relative">
-            <i data-lucide="map-pin" class="w-4 h-4 text-mute absolute left-3 top-1/2 -translate-y-1/2"></i>
-            <input type="text" id="location" name="location" value="{{ location }}"
-                   placeholder="Ville, code postal..."
-                   class="w-full pl-9 pr-3 py-2.5 rounded-full text-sm input-soft"
-                   style="background-color:var(--c-cream);">
-          </div>
+          <label for="location" class="block text-sm font-bold mb-2 text-text">Localisation</label>
+          <input type="text" id="location" name="location" value="{{ location }}"
+                 placeholder="Ville, code postal..."
+                 class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
         <div>
-          <label for="capacity" class="block text-xs uppercase font-bold tracking-wider mb-2 text-mute">Nombre de personnes</label>
-          <div class="relative">
-            <i data-lucide="users" class="w-4 h-4 text-mute absolute left-3 top-1/2 -translate-y-1/2"></i>
-            <input type="number" id="capacity" name="capacity" value="{{ capacity or '' }}" min="1"
-                   placeholder="Ex : 50"
-                   class="w-full pl-9 pr-3 py-2.5 rounded-full text-sm input-soft"
-                   style="background-color:var(--c-cream);">
-          </div>
+          <label for="capacity" class="block text-sm font-bold mb-2 text-text">Nombre de personnes</label>
+          <input type="number" id="capacity" name="capacity" value="{{ capacity or '' }}" min="1"
+                 placeholder="Ex : 50"
+                 class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
         </div>
+        <button type="submit"
+                class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center justify-center gap-2 btn-navy"
+                style="justify-self:start;">
+          <i data-lucide="search" class="w-4 h-4"></i>
+          Rechercher
+        </button>
       </div>
     </div>
 
@@ -164,7 +162,8 @@
 
         {% if caterers %}
         {% for c in caterers %}
-        <div class="bg-white rounded-lg overflow-hidden flex flex-col sm:flex-row">
+        <a href="{{ url_for('client.caterer_detail', caterer_id=c.id) }}"
+           class="catalog-card bg-white rounded-lg overflow-hidden flex flex-col sm:flex-row">
 
           {# ----- Image with structure badge overlay ----- #}
           <div class="sm:w-72 flex-shrink-0 relative" style="min-height:200px;background-color:var(--c-cream);">
@@ -208,30 +207,12 @@
             <p class="text-sm text-text-soft">{{ c.description|truncate(140, True, '…') }}</p>
             {% endif %}
 
-            {# Tags : specialties (if any) #}
-            {% set tags = (c.specialties or [])[:5] %}
-            {% if tags %}
-            <div class="flex flex-wrap gap-2">
-              {% for tag in tags %}
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
-                {{ tag }}
-              </span>
-              {% endfor %}
-              {% if (c.specialties or [])|length > 5 %}
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
-                +{{ (c.specialties or [])|length - 5 }}
-              </span>
-              {% endif %}
-            </div>
-            {% endif %}
-
             {# Dietary flags #}
             {% set diet_chips = [
               (c.dietary_vegetarian, 'Végétarien'),
               (c.dietary_gluten_free, 'Sans gluten'),
               (c.dietary_halal, 'Halal'),
               (c.dietary_vegan, 'Vegan'),
-              (c.dietary_casher, 'Casher'),
               (c.dietary_lactose_free, 'Sans lactose'),
             ] %}
             {% set active_diets = diet_chips | selectattr(0) | list %}
@@ -255,15 +236,14 @@
                 <span class="font-bold text-text">{{ c.min_advance_days or DEFAULT_ADVANCE_DAYS }} jours</span>
                 à l'avance
               </p>
-              <a href="{{ url_for('client.caterer_detail', caterer_id=c.id) }}"
-                 class="inline-flex items-center gap-1 text-sm font-bold text-navy hover:opacity-70 transition-opacity">
+              <span class="catalog-card-cta inline-flex items-center gap-1 text-sm font-bold text-navy transition-colors">
                 Voir la fiche
                 <i data-lucide="chevron-right" class="w-4 h-4"></i>
-              </a>
+              </span>
             </div>
 
           </div>
-        </div>
+        </a>
         {% endfor %}
 
         {# Pagination #}

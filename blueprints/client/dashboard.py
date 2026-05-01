@@ -26,34 +26,51 @@ def register(bp):
         active_requests_count = db.execute(
             select(func.count(QuoteRequest.id)).where(
                 QuoteRequest.company_id == user.company_id,
-                QuoteRequest.status.in_([
-                    QuoteRequestStatus.draft,
-                    QuoteRequestStatus.pending_review,
-                    QuoteRequestStatus.sent_to_caterers,
-                ]),
+                QuoteRequest.status.in_(
+                    [
+                        QuoteRequestStatus.draft,
+                        QuoteRequestStatus.pending_review,
+                        QuoteRequestStatus.sent_to_caterers,
+                    ]
+                ),
             )
         ).scalar_one()
 
-        recent_orders = db.execute(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
-            .options(joinedload(Order.quote).joinedload(Quote.caterer))
-            .where(QuoteRequest.company_id == user.company_id)
-            .order_by(Order.created_at.desc())
-            .limit(5)
-        ).unique().scalars().all()
+        recent_orders = (
+            db.execute(
+                select(Order)
+                .join(Quote, Order.quote_id == Quote.id)
+                .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
+                .options(joinedload(Order.quote).joinedload(Quote.caterer))
+                .where(QuoteRequest.company_id == user.company_id)
+                .order_by(Order.created_at.desc())
+                .limit(5)
+            )
+            .unique()
+            .scalars()
+            .all()
+        )
 
-        recent_requests = db.execute(
-            select(QuoteRequest)
-            .where(QuoteRequest.company_id == user.company_id)
-            .order_by(QuoteRequest.created_at.desc())
-            .limit(10)
-        ).scalars().all()
+        recent_requests = (
+            db.execute(
+                select(QuoteRequest)
+                .where(QuoteRequest.company_id == user.company_id)
+                .order_by(QuoteRequest.created_at.desc())
+                .limit(10)
+            )
+            .scalars()
+            .all()
+        )
 
-        services = db.execute(
-            select(CompanyService).where(CompanyService.company_id == user.company_id)
-        ).scalars().all()
+        services = (
+            db.execute(
+                select(CompanyService).where(
+                    CompanyService.company_id == user.company_id
+                )
+            )
+            .scalars()
+            .all()
+        )
 
         budget_data = []
         for service in services:
@@ -67,11 +84,24 @@ def register(bp):
                     Quote.status == QuoteStatus.accepted,
                 )
             ).scalar_one()
-            budget_data.append({
-                "name": service.name,
-                "budget": float(service.annual_budget or 0),
-                "spent": float(spent),
-            })
+            budget_data.append(
+                {
+                    "name": service.name,
+                    "budget": float(service.annual_budget or 0),
+                    "spent": float(spent),
+                }
+            )
+
+        # Company-wide consumed budget = sum of accepted-quote totals across
+        # every service. Surfaced as a top KPI on the dashboard.
+        budget_spent_total = db.execute(
+            select(func.coalesce(func.sum(Quote.total_amount_ht), 0))
+            .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
+            .where(
+                QuoteRequest.company_id == user.company_id,
+                Quote.status == QuoteStatus.accepted,
+            )
+        ).scalar_one()
 
         return render_template(
             "client/dashboard.html",
@@ -80,6 +110,7 @@ def register(bp):
             recent_orders=recent_orders,
             recent_requests=recent_requests,
             budget_data=budget_data,
+            budget_spent_total=float(budget_spent_total),
             order_status_labels=ORDER_STATUS_LABELS,
             meal_type_labels=MEAL_TYPE_LABELS,
         )

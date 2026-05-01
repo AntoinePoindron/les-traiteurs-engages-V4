@@ -1,59 +1,86 @@
 {% extends "base.html" %}
 
-{% block title %}Parametres entreprise{% endblock %}
+{% block title %}Param&#232;tres structure{% endblock %}
 
 {% block content %}
 <main class="bg-cream min-h-screen">
 
-    <h1 class="font-display font-bold text-4xl mb-6 text-text">Parametres entreprise</h1>
+    <div class="mb-8">
+      <h1 class="font-display font-bold text-4xl text-text">Param&#232;tres structure</h1>
+      <p class="text-sm mt-1 text-mute">Informations de votre entreprise et pr&#233;f&#233;rences administratives.</p>
+    </div>
 
-    <div class="max-w-lg">
-      <form method="post" action="{{ url_for('client.settings') }}" class="bg-white rounded-lg p-6 space-y-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div>
-          <label class="block text-sm font-bold mb-2 text-text">Nom de l'entreprise</label>
-          <input type="text" name="name" value="{{ company.name }}" required
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-        </div>
-        <div>
-          <label class="block text-sm font-bold mb-2 text-text">SIRET</label>
-          <input type="text" name="siret" value="{{ company.siret }}" required maxlength="14" pattern="\d{14}"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-        </div>
-        <div>
-          <label class="block text-sm font-bold mb-2 text-text">Adresse</label>
-          <input type="text" name="address" value="{{ company.address or '' }}"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-        </div>
-        <div class="grid grid-cols-2 gap-4">
+    <form method="post" action="{{ url_for('client.settings') }}" class="space-y-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {# ---- Block 1 : Identit&#233; de la structure ---- #}
+      <div class="bg-white rounded-lg p-6">
+        <h2 class="font-display font-bold text-xl mb-4 text-text">Identit&#233; de la structure</h2>
+        <div class="space-y-4">
           <div>
-            <label class="block text-sm font-bold mb-2 text-text">Ville</label>
-            <input type="text" name="city" value="{{ company.city or '' }}"
+            <label class="block text-sm font-bold mb-2 text-text">Nom de la structure <span class="text-danger">*</span></label>
+            <input type="text" name="name" value="{{ company.name }}" required
               class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
           </div>
           <div>
-            <label class="block text-sm font-bold mb-2 text-text">Code postal</label>
-            <input type="text" name="zip_code" value="{{ company.zip_code or '' }}" maxlength="10"
+            <label class="block text-sm font-bold mb-2 text-text">SIRET</label>
+            <input type="text" name="siret" value="{{ company.siret }}" maxlength="14" pattern="\d{14}"
               class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
           </div>
         </div>
-        <div>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" name="oeth_eligible" value="1" {{ 'checked' if company.oeth_eligible }} class="accent-navy rounded">
-            <span class="text-sm font-bold text-text">Eligible OETH</span>
+      </div>
+
+      {# ---- Block 2 : Adresse ---- #}
+      <div class="bg-white rounded-lg p-6">
+        <h2 class="font-display font-bold text-xl mb-4 text-text">Adresse</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-bold mb-2 text-text">Adresse postale</label>
+            <input type="text" name="address" value="{{ company.address or '' }}" placeholder="N&#176; et nom de rue"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold mb-2 text-text">Code postal</label>
+              <input type="text" name="zip_code" value="{{ company.zip_code or '' }}" maxlength="10" placeholder="75001"
+                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+            </div>
+            <div>
+              <label class="block text-sm font-bold mb-2 text-text">Ville</label>
+              <input type="text" name="city" value="{{ company.city or '' }}" placeholder="Paris"
+                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ---- Block 3 : Budget et obligation d'emploi ---- #}
+      <div class="bg-white rounded-lg p-6">
+        <h2 class="font-display font-bold text-xl mb-4 text-text">Budget et obligation d'emploi</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-bold mb-2 text-text">Budget annuel restauration (&euro;)</label>
+            <input type="number" name="budget_annual" value="{{ company.budget_annual or '' }}" step="0.01" min="0" placeholder="Ex.&nbsp;: 50000"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          </div>
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" name="oeth_eligible" value="1" {{ 'checked' if company.oeth_eligible }} class="accent-navy mt-1">
+            <span>
+              <span class="block text-sm font-bold text-text">Structure soumise &#224; l'OETH</span>
+              <span class="block text-xs mt-0.5 text-mute">Obligation d'Emploi des Travailleurs Handicap&#233;s (&ge; 20 salari&#233;s). Active la valorisation AGEFIPH des commandes ESAT.</span>
+            </span>
           </label>
         </div>
-        <div>
-          <label class="block text-sm font-bold mb-2 text-text">Budget annuel (EUR)</label>
-          <input type="number" name="budget_annual" value="{{ company.budget_annual or '' }}" step="0.01" min="0"
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-        </div>
+      </div>
+
+      <div>
         <button type="submit"
-          class="rounded-full text-sm font-bold px-4 py-2.5 btn-navy">
-          Enregistrer
+          class="rounded-full text-sm font-bold px-5 py-3 inline-flex items-center gap-2 btn-navy">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          Enregistrer les modifications
         </button>
-      </form>
-    </div>
+      </div>
+    </form>
 
 </main>
 {% endblock %}

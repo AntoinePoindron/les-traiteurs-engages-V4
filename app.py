@@ -19,6 +19,11 @@ from models import (
 # A non-active membership status should not authorize action. Only users
 # approved by a client_admin (or users whose role does not use the
 # membership flow) are loaded as the current user. Audit finding #4.
+# Pending users (signup-against-existing-SIRET) and rejected users are not
+# authenticated as far as the request handlers are concerned. The login
+# endpoint also rejects them upfront so the session cookie is never issued.
+# Defense in depth: even if a stale session sneaks through, /load_current_user
+# wipes g.current_user before any view runs.
 _BLOCKED_MEMBERSHIP_STATUSES = {MembershipStatus.pending, MembershipStatus.rejected}
 
 configure_logging()
@@ -195,6 +200,15 @@ def create_app():
         if request.path.startswith("/api/"):
             return jsonify({"error": "Donnee invalide."}), 400
         return render_template("errors/400.html"), 400
+
+    @app.errorhandler(429)
+    def _rate_limited(_e):
+        # Flask-Limiter's default 429 page is bare text on a white background.
+        # Render the styled template so the user gets the same shell as the
+        # rest of the site and a clear "wait a bit" message.
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "Trop de tentatives. Patientez quelques minutes."}), 429
+        return render_template("errors/429.html"), 429
 
     @app.errorhandler(413)
     def _too_large(_e):

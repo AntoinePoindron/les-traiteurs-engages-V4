@@ -36,6 +36,10 @@ services:
       - TEMPLATES_AUTO_RELOAD=1
       # Flask debug mode (better tracebacks in dev). Never enable in prod.
       - FLASK_DEBUG=1
+      # Loosen the signup rate limiter for local iteration; prod keeps the
+      # auth.py default ("5 per hour"). Bumping this avoids the 429 wedge
+      # when re-running the signup flow during a debugging session.
+      - SIGNUP_LIMIT=200 per hour
 
   worker:
     # The dramatiq worker doesn't auto-reload on code change; you'll

@@ -3,12 +3,16 @@ role-protected pages until an admin approves them.
 
 Background:
     auth.py signup: when a user signs up with the SIRET of an existing
-    company, a `client_user` is created with membership_status=pending
-    and the session cookie is set immediately. Before the fix, nothing
-    in middleware enforced membership_status, so a pending user could
-    reach /client/dashboard, /client/orders, POST /client/requests/.../
-    accept-quote, etc — effectively acting on behalf of the company
-    without approval.
+    company, a `client_user` is created with membership_status=pending.
+    No session is issued at signup time, and /login refuses pending
+    users upfront. Defense in depth: app.py.load_current_user wipes
+    g.current_user for any session pointing at a pending/rejected user
+    so a stale cookie can't bypass the login check.
+
+    Without this gate, a pending user could read /client/dashboard,
+    /client/orders, /client/messages, etc — leaking the company's
+    quote requests, orders, internal DMs and budget figures to anyone
+    who can sign up with the company's (public) SIRET.
 """
 
 
@@ -43,17 +47,27 @@ def _seed_pending_user():
         s.close()
 
 
-def test_pending_user_cannot_access_client_dashboard(client):
+def test_pending_user_login_refused(client):
+    """/login must not issue a session for pending users — a 200 with
+    the login page (not a 302 to the dashboard) is the success criterion."""
     email, password = _seed_pending_user()
 
-    resp = client.post("/login", data={"email": email, "password": password})
-    assert resp.status_code == 302, (
-        f"login should succeed (flow sets session even for pending); got {resp.status_code}"
+    resp = client.post("/login", data={"email": email, "password": password}, follow_redirects=False)
+    assert resp.status_code == 200, (
+        f"login must NOT redirect a pending user to a dashboard; got {resp.status_code}"
     )
 
+
+def test_pending_user_cannot_access_client_dashboard(client):
+    """Even if a stale session cookie smuggles in a pending user's id,
+    load_current_user wipes g.current_user and protected routes redirect."""
+    email, password = _seed_pending_user()
+
+    # The login attempt above should not have persisted a session, but we
+    # follow it through to be sure protected pages still bounce.
+    client.post("/login", data={"email": email, "password": password})
+
     resp = client.get("/client/dashboard", follow_redirects=False)
-    # Before the fix: 200. After the fix: redirect to login OR a 403.
-    # The authenticated action must not be permitted.
     assert resp.status_code in (302, 403), (
         f"pending member must be blocked; got {resp.status_code}"
     )
