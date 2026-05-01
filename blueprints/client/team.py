@@ -15,7 +15,8 @@ from blueprints.scoping import (
 from database import get_db
 from extensions import limiter
 from forms.client import EmployeeForm, ServiceForm
-from models import CompanyEmployee, CompanyService, MembershipStatus, User
+from models import Company, CompanyEmployee, CompanyService, MembershipStatus, User
+from services.notifications import notify
 
 # Invite-link token lifetime. After this delay the token is considered
 # expired even if it's still in the DB; /signup/invite/<token> rejects it.
@@ -306,6 +307,19 @@ def register(bp):
                     user_id=target_user.id,
                 )
             )
+
+        # Tell the freshly-approved user. They couldn't log in until
+        # now, so the notification will pop on their first session.
+        company = db.get(Company, admin.company_id)
+        notify(
+            db,
+            user_id=target_user.id,
+            type="membership_approved",
+            title="Bienvenue !",
+            body=f"Votre rattachement à {company.name if company else 'votre structure'} a été validé.",
+            related_entity_type="company",
+            related_entity_id=admin.company_id,
+        )
 
         db.commit()
         flash("Membre approuve et ajoute aux effectifs.", "success")

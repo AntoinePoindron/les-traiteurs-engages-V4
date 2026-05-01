@@ -25,7 +25,14 @@ from models import (
     User,
 )
 from services.audit import log_admin_action
-from services.notifications import create_notification, get_unread_count, mark_as_read
+from services.notifications import (
+    caterer_user_ids,
+    company_admin_user_ids,
+    create_notification,
+    get_unread_count,
+    mark_as_read,
+    notify_users,
+)
 from services.stripe_service import verify_webhook_signature
 
 logger = logging.getLogger(__name__)
@@ -97,6 +104,28 @@ def stripe_webhook():
             order = db.scalar(select(Order).where(Order.id == payment.order_id))
             if order:
                 order.status = OrderStatus.paid
+                # Notify both sides that the cycle is closed. The
+                # caterer's payout is processed downstream by Stripe
+                # Connect; we just confirm receipt here.
+                qr = order.quote.quote_request
+                notify_users(
+                    db,
+                    company_admin_user_ids(db, qr.company_id),
+                    type="order_paid",
+                    title="Paiement enregistré",
+                    body="Le paiement de votre commande a été enregistré. Merci !",
+                    related_entity_type="order",
+                    related_entity_id=order.id,
+                )
+                notify_users(
+                    db,
+                    caterer_user_ids(db, order.quote.caterer_id),
+                    type="order_paid",
+                    title="Paiement reçu",
+                    body="Le paiement de la commande a été reçu et sera viré sous peu.",
+                    related_entity_type="order",
+                    related_entity_id=order.id,
+                )
         db.commit()
 
     elif event_type == "invoice.payment_failed":

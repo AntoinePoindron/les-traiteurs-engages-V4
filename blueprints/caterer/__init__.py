@@ -6,6 +6,7 @@ from blueprints.caterer.requests import register as _register_requests
 from blueprints.caterer.orders import register as _register_orders
 from blueprints.caterer.stripe_routes import register as _register_stripe
 from blueprints.caterer.messages import register as _register_messages
+from blueprints.caterer.notifications import register as _register_notifications
 
 caterer_bp = Blueprint("caterer", __name__, url_prefix="/caterer")
 
@@ -15,3 +16,4 @@ _register_requests(caterer_bp)
 _register_orders(caterer_bp)
 _register_stripe(caterer_bp)
 _register_messages(caterer_bp)
+_register_notifications(caterer_bp)
