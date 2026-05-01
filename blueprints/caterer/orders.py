@@ -73,6 +73,7 @@ def register(bp):
         _ = order.quote
         _ = order.quote.quote_request
         _ = order.quote.quote_request.company
+        _ = order.quote.quote_request.user
         _ = order.payments
         return render_template("caterer/orders/detail.html", user=g.current_user, order=order)
 

@@ -1,3 +1,5 @@
+import os
+
 import bcrypt
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from sqlalchemy import select
@@ -10,9 +12,11 @@ from services.slugs import generate_invoice_prefix
 auth_bp = Blueprint("auth", __name__)
 
 # Rate limits applied to the GETs too so an attacker can't bypass by only POSTing.
-# Values chosen for legitimate humans: 10 login attempts / min, 5 signups / hour.
+# Login: 10 / min for legitimate humans. Signup: 5 / hour by default to deter
+# spam — override with SIGNUP_LIMIT=<rate> in docker-compose.local.yml / .env
+# when iterating locally so test loops don't wedge for an hour.
 LOGIN_LIMIT = "10 per minute"
-SIGNUP_LIMIT = "5 per hour"
+SIGNUP_LIMIT = os.environ.get("SIGNUP_LIMIT", "5 per hour")
 
 # Password policy (audit 1 VULN-14). NIST SP 800-63B: length is the dominant
 # factor; complexity rules are weak by themselves but block the laziest attempts.
@@ -89,6 +93,25 @@ def login():
         if not user.is_active:
             flash("Votre compte est desactive.", "error")
             return render_template("auth/login.html")
+        # Pending = client_user signed up against an existing SIRET, awaiting
+        # the company admin's approval. Rejected = explicitly refused. Either
+        # way: never issue a session — they would otherwise be able to read
+        # private company data (quote requests, orders, messages).
+        if user.membership_status == MembershipStatus.pending:
+            flash(
+                "Votre rattachement est en attente de validation par "
+                "l'administrateur de votre structure. Vous pourrez vous "
+                "connecter une fois votre acces approuve.",
+                "info",
+            )
+            return render_template("auth/login.html")
+        if user.membership_status == MembershipStatus.rejected:
+            flash(
+                "Votre demande de rattachement a ete refusee. "
+                "Contactez l'administrateur de votre structure.",
+                "error",
+            )
+            return render_template("auth/login.html")
         # Rotate session on successful auth: drop any pre-login state
         # (CSRF token, anonymous flash) before issuing the authenticated cookie.
         session.clear()
@@ -142,11 +165,6 @@ def signup():
             return render_template("auth/signup.html")
 
         if role == "client_admin":
-            company_name = request.form.get("company_name", "").strip()
-            if not company_name:
-                flash("Le nom de l'entreprise est obligatoire.", "error")
-                return render_template("auth/signup.html")
-
             existing_company = db.execute(
                 select(Company).where(Company.siret == siret)
             ).scalar_one_or_none()
@@ -164,18 +182,26 @@ def signup():
                 db.add(user)
                 db.flush()
                 db.commit()
-                session["user_id"] = str(user.id)
                 # VULN-28: avoid confirming SIRET presence. Wording stays
                 # informative for the legitimate case (employee joining an
                 # existing company) without naming the company or the SIRET.
+                # No session is issued: the user must wait for the company
+                # admin's approval before /login lets them in. This prevents
+                # a SIRET-based info-disclosure vector where anyone signing
+                # up could read the company's quote requests / orders /
+                # messages while waiting for approval.
                 flash(
-                    "Votre demande d'adhesion a ete enregistree. "
-                    "Vous pourrez acceder a votre espace une fois validee par un administrateur.",
+                    "Votre demande de rattachement a ete enregistree. "
+                    "L'administrateur de votre structure a ete informe. "
+                    "Vous pourrez vous connecter une fois votre acces "
+                    "approuve.",
                     "info",
                 )
-                return redirect(url_for("client.dashboard"))
+                return redirect(url_for("auth.login"))
 
-            company = Company(name=company_name, siret=siret)
+            # Company.name is non-nullable but no longer collected at signup —
+            # the SIRET stands in until the admin renames it via /client/settings.
+            company = Company(name=siret, siret=siret)
             db.add(company)
             db.flush()
             user = User(
@@ -208,8 +234,16 @@ def signup():
             db.commit()
 
             session["user_id"] = str(user.id)
-            flash("Votre compte entreprise a ete cree avec succes.", "success")
-            return redirect(url_for("client.dashboard"))
+            # First-time signup with a fresh SIRET: the new client_admin lands
+            # on /client/settings so they can fill in the company name +
+            # billing address. Company.name is currently the SIRET as a
+            # placeholder.
+            flash(
+                "Bienvenue ! Pour finaliser la création de votre espace, "
+                "complétez les paramètres de votre structure.",
+                "success",
+            )
+            return redirect(url_for("client.settings"))
 
         elif role == "caterer":
             caterer_name = request.form.get("caterer_name", "").strip()

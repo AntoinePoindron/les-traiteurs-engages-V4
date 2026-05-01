@@ -26,11 +26,10 @@ commission_invoice_seq = Sequence("commission_invoice_number_seq", start=1)
 
 
 class DietaryMixin:
-    """Six boolean dietary flags shared by Caterer and QuoteRequest."""
+    """Five boolean dietary flags shared by Caterer and QuoteRequest."""
     dietary_vegetarian: Mapped[bool] = mapped_column(Boolean, default=False)
     dietary_vegan: Mapped[bool] = mapped_column(Boolean, default=False)
     dietary_halal: Mapped[bool] = mapped_column(Boolean, default=False)
-    dietary_casher: Mapped[bool] = mapped_column(Boolean, default=False)
     dietary_gluten_free: Mapped[bool] = mapped_column(Boolean, default=False)
     dietary_lactose_free: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -186,7 +185,6 @@ class Caterer(DietaryMixin, Base):
     latitude: Mapped[float | None] = mapped_column(Float)
     longitude: Mapped[float | None] = mapped_column(Float)
     description: Mapped[str | None] = mapped_column(Text)
-    specialties: Mapped[list | None] = mapped_column(JSON)
     photos: Mapped[list | None] = mapped_column(JSON)
     capacity_min: Mapped[int | None] = mapped_column(Integer)
     capacity_max: Mapped[int | None] = mapped_column(Integer)
@@ -199,6 +197,12 @@ class Caterer(DietaryMixin, Base):
     # service_offerings is a list of slug strings — see SERVICE_OFFERING_LABELS
     # below for the canonical (slug, label) pairs.
     service_offerings: Mapped[list | None] = mapped_column(JSON)
+    # Per-offering specs: {slug: {capacity_min, capacity_max,
+    # price_per_person_min, total_min, min_advance_days}}. The legacy
+    # global capacity_min/max, price_per_person_min and min_advance_days
+    # are kept (matching/search still read them) and rederived from this
+    # dict on save by the profile handler.
+    service_offering_specs: Mapped[dict | None] = mapped_column(JSON)
     price_per_person_min: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     price_per_person_max: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     min_advance_days: Mapped[int | None] = mapped_column(Integer)
@@ -296,7 +300,6 @@ class QuoteRequest(DietaryMixin, Base):
     vegetarian_count: Mapped[int | None] = mapped_column(Integer)
     vegan_count: Mapped[int | None] = mapped_column(Integer)
     halal_count: Mapped[int | None] = mapped_column(Integer)
-    casher_count: Mapped[int | None] = mapped_column(Integer)
     gluten_free_count: Mapped[int | None] = mapped_column(Integer)
     lactose_free_count: Mapped[int | None] = mapped_column(Integer)
     drinks_alcohol: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -147,16 +147,13 @@
         {% if caterer.dietary_halal %}
         <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Halal</span>
         {% endif %}
-        {% if caterer.dietary_casher %}
-        <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Casher</span>
-        {% endif %}
         {% if caterer.dietary_gluten_free %}
         <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Sans gluten</span>
         {% endif %}
         {% if caterer.dietary_lactose_free %}
         <span class="px-2 py-1 rounded text-xs font-bold bg-success-soft text-success">Sans lactose</span>
         {% endif %}
-        {% if not (caterer.dietary_vegetarian or caterer.dietary_vegan or caterer.dietary_halal or caterer.dietary_casher or caterer.dietary_gluten_free or caterer.dietary_lactose_free) %}
+        {% if not (caterer.dietary_vegetarian or caterer.dietary_vegan or caterer.dietary_halal or caterer.dietary_gluten_free or caterer.dietary_lactose_free) %}
         <p class="text-sm text-mute">Aucun regime specifique declare.</p>
         {% endif %}
       </div>

@@ -18,33 +18,17 @@
       </button>
     </div>
 
-    {# ---- Filters + search ---- #}
+    {# ---- Filter tabs ---- #}
     <div class="bg-white rounded-lg p-6 mb-6">
-      <form method="GET" action="{{ url_for('client.requests_list') }}"
-            class="flex flex-wrap items-center gap-3">
-        {# Tab pills (each one resubmits the GET form so search query carries over) #}
-        <div class="flex flex-wrap gap-2 flex-1 min-w-0">
-          {% for key, label in tabs.items() %}
-          <a href="{{ url_for('client.requests_list', status=key, q=search_q or None) }}"
-             class="px-4 py-2 rounded-full text-sm font-bold transition-colors whitespace-nowrap
-             {% if current_tab == key %}bg-navy text-white{% else %}bg-cream text-navy hover:opacity-80{% endif %}">
-            {{ label }}
-          </a>
-          {% endfor %}
-        </div>
-
-        {# Search input #}
-        <div class="relative">
-          <input type="hidden" name="status" value="{{ current_tab }}">
-          <input type="search" name="q" value="{{ search_q }}" placeholder="Rechercher..."
-                 class="w-64 pl-3 pr-9 py-2 rounded-full text-sm input-soft"
-                 style="background-color:var(--c-cream);">
-          <button type="submit"
-                  class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center hover:opacity-70 transition-opacity">
-            <i data-lucide="search" class="w-4 h-4 text-mute"></i>
-          </button>
-        </div>
-      </form>
+      <div class="flex flex-wrap gap-2">
+        {% for key, label in tabs.items() %}
+        <a href="{{ url_for('client.requests_list', status=key) }}"
+           class="px-4 py-2 rounded-full text-sm font-bold transition-colors whitespace-nowrap
+           {% if current_tab == key %}bg-navy text-white{% else %}bg-cream text-navy hover:opacity-80{% endif %}">
+          {{ label }}
+        </a>
+        {% endfor %}
+      </div>
     </div>
 
     {% if requests %}

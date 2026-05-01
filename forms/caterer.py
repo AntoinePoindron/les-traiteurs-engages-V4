@@ -3,12 +3,11 @@ from flask_wtf import FlaskForm
 from wtforms import (
     BooleanField,
     DateField,
-    DecimalField,
     IntegerField,
     StringField,
     TextAreaField,
 )
-from wtforms.validators import InputRequired, Length, NumberRange, Optional
+from wtforms.validators import Length, NumberRange, Optional
 
 
 class CatererProfileForm(FlaskForm):
@@ -19,27 +18,19 @@ class CatererProfileForm(FlaskForm):
     address = StringField(validators=[Optional(), Length(max=500)])
     city = StringField(validators=[Optional(), Length(max=255)])
     zip_code = StringField(validators=[Optional(), Length(max=10)])
-    capacity_min = IntegerField(validators=[Optional(), NumberRange(min=0, max=100000)])
-    capacity_max = IntegerField(validators=[Optional(), NumberRange(min=0, max=100000)])
     delivery_radius_km = IntegerField(validators=[Optional(), NumberRange(min=0, max=2000)])
     dietary_vegetarian = BooleanField()
     dietary_vegan = BooleanField()
     dietary_halal = BooleanField()
-    dietary_casher = BooleanField()
     dietary_gluten_free = BooleanField()
     dietary_lactose_free = BooleanField()
-    specialties = StringField(validators=[Optional(), Length(max=2000)])
     service_config = TextAreaField(validators=[Optional(), Length(max=10000)])
     # photos handled separately via request.files
 
-    # Catalog metadata (mirrors the columns added in migration
-    # c1ab2d3e4f56_caterer_catalog_fields). service_offerings comes
-    # through as a list via request.form.getlist("service_offerings")
-    # in the profile POST handler — WTForms doesn't have a clean
-    # multi-checkbox primitive that fits this small fixed list.
-    price_per_person_min = DecimalField(places=2, validators=[Optional(), NumberRange(min=0, max=100000)])
-    price_per_person_max = DecimalField(places=2, validators=[Optional(), NumberRange(min=0, max=100000)])
-    min_advance_days = IntegerField(validators=[Optional(), NumberRange(min=0, max=365)])
+    # service_offerings is read off request.form.getlist; per-offering
+    # specs (capacity/price/délai per slug) are parsed manually in the
+    # profile handler — WTForms has no clean primitive for the dynamic
+    # `spec[<slug>][<field>]` shape.
 
 
 class QuoteForm(FlaskForm):

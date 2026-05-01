@@ -21,7 +21,6 @@ DIETARY_FIELDS = [
     "dietary_vegetarian",
     "dietary_vegan",
     "dietary_halal",
-    "dietary_casher",
     "dietary_gluten_free",
     "dietary_lactose_free",
 ]

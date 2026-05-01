@@ -64,6 +64,7 @@ def register(bp):
     @role_required("client_admin")
     def team_service_edit(service_id):
         user = g.current_user
+        db = get_db()
         service = get_company_service(service_id, user.company_id)
         form = ServiceForm()
         if not form.validate_on_submit():
@@ -154,6 +155,7 @@ def register(bp):
     @role_required("client_admin")
     def team_employee_invite(employee_id):
         user = g.current_user
+        db = get_db()
         employee = get_company_employee(employee_id, user.company_id)
         employee.invited_at = datetime.datetime.utcnow()
         db.commit()
@@ -165,10 +167,37 @@ def register(bp):
     @role_required("client_admin")
     def team_approve(user_id):
         admin = g.current_user
+        db = get_db()
         target_user = get_pending_user(user_id, admin.company_id)
         target_user.membership_status = MembershipStatus.active
+
+        # Approval = "this person works here", so they should appear in
+        # the effectifs list. If the admin had pre-created an invite row
+        # with the same email, link it to the user instead of duplicating
+        # the entry.
+        existing = db.scalar(
+            select(CompanyEmployee).where(
+                CompanyEmployee.company_id == admin.company_id,
+                ((CompanyEmployee.user_id == target_user.id)
+                 | (CompanyEmployee.email == target_user.email)),
+            )
+        )
+        if existing:
+            existing.user_id = target_user.id
+            existing.first_name = target_user.first_name
+            existing.last_name = target_user.last_name
+            existing.email = target_user.email
+        else:
+            db.add(CompanyEmployee(
+                company_id=admin.company_id,
+                first_name=target_user.first_name,
+                last_name=target_user.last_name,
+                email=target_user.email,
+                user_id=target_user.id,
+            ))
+
         db.commit()
-        flash("Membre approuve.", "success")
+        flash("Membre approuve et ajoute aux effectifs.", "success")
         return redirect(url_for("client.team"))
 
     @bp.route("/team/reject/<uuid:user_id>", methods=["POST"])
@@ -176,6 +205,7 @@ def register(bp):
     @role_required("client_admin")
     def team_reject(user_id):
         admin = g.current_user
+        db = get_db()
         target_user = get_pending_user(user_id, admin.company_id)
         target_user.membership_status = MembershipStatus.rejected
         db.commit()

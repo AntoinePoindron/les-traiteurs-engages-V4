@@ -5,7 +5,6 @@ from blueprints.middleware import login_required, role_required
 from database import get_db
 from forms.client import CompanySettingsForm, UserProfileForm
 from models import Company, User
-from services.uploads import save_upload
 
 
 def register(bp):
@@ -58,11 +57,6 @@ def register(bp):
             company.zip_code = (form.zip_code.data or "").strip() or None
             company.oeth_eligible = form.oeth_eligible.data
             company.budget_annual = form.budget_annual.data
-            logo_file = request.files.get("logo")
-            if logo_file:
-                logo_url = save_upload(logo_file, subfolder="companies")
-                if logo_url:
-                    company.logo_url = logo_url
             db.commit()
             flash("Parametres mis a jour.", "success")
             return redirect(url_for("client.settings"))

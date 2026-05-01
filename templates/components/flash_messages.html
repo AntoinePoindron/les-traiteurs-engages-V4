@@ -1,25 +1,31 @@
 {% macro render_flash_messages() %}
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
-<div class="space-y-3 mb-6">
-  {% for category, message in messages %}
-  <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm border
-    {% if category == 'success' %}text-green-800 bg-flash-success border-flash-success{% elif category == 'error' %}text-red-800 bg-error-light border-error{% else %}text-text bg-info border-info{% endif %}">
-    <div class="flex items-center gap-2">
-      {% if category == 'success' %}
-      <i data-lucide="check-circle" class="w-5 h-5 flex-shrink-0"></i>
-      {% elif category == 'error' %}
-      <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0"></i>
-      {% else %}
-      <i data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
-      {% endif %}
-      <span>{{ message }}</span>
+{# Sticky toast stack centered at top of viewport. The outer wrapper has
+   pointer-events:none so it doesn't block clicks underneath; each toast
+   re-enables them so the dismiss button stays clickable. #}
+<div class="fixed top-4 left-0 right-0 z-50 px-4" style="pointer-events:none;">
+  <div class="max-w-2xl mx-auto space-y-3">
+    {% for category, message in messages %}
+    <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm border shadow-lg
+      {% if category == 'success' %}text-green-800 bg-flash-success border-flash-success{% elif category == 'error' %}text-red-800 bg-error-light border-error{% else %}text-text bg-info border-info{% endif %}"
+      style="pointer-events:auto;">
+      <div class="flex items-center gap-2">
+        {% if category == 'success' %}
+        <i data-lucide="check-circle" class="w-5 h-5 flex-shrink-0"></i>
+        {% elif category == 'error' %}
+        <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0"></i>
+        {% else %}
+        <i data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
+        {% endif %}
+        <span>{{ message }}</span>
+      </div>
+      <button type="button" data-action="dismiss-parent" class="ml-4 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
     </div>
-    <button type="button" data-action="dismiss-parent" class="ml-4 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
-      <i data-lucide="x" class="w-4 h-4"></i>
-    </button>
+    {% endfor %}
   </div>
-  {% endfor %}
 </div>
 {% endif %}
 {% endwith %}

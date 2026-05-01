@@ -219,7 +219,6 @@ document.addEventListener('DOMContentLoaded', function () {
       { id: 'dietary_vegetarian', count: 'vegetarian_count', label: 'Vegetarien' },
       { id: 'dietary_vegan', count: 'vegan_count', label: 'Vegan' },
       { id: 'dietary_halal', count: 'halal_count', label: 'Halal' },
-      { id: 'dietary_casher', count: 'casher_count', label: 'Casher' },
       { id: 'dietary_gluten_free', count: 'gluten_free_count', label: 'Sans gluten' },
       { id: 'dietary_lactose_free', count: 'lactose_free_count', label: 'Sans lactose' },
     ];

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Trop de tentatives{% endblock %}
+
+{% set _body %}
+<div class="max-w-lg mx-auto my-20 text-center p-8">
+  <h1 class="font-display text-navy mb-3 text-hero">429</h1>
+  <p class="font-display font-bold text-2xl text-text mb-3">Trop de tentatives</p>
+  <p class="text-mute mb-6">
+    Vous avez effectu&eacute; trop de tentatives en peu de temps. Patientez quelques minutes avant de r&eacute;essayer.
+  </p>
+  <a href="{{ url_for('landing') }}"
+     class="inline-block bg-navy text-white px-5 py-2.5 rounded-full font-bold text-sm no-underline">
+    Retour &agrave; l&rsquo;accueil
+  </a>
+</div>
+{% endset %}
+
+{% block content %}{{ _body }}{% endblock %}
+{% block public_content %}{{ _body }}{% endblock %}

@@ -6,96 +6,82 @@
 {% block content %}
 <div class="mb-8">
   <h1 class="font-display font-bold text-3xl text-black">Mon profil traiteur</h1>
-  <div class="flex items-center gap-2 mt-1">{{ structure_type_badge(caterer.structure_type) }} <span class="text-xs text-mute">{{ caterer.siret }}</span></div>
+  <div class="flex items-center gap-2 mt-1">{{ structure_type_badge(caterer.structure_type) }}</div>
 </div>
 
-<form method="POST" action="{{ url_for('caterer.profile_save') }}" enctype="multipart/form-data" class="space-y-6 max-w-3xl">
+<form method="POST" action="{{ url_for('caterer.profile_save') }}" enctype="multipart/form-data" class="space-y-6">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-  {# Logo : preview + upload + delete. Format JPG/PNG/GIF/WEBP, 10 Mo max
-     (cap dans services/uploads.py). Utilise dans la sidebar, le dashboard,
-     les encarts traiteur sur demandes/commandes, et la messagerie. #}
-  <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4 text-text">Logo</h2>
-    <div class="flex items-start gap-6">
-      <div id="logo-preview" class="rounded-lg flex items-center justify-center bg-cream"
-           style="width:6rem;height:6rem;flex-shrink:0;overflow:hidden;">
-        {% if caterer.logo_url %}
-        <img src="{{ caterer.logo_url }}" alt="Logo {{ caterer.name }}"
-             style="width:100%;height:100%;object-fit:contain;padding:0.25rem;">
-        {% else %}
-        <i data-lucide="image" class="w-8 h-8 text-mute"></i>
-        {% endif %}
-      </div>
-      <div class="flex-1">
-        <label for="logo" class="block text-sm font-bold mb-1 text-text">
-          {% if caterer.logo_url %}Remplacer le logo{% else %}Ajouter un logo{% endif %}
-        </label>
-        <input type="file" id="logo" name="logo" accept="image/png,image/jpeg,image/gif,image/webp"
-               class="block text-sm text-text">
-        <p class="text-xs mt-1 text-mute">PNG, JPG, GIF ou WEBP. 10 Mo max. Format carre recommande (~512&times;512 px).</p>
-        {% if caterer.logo_url %}
-        <label class="inline-flex items-center gap-2 mt-3 text-xs text-danger cursor-pointer">
-          <input type="checkbox" name="logo_delete" value="1" class="w-3.5 h-3.5">
-          Supprimer le logo actuel
-        </label>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+  {# ---- Informations (with logo) + Livraison side-by-side ---- #}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-  <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4 text-text">Informations</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label for="name" class="block text-sm font-bold mb-1 text-text">Nom de la structure</label>
-        <input type="text" id="name" name="name" value="{{ caterer.name }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
-      </div>
-      <div>
-        <label for="specialties" class="block text-sm font-bold mb-1 text-text">Specialites (separees par des virgules)</label>
-        <input type="text" id="specialties" name="specialties" value="{{ (caterer.specialties or [])|join(', ') }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
-      </div>
-      <div class="md:col-span-2">
-        <label for="description" class="block text-sm font-bold mb-1 text-text">Description</label>
-        <textarea id="description" name="description" rows="4" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">{{ caterer.description or '' }}</textarea>
-      </div>
-    </div>
-  </div>
+    <div class="bg-white rounded-lg p-6">
+      <h2 class="font-display font-bold text-xl mb-4 text-text">Informations</h2>
 
-  <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4 text-text">Capacite</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label for="capacity_min" class="block text-sm font-bold mb-1 text-text">Minimum couverts</label>
-        <input type="number" id="capacity_min" name="capacity_min" value="{{ caterer.capacity_min or '' }}" min="1" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
+      {# Logo : preview + upload + delete. JPG/PNG/GIF/WEBP, 10 Mo max
+         (cap dans services/uploads.py). #}
+      <div class="flex items-start gap-4 mb-4">
+        <div id="logo-preview" class="rounded-lg flex items-center justify-center bg-cream"
+             style="width:5rem;height:5rem;flex-shrink:0;overflow:hidden;">
+          {% if caterer.logo_url %}
+          <img src="{{ caterer.logo_url }}" alt="Logo {{ caterer.name }}"
+               style="width:100%;height:100%;object-fit:contain;padding:0.25rem;">
+          {% else %}
+          <i data-lucide="image" class="w-7 h-7 text-mute"></i>
+          {% endif %}
+        </div>
+        <div class="flex-1 min-w-0">
+          <label for="logo" class="block text-sm font-bold mb-1 text-text">
+            {% if caterer.logo_url %}Remplacer le logo{% else %}Ajouter un logo{% endif %}
+          </label>
+          <input type="file" id="logo" name="logo" accept="image/png,image/jpeg,image/gif,image/webp"
+                 class="block text-sm text-text">
+          <p class="text-xs mt-1 text-mute">PNG, JPG, GIF ou WEBP. 10 Mo max.</p>
+          {% if caterer.logo_url %}
+          <label class="inline-flex items-center gap-2 mt-2 text-xs text-danger cursor-pointer">
+            <input type="checkbox" name="logo_delete" value="1" class="w-3.5 h-3.5">
+            Supprimer le logo actuel
+          </label>
+          {% endif %}
+        </div>
       </div>
-      <div>
-        <label for="capacity_max" class="block text-sm font-bold mb-1 text-text">Maximum couverts</label>
-        <input type="number" id="capacity_max" name="capacity_max" value="{{ caterer.capacity_max or '' }}" min="1" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
-      </div>
-    </div>
-  </div>
 
-  <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4 text-text">Livraison</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label for="address" class="block text-sm font-bold mb-1 text-text">Adresse</label>
-        <input type="text" id="address" name="address" value="{{ caterer.address or '' }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
-      </div>
-      <div>
-        <label for="city" class="block text-sm font-bold mb-1 text-text">Ville</label>
-        <input type="text" id="city" name="city" value="{{ caterer.city or '' }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
-      </div>
-      <div>
-        <label for="zip_code" class="block text-sm font-bold mb-1 text-text">Code postal</label>
-        <input type="text" id="zip_code" name="zip_code" value="{{ caterer.zip_code or '' }}" maxlength="5" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
+      <div class="space-y-4">
+        <div>
+          <label for="name" class="block text-sm font-bold mb-1 text-text">Nom de la structure</label>
+          <input type="text" id="name" name="name" value="{{ caterer.name }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
+        </div>
+        <div>
+          <label for="description" class="block text-sm font-bold mb-1 text-text">Description</label>
+          <textarea id="description" name="description" rows="4" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">{{ caterer.description or '' }}</textarea>
+        </div>
       </div>
     </div>
-    <div class="mt-4">
-      <label for="delivery_radius_km" class="block text-sm font-bold mb-1 text-text">Rayon de livraison (km)</label>
-      <input type="number" id="delivery_radius_km" name="delivery_radius_km" value="{{ caterer.delivery_radius_km or '' }}" min="1" class="w-48 px-3 py-2.5 rounded-lg text-sm input-soft">
+
+    <div class="bg-white rounded-lg p-6">
+      <h2 class="font-display font-bold text-xl mb-4 text-text">Livraison</h2>
+      <div class="space-y-4">
+        <div>
+          <label for="address" class="block text-sm font-bold mb-1 text-text">Adresse</label>
+          <input type="text" id="address" name="address" value="{{ caterer.address or '' }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="city" class="block text-sm font-bold mb-1 text-text">Ville</label>
+            <input type="text" id="city" name="city" value="{{ caterer.city or '' }}" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
+          </div>
+          <div>
+            <label for="zip_code" class="block text-sm font-bold mb-1 text-text">Code postal</label>
+            <input type="text" id="zip_code" name="zip_code" value="{{ caterer.zip_code or '' }}" maxlength="5" class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
+          </div>
+        </div>
+        <div>
+          <label for="delivery_radius_km" class="block text-sm font-bold mb-1 text-text">Rayon de livraison (km)</label>
+          <input type="number" id="delivery_radius_km" name="delivery_radius_km" value="{{ caterer.delivery_radius_km or '' }}" min="1" class="w-48 px-3 py-2.5 rounded-lg text-sm input-soft">
+        </div>
+      </div>
     </div>
+
   </div>
 
   <div class="bg-white rounded-lg p-6">
@@ -105,7 +91,6 @@
         ('dietary_vegetarian', 'Vegetarien', caterer.dietary_vegetarian),
         ('dietary_vegan', 'Vegan', caterer.dietary_vegan),
         ('dietary_halal', 'Halal', caterer.dietary_halal),
-        ('dietary_casher', 'Casher', caterer.dietary_casher),
         ('dietary_gluten_free', 'Sans gluten', caterer.dietary_gluten_free),
         ('dietary_lactose_free', 'Sans lactose', caterer.dietary_lactose_free),
       ] %}
@@ -118,56 +103,67 @@
     </div>
   </div>
 
-  {# Catalog metadata — feeds the /client/search filters and listing. #}
+  {# Catalog metadata — feeds the /client/search filters and listing.
+     Each offered prestation type carries its own capacity / price / délai
+     specs. Specs for un-checked offerings are dropped on save. #}
   <div class="bg-white rounded-lg p-6">
     <h2 class="font-display font-bold text-xl mb-4 text-text">Catalogue & tarifs</h2>
+    <p class="text-sm text-mute mb-4">
+      Cochez les prestations proposées et précisez vos contraintes pour chacune. Ces informations alimentent les filtres de recherche des clients.
+    </p>
 
-    <div class="mb-6">
-      <p class="text-sm font-bold mb-3 text-text">Types de prestation proposés</p>
-      {% set offered = caterer.service_offerings or [] %}
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {% for slug, label in service_offering_labels.items() %}
-        <label class="flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors hover:bg-cream border border-default">
+    {% set offered = caterer.service_offerings or [] %}
+    {% set specs = caterer.service_offering_specs or {} %}
+
+    <div class="space-y-4">
+      {% for slug, label in service_offering_labels.items() %}
+      {% set row = specs.get(slug, {}) %}
+      <div class="rounded-lg border border-default p-4">
+        <label class="flex items-center gap-2 mb-3 cursor-pointer">
           <input type="checkbox" name="service_offerings" value="{{ slug }}"
                  {% if slug in offered %}checked{% endif %}
                  class="w-4 h-4 rounded accent-navy">
-          <span class="text-sm text-text">{{ label }}</span>
+          <span class="text-sm font-bold text-text">{{ label }}</span>
         </label>
-        {% endfor %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div>
+            <label for="spec_{{ slug }}_capacity_min" class="block text-xs font-bold mb-1 text-mute">Capacité min (couverts)</label>
+            <input type="number" min="0" id="spec_{{ slug }}_capacity_min"
+                   name="spec[{{ slug }}][capacity_min]"
+                   value="{{ row.get('capacity_min') if row.get('capacity_min') is not none else '' }}"
+                   class="w-full px-3 py-2 rounded-lg text-sm input-soft">
+          </div>
+          <div>
+            <label for="spec_{{ slug }}_capacity_max" class="block text-xs font-bold mb-1 text-mute">Capacité max (couverts)</label>
+            <input type="number" min="0" id="spec_{{ slug }}_capacity_max"
+                   name="spec[{{ slug }}][capacity_max]"
+                   value="{{ row.get('capacity_max') if row.get('capacity_max') is not none else '' }}"
+                   class="w-full px-3 py-2 rounded-lg text-sm input-soft">
+          </div>
+          <div>
+            <label for="spec_{{ slug }}_price_per_person_min" class="block text-xs font-bold mb-1 text-mute">Tarif / personne min (€)</label>
+            <input type="number" step="0.01" min="0" id="spec_{{ slug }}_price_per_person_min"
+                   name="spec[{{ slug }}][price_per_person_min]"
+                   value="{{ row.get('price_per_person_min') if row.get('price_per_person_min') is not none else '' }}"
+                   class="w-full px-3 py-2 rounded-lg text-sm input-soft">
+          </div>
+          <div>
+            <label for="spec_{{ slug }}_total_min" class="block text-xs font-bold mb-1 text-mute">Montant global min (€)</label>
+            <input type="number" step="0.01" min="0" id="spec_{{ slug }}_total_min"
+                   name="spec[{{ slug }}][total_min]"
+                   value="{{ row.get('total_min') if row.get('total_min') is not none else '' }}"
+                   class="w-full px-3 py-2 rounded-lg text-sm input-soft">
+          </div>
+          <div>
+            <label for="spec_{{ slug }}_min_advance_days" class="block text-xs font-bold mb-1 text-mute">Délai minimum (jours)</label>
+            <input type="number" min="0" id="spec_{{ slug }}_min_advance_days"
+                   name="spec[{{ slug }}][min_advance_days]"
+                   value="{{ row.get('min_advance_days') if row.get('min_advance_days') is not none else '' }}"
+                   class="w-full px-3 py-2 rounded-lg text-sm input-soft">
+          </div>
+        </div>
       </div>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div>
-        <label for="price_per_person_min" class="block text-sm font-bold mb-1 text-text">Prix min / personne (€)</label>
-        <input type="number" step="0.01" min="0" id="price_per_person_min" name="price_per_person_min"
-               value="{{ caterer.price_per_person_min or '' }}"
-               class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
-      </div>
-      <div>
-        <label for="price_per_person_max" class="block text-sm font-bold mb-1 text-text">Prix max / personne (€)</label>
-        <input type="number" step="0.01" min="0" id="price_per_person_max" name="price_per_person_max"
-               value="{{ caterer.price_per_person_max or '' }}"
-               class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
-      </div>
-      <div>
-        <label for="min_advance_days" class="block text-sm font-bold mb-1 text-text">Délai mini (jours)</label>
-        <input type="number" min="0" id="min_advance_days" name="min_advance_days"
-               value="{{ caterer.min_advance_days or '' }}"
-               class="w-full px-3 py-2.5 rounded-lg text-sm input-soft">
-      </div>
-    </div>
-    <p class="text-xs mt-2 text-mute">
-      Ces informations apparaissent sur le catalogue et alimentent les filtres de recherche des clients.
-    </p>
-  </div>
-
-  <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4 text-text">Configuration des services</h2>
-    <div>
-      <label for="service_config" class="block text-sm font-bold mb-1 text-text">Configuration JSON</label>
-      <textarea id="service_config" name="service_config" rows="4" class="w-full px-3 py-2.5 rounded-lg text-sm font-mono input-soft">{{ caterer.service_config|tojson(indent=2) if caterer.service_config else '{}' }}</textarea>
-      <p class="text-xs mt-1 text-mute">Types de prestations proposees (dejeuner, diner, cocktail, etc.)</p>
+      {% endfor %}
     </div>
   </div>
 

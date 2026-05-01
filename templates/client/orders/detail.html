@@ -114,6 +114,25 @@
 
       <aside class="split-aside">
 
+    {# Notification "facture envoyée par mail" — visible uniquement quand
+       la commande est passée en `invoiced` (la facture Stripe a été émise
+       et envoyée au mail du contact admin de l'entreprise). #}
+    {% if order.status == OrderStatus.invoiced %}
+    <div class="bg-white rounded-lg p-6 mb-6 border-l-4 border-navy">
+      <div class="flex items-start gap-3">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft" style="flex-shrink:0;">
+          <i data-lucide="mail" class="w-4\.5 h-4\.5 text-navy"></i>
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-bold text-text">Facture envoyée par e-mail</p>
+          <p class="text-xs mt-1 text-mute">
+            Un e-mail contenant la facture vient d'être adressé à l'administrateur du compte. Pensez à vérifier vos spams si vous ne le voyez pas.
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     {# Caterer card — logo + name (clickable) + send-message button #}
     <div class="bg-white rounded-lg p-6 mb-6">
       <a href="{{ url_for('client.caterer_detail', caterer_id=order.quote.caterer.id) }}"

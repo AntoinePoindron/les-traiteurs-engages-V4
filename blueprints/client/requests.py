@@ -600,4 +600,5 @@ def register(bp):
             caterer=caterer,
             dietary_flags=DIETARY_FLAGS,
             meal_type_labels=MEAL_TYPE_LABELS,
+            service_offering_labels=SERVICE_OFFERING_LABELS,
         )

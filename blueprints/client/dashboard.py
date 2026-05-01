@@ -73,6 +73,17 @@ def register(bp):
                 "spent": float(spent),
             })
 
+        # Company-wide consumed budget = sum of accepted-quote totals across
+        # every service. Surfaced as a top KPI on the dashboard.
+        budget_spent_total = db.execute(
+            select(func.coalesce(func.sum(Quote.total_amount_ht), 0))
+            .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
+            .where(
+                QuoteRequest.company_id == user.company_id,
+                Quote.status == QuoteStatus.accepted,
+            )
+        ).scalar_one()
+
         return render_template(
             "client/dashboard.html",
             user=user,
@@ -80,6 +91,7 @@ def register(bp):
             recent_orders=recent_orders,
             recent_requests=recent_requests,
             budget_data=budget_data,
+            budget_spent_total=float(budget_spent_total),
             order_status_labels=ORDER_STATUS_LABELS,
             meal_type_labels=MEAL_TYPE_LABELS,
         )

@@ -51,14 +51,12 @@ class QuoteRequestForm(FlaskForm):
     dietary_vegetarian = BooleanField()
     dietary_vegan = BooleanField()
     dietary_halal = BooleanField()
-    dietary_casher = BooleanField()
     dietary_gluten_free = BooleanField()
     dietary_lactose_free = BooleanField()
 
     vegetarian_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
     vegan_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
     halal_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
-    casher_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
     gluten_free_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
     lactose_free_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
 
