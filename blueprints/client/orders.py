@@ -3,7 +3,7 @@ from sqlalchemy import and_, or_, select
 
 from blueprints.client._helpers import ORDER_STATUS_LABELS
 from blueprints.middleware import login_required, role_required
-from blueprints.scoping import get_company_order
+from blueprints.scoping import get_company_order, own_requests_filter
 from database import get_db
 from models import MEAL_TYPE_LABELS, Message, Order, OrderStatus, Quote, QuoteRequest
 
@@ -45,17 +45,17 @@ def register(bp):
         if status_filter not in ORDER_STATUS_TABS:
             status_filter = "all"
 
-        orders = (
-            db.execute(
-                select(Order)
-                .join(Quote, Order.quote_id == Quote.id)
-                .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
-                .where(QuoteRequest.company_id == user.company_id)
-                .order_by(Order.created_at.desc())
-            )
-            .scalars()
-            .all()
+        stmt = (
+            select(Order)
+            .join(Quote, Order.quote_id == Quote.id)
+            .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
+            .where(QuoteRequest.company_id == user.company_id)
+            .order_by(Order.created_at.desc())
         )
+        own_only = own_requests_filter(user)
+        if own_only is not None:
+            stmt = stmt.where(own_only)
+        orders = db.execute(stmt).scalars().all()
 
         for order in orders:
             order.display_status = _derive_order_display_status(order)
@@ -79,7 +79,7 @@ def register(bp):
     def order_detail(order_id):
         user = g.current_user
         db = get_db()
-        order = get_company_order(order_id, user.company_id)
+        order = get_company_order(order_id, user)
 
         caterer = order.quote.caterer
         caterer_user = caterer.users[0] if caterer.users else None

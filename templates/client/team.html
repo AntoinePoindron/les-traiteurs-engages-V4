@@ -132,13 +132,13 @@
               </div>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
-              {% if e.invited_at %}
-              <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
-                <span class="text-xs font-bold whitespace-nowrap text-text-soft">Invitee {{ e.invited_at.strftime('%d/%m/%Y') }}</span>
-              </div>
-              {% elif e.user_id %}
+              {% if e.user_id %}
               <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-navy-soft">
                 <span class="text-xs font-bold whitespace-nowrap text-navy">Compte lie</span>
+              </div>
+              {% elif e.invite_token %}
+              <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-pending">
+                <span class="text-xs font-bold whitespace-nowrap text-pending">Invitation en attente</span>
               </div>
               {% else %}
               <form method="POST" action="{{ url_for('client.team_employee_invite', employee_id=e.id) }}" class="inline">
@@ -150,6 +150,18 @@
                       class="hover:opacity-70 transition-opacity text-mute">
                 <i data-lucide="pencil" class="w-4 h-4"></i>
               </button>
+              {# Lock deletion of one's own row — an admin can't pull
+                 themselves out of the effectifs (and shouldn't, since
+                 the cell still drives session attribution). #}
+              {% if e.user_id and e.user_id == user.id %}
+              <button type="button" disabled
+                      class="text-mute-soft opacity-60"
+                      style="cursor:not-allowed;"
+                      aria-disabled="true"
+                      title="Vous ne pouvez pas vous retirer vous-même des effectifs.">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+              {% else %}
               <form method="POST" action="{{ url_for('client.team_employee_delete', employee_id=e.id) }}" class="inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="hover:opacity-70 transition-opacity text-danger"
@@ -157,8 +169,57 @@
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </form>
+              {% endif %}
             </div>
           </div>
+
+          {# Active invitation : display the signup link the admin can
+             copy/paste to the collaborator. Mail isn't wired yet, so the
+             admin handles the delivery channel manually. #}
+          {% if e.invite_token and not e.user_id %}
+          {% set invite_url = url_for('auth.signup_invite', token=e.invite_token, _external=True) %}
+          <div class="p-4 rounded-lg mb-2 bg-cream-page" style="border:1px dashed var(--c-border);">
+            <div class="flex items-center gap-2 mb-2">
+              <i data-lucide="link-2" class="w-4 h-4 text-navy"></i>
+              <p class="text-sm font-bold text-text">Lien d'invitation pour {{ e.first_name }} {{ e.last_name }}</p>
+            </div>
+            <p class="text-xs text-mute mb-3">
+              Copiez ce lien et envoyez-le au collaborateur (mail, messagerie, etc.). Il pourra activer son compte directement avec son nom et son email&#8239;: {{ e.email }}.
+            </p>
+            <div class="flex items-center gap-2 mb-3">
+              <input type="text" id="invite-url-{{ e.id }}" value="{{ invite_url }}" readonly
+                class="w-full border rounded-lg px-3 py-2 text-xs font-mono text-text-soft outline-none border-default bg-white"
+                style="cursor:text;">
+              <button type="button"
+                      data-action="copy-to-clipboard"
+                      data-target="invite-url-{{ e.id }}"
+                      data-copied-label="Copié !"
+                      class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1 btn-navy whitespace-nowrap">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span data-copy-label>Copier</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="text-mute">
+                {% if e.invited_at %}
+                Généré le {{ e.invited_at.strftime('%d/%m/%Y à %H:%M') }} · expire dans 7 jours
+                {% endif %}
+              </span>
+              <form method="POST" action="{{ url_for('client.team_employee_invite', employee_id=e.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="font-bold hover:opacity-70 transition-opacity text-navy">Régénérer</button>
+              </form>
+              <form method="POST" action="{{ url_for('client.team_employee_invite_revoke', employee_id=e.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="font-bold hover:opacity-70 transition-opacity text-danger"
+                        data-action="confirm-submit" data-confirm="Révoquer ce lien d'invitation ?">
+                  Révoquer
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endif %}
+
           <div id="edit-emp-{{ e.id }}" class="hidden p-4 rounded-lg mb-2 bg-cream">
             <form method="POST" action="{{ url_for('client.team_employee_edit', employee_id=e.id) }}" class="flex flex-wrap gap-2 items-end">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -192,14 +253,14 @@
     <div id="modal-service-new" class="fixed inset-0 z-50 hidden items-center justify-center p-4"
          style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
       <div class="bg-white rounded-xl shadow-2xl w-full flex flex-col" style="max-width:480px;">
-        <div class="flex items-center justify-between gap-3 px-6 py-5 border-b" style="border-color:var(--c-border-soft);">
+        <div class="flex items-center justify-between gap-3 p-6 border-b" style="border-color:var(--c-border-soft);">
           <h3 class="font-display font-bold text-lg text-black">Nouveau service</h3>
           <button type="button" data-action="dialog-close" data-target="modal-service-new"
                   class="text-mute-soft hover:text-black transition-colors" aria-label="Fermer">
             <i data-lucide="x" class="w-4 h-4"></i>
           </button>
         </div>
-        <form method="POST" action="{{ url_for('client.team_service_create') }}" class="px-6 py-5 space-y-3">
+        <form method="POST" action="{{ url_for('client.team_service_create') }}" class="p-6 space-y-3">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="text" name="name" placeholder="Nom du service" required
             class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
@@ -220,14 +281,14 @@
     <div id="modal-employee-new" class="fixed inset-0 z-50 hidden items-center justify-center p-4"
          style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
       <div class="bg-white rounded-xl shadow-2xl w-full flex flex-col" style="max-width:520px;">
-        <div class="flex items-center justify-between gap-3 px-6 py-5 border-b" style="border-color:var(--c-border-soft);">
+        <div class="flex items-center justify-between gap-3 p-6 border-b" style="border-color:var(--c-border-soft);">
           <h3 class="font-display font-bold text-lg text-black">Ajouter un collaborateur</h3>
           <button type="button" data-action="dialog-close" data-target="modal-employee-new"
                   class="text-mute-soft hover:text-black transition-colors" aria-label="Fermer">
             <i data-lucide="x" class="w-4 h-4"></i>
           </button>
         </div>
-        <form method="POST" action="{{ url_for('client.team_employee_create') }}" class="px-6 py-5 space-y-3">
+        <form method="POST" action="{{ url_for('client.team_employee_create') }}" class="p-6 space-y-3">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input type="text" name="first_name" placeholder="Prenom" required
@@ -254,6 +315,55 @@
         </form>
       </div>
     </div>
+
+    {# ---- Modal : lien d'invitation (auto-opened after creation) ---- #}
+    {% if invite_employee %}
+    {% set invite_url = url_for('auth.signup_invite', token=invite_employee.invite_token, _external=True) %}
+    <div id="modal-employee-invite-link" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
+      <div class="bg-white rounded-xl shadow-2xl w-full flex flex-col" style="max-width:560px;">
+        <div class="flex items-center justify-between gap-3 p-6 border-b" style="border-color:var(--c-border-soft);">
+          <div class="flex items-center gap-3" style="min-width:0;">
+            <div class="rounded-lg flex items-center justify-center bg-navy-soft" style="width:2.5rem;height:2.5rem;flex-shrink:0;">
+              <i data-lucide="link-2" class="w-5 h-5 text-navy"></i>
+            </div>
+            <h3 class="font-display font-bold text-lg text-black">Lien d'invitation pr&#234;t</h3>
+          </div>
+          <button type="button" data-action="dialog-close" data-target="modal-employee-invite-link"
+                  class="text-mute-soft hover:text-black transition-colors" aria-label="Fermer" style="flex-shrink:0;">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="p-6">
+          <p class="text-sm mb-4 text-text" style="line-height:1.6;">
+            Copiez le lien ci-dessous et envoyez le &#224; votre collaborateur pour qu'il active son compte.
+          </p>
+          <div class="flex items-stretch gap-2 mb-3">
+            <input type="text" id="invite-modal-url" value="{{ invite_url }}" readonly
+              class="w-full border rounded-lg px-3 py-2 text-xs font-mono text-text-soft outline-none border-default bg-cream"
+              style="cursor:text;">
+            <button type="button"
+                    data-action="copy-to-clipboard"
+                    data-target="invite-modal-url"
+                    data-copied-label="Copi&#233; !"
+                    class="rounded-full text-xs font-bold px-4 py-2 inline-flex items-center gap-1 btn-navy whitespace-nowrap">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span data-copy-label>Copier le lien</span>
+            </button>
+          </div>
+          <p class="text-xs text-mute">Le lien est valable 7 jours et ne peut &#234;tre utilis&#233; qu'une seule fois.</p>
+        </div>
+
+        <div class="p-6 border-t" style="border-color:var(--c-border-soft);flex-shrink:0;">
+          <button type="button" data-action="dialog-close" data-target="modal-employee-invite-link"
+                  class="w-full px-4 py-2.5 rounded-full text-xs font-bold btn-navy">
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
 </main>
 {% endblock %}

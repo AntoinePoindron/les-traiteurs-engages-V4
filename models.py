@@ -304,6 +304,12 @@ class CompanyEmployee(Base):
     email: Mapped[str] = mapped_column(String(255))
     position: Mapped[str | None] = mapped_column(String(255))
     invited_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
+    # Single-use signup token an admin generates via /client/team. The
+    # collaborator redeems it on /signup/invite/<token>; cleared on accept.
+    # Token expires INVITE_TOKEN_TTL_DAYS days after invited_at.
+    invite_token: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, unique=True, index=True
+    )
     user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
 
     company: Mapped[Company] = relationship(back_populates="employees")

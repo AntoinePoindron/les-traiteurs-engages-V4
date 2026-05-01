@@ -13,14 +13,15 @@
 <div id="new-request-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
      style="background-color:rgba(0,0,0,0.5);">
   <div class="bg-white rounded-lg w-full" style="max-width:480px;">
-    <div class="p-2">
+    <div class="flex items-center justify-between gap-3 p-6 border-b" style="border-color:var(--c-border-soft);">
+      <h3 class="font-display font-bold text-lg text-black">Nouvelle demande</h3>
       <button type="button" data-action="close-new-request-menu"
-              class="ml-auto block w-8 h-8 rounded-lg flex items-center justify-center hover:bg-cream transition-colors">
+              class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-cream transition-colors">
         <i data-lucide="x" class="w-4 h-4 text-text"></i>
       </button>
     </div>
 
-    <div class="px-6 pb-6 pt-2 space-y-2">
+    <div class="p-6 space-y-2">
       <a href="{{ url_for('client.search') }}"
          class="flex items-center gap-4 p-4 rounded-lg hover:bg-cream transition-colors">
         <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
