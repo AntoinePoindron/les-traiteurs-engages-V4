@@ -20,6 +20,21 @@ from services import workflow
 from services.quotes import calculate_quote_totals, generate_quote_reference, lines_from_dicts
 
 
+def _parse_line_dicts(raw: str) -> list[dict]:
+    """Parse JSON quote lines and reject non-flat structures."""
+    try:
+        data = json.loads(raw or "[]")
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(data, list) or not all(
+        isinstance(d, dict)
+        and all(isinstance(v, (str, int, float, bool, type(None))) for v in d.values())
+        for d in data
+    ):
+        return []
+    return data
+
+
 def _derive_qrc_display_status(qr, caterer_id):
     """Map the caterer's own Quote state to a single user-facing badge code.
 
@@ -206,10 +221,7 @@ def register(bp):
                 preview_reference=generate_quote_reference(db, caterer),
                 meal_type_labels=MEAL_TYPE_LABELS,
             ), 400
-        try:
-            line_dicts = json.loads(form.details.data or "[]")
-        except json.JSONDecodeError:
-            line_dicts = []
+        line_dicts = _parse_line_dicts(form.details.data)
         try:
             lines = lines_from_dicts(line_dicts)
         except ValueError as exc:
@@ -304,10 +316,7 @@ def register(bp):
                 preview_reference=quote.reference,
                 meal_type_labels=MEAL_TYPE_LABELS,
             ), 400
-        try:
-            line_dicts = json.loads(form.details.data or "[]")
-        except json.JSONDecodeError:
-            line_dicts = []
+        line_dicts = _parse_line_dicts(form.details.data)
         try:
             new_lines = lines_from_dicts(line_dicts)
         except ValueError as exc:
