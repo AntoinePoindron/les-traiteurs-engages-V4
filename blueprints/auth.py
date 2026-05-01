@@ -149,14 +149,17 @@ def signup():
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
         db = get_db()
+
+        # VULN-28: always execute both lookups so timing is identical
+        # regardless of whether email or SIRET already exists.
         existing_user = db.execute(
             select(User).where(User.email == email)
         ).scalar_one_or_none()
+        existing_company = db.execute(
+            select(Company).where(Company.siret == siret)
+        ).scalar_one_or_none()
+
         if existing_user:
-            # VULN-28: do not confirm whether the email is registered. Generic
-            # wording so a scraper cannot enumerate accounts via /signup.
-            # Full mitigation needs identical UX for all three branches
-            # (existing email, existing SIRET, fresh signup) — tracked as P2.
             flash(
                 "Inscription impossible avec ces informations. "
                 "Si vous avez deja un compte, connectez-vous.",
@@ -165,9 +168,10 @@ def signup():
             return render_template("auth/signup.html")
 
         if role == "client_admin":
-            existing_company = db.execute(
-                select(Company).where(Company.siret == siret)
-            ).scalar_one_or_none()
+            company_name = request.form.get("company_name", "").strip()
+            if not company_name:
+                flash("Le nom de l'entreprise est obligatoire.", "error")
+                return render_template("auth/signup.html")
 
             if existing_company:
                 user = User(
