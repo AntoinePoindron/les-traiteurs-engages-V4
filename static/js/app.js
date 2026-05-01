@@ -60,6 +60,36 @@
     'confirm-submit': function (el, ev) {
       if (!window.confirm(el.dataset.confirm || 'Confirmer ?')) ev.preventDefault();
     },
+    'copy-to-clipboard': function (el) {
+      // Copy `data-value` (or the textContent of #data-target) to the
+      // user's clipboard. Briefly swaps the button label so they get a
+      // visual confirmation.
+      var text = el.dataset.value;
+      if (!text && el.dataset.target) {
+        var src = document.getElementById(el.dataset.target);
+        if (src) text = src.value || src.textContent || '';
+      }
+      if (!text) return;
+      var done = function () {
+        var label = el.querySelector('[data-copy-label]') || el;
+        var original = label.textContent;
+        label.textContent = el.dataset.copiedLabel || 'Copié !';
+        setTimeout(function () { label.textContent = original; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+        return;
+      }
+      // execCommand fallback for older browsers / non-HTTPS contexts.
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    },
   };
 
   document.addEventListener('click', function (ev) {
@@ -81,6 +111,40 @@
     });
   }
 
+  // Auto-dismiss flash toasts — different durations by category so an
+  // error stays long enough to read while a success doesn't linger.
+  // Hovering the toast pauses the timer; mouseleave restarts it from
+  // scratch, so the user can read at their own pace.
+  function initFlashToasts() {
+    var FLASH_DURATIONS = { success: 4000, info: 5000, error: 7000 };
+    var toasts = document.querySelectorAll('.flash-toast');
+    toasts.forEach(function (toast) {
+      var category = toast.dataset.flashCategory || 'info';
+      var duration = FLASH_DURATIONS[category] || FLASH_DURATIONS.info;
+      var timerId = null;
+
+      function dismiss() {
+        toast.classList.add('flash-toast-leaving');
+        // Wait for the CSS opacity/transform transition before removing
+        // so screen readers don't see the node disappear mid-flight.
+        setTimeout(function () {
+          if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 280);
+      }
+      function start() { timerId = setTimeout(dismiss, duration); }
+      function clear() { if (timerId) { clearTimeout(timerId); timerId = null; } }
+
+      toast.addEventListener('mouseenter', clear);
+      toast.addEventListener('mouseleave', start);
+      // Clicking the X button instantly removes the parent — no need
+      // for the timer afterwards.
+      toast.addEventListener('click', function (ev) {
+        if (ev.target.closest('[data-action="dismiss-parent"]')) clear();
+      });
+      start();
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     renderIcons();
     markActiveSidebar();
@@ -93,5 +157,6 @@
       setInterval(updateNotificationBadge, 30000);
     }
     initBackdropDismiss();
+    initFlashToasts();
   });
 })();

@@ -11,6 +11,7 @@ from models import (
     Caterer,
     CatererStructureType,
     Company,
+    CompanyEmployee,
     CompanyService,
     MembershipStatus,
     Message,
@@ -32,10 +33,57 @@ from models import (
 PASSWORD_HASH = bcrypt.hashpw(b"password123", bcrypt.gensalt()).decode()
 
 
+def _ensure_admin_employee_rows(db):
+    """Idempotent backfill: every client_admin / client_user with a
+    `company_id` should have a matching CompanyEmployee row so they show
+    up in /client/team. Re-run safely on every boot — only inserts the
+    rows that are missing.
+
+    Runs unconditionally even when the heavy seed early-returns, because
+    the seed guard skips block-by-block creation; this pass is the only
+    way an existing DB without effectifs rows for its admins gets fixed.
+    """
+    rows = db.scalars(
+        select(User).where(
+            User.role.in_([UserRole.client_admin, UserRole.client_user]),
+            User.company_id.is_not(None),
+            User.membership_status == MembershipStatus.active,
+        )
+    ).all()
+    for u in rows:
+        existing = db.scalar(
+            select(CompanyEmployee).where(
+                CompanyEmployee.company_id == u.company_id,
+                ((CompanyEmployee.user_id == u.id) | (CompanyEmployee.email == u.email)),
+            )
+        )
+        if existing:
+            # Make sure the link to the user is set (covers rows the admin
+            # pre-created with the same email then approved later).
+            if existing.user_id != u.id:
+                existing.user_id = u.id
+            continue
+        db.add(
+            CompanyEmployee(
+                company_id=u.company_id,
+                first_name=u.first_name,
+                last_name=u.last_name,
+                email=u.email,
+                position="Administrateur" if u.role == UserRole.client_admin else None,
+                user_id=u.id,
+            )
+        )
+    db.commit()
+
+
 def seed():
     with get_session() as db:
         if db.scalar(select(Company).where(Company.name == "Acme Solutions")):
             print("Seed data already exists, skipping.")
+            # Still run the effectifs backfill — fixes DBs created before
+            # the auth flow started inserting CompanyEmployee on signup,
+            # and any account whose row got dropped.
+            _ensure_admin_employee_rows(db)
             return
 
         # --- Companies ---
@@ -461,6 +509,10 @@ def seed():
             ),
         ]
         db.add_all(notifications)
+
+        # Backfill effectifs rows for the seeded admins/users so they
+        # appear under /client/team for parity with the signup flow.
+        _ensure_admin_employee_rows(db)
 
     print("Seed data created:")
     print("  Companies: Acme Solutions, TechCorp France")
