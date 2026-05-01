@@ -15,11 +15,13 @@ Logs at WARNING for postmortem debugging.
 Audit references: VULN-05 (path traversal — uses secure_filename),
 VULN-10 (extension-only validation — closed by magic-byte check).
 """
+import io
 import logging
 import os
 import uuid
 
 from botocore.exceptions import BotoCoreError, ClientError
+from PIL import Image
 from werkzeug.utils import secure_filename
 
 logger = logging.getLogger(__name__)
@@ -35,11 +37,7 @@ _CONTENT_TYPES = {
     "webp": "image/webp", "pdf": "application/pdf",
 }
 
-# Magic byte signatures. Polyglot files (e.g. an HTML page that begins with
-# the PNG signature) are still possible but no consumer of these uploads
-# interprets them as HTML — they are served as static images by Flask with
-# the right Content-Type. Belt-and-braces would be re-encoding via Pillow,
-# tracked as a follow-up.
+# Magic byte signatures.
 _MAGIC_SIGNATURES = {
     "png":  [(b"\x89PNG\r\n\x1a\n", 0)],
     "jpg":  [(b"\xff\xd8\xff", 0)],
@@ -104,6 +102,44 @@ def _file_size(stream) -> int:
 def allowed_extension(filename: str) -> bool:
     """Backwards-compat for callers that still want a quick name-only check."""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+_PILLOW_FORMAT = {
+    "jpg": "JPEG", "jpeg": "JPEG",
+    "png": "PNG", "gif": "GIF", "webp": "WEBP",
+}
+
+_MAX_IMAGE_PIXELS = 25_000_000  # 5000x5000 — prevent decompression bombs
+
+
+def _reencode_image(stream, ext: str):
+    """Re-encode image through Pillow to strip any embedded payloads.
+
+    Returns a BytesIO with the clean image, or None if re-encoding fails.
+    PDFs are not re-encoded.
+    """
+    fmt = _PILLOW_FORMAT.get(ext)
+    if fmt is None:
+        return None
+    try:
+        Image.MAX_IMAGE_PIXELS = _MAX_IMAGE_PIXELS
+        img = Image.open(stream)
+        img.load()
+        if img.mode not in ("RGB", "RGBA", "L", "P"):
+            img = img.convert("RGBA" if fmt == "PNG" else "RGB")
+        buf = io.BytesIO()
+        save_kwargs = {}
+        if fmt == "JPEG":
+            img = img.convert("RGB")
+            save_kwargs["quality"] = 85
+        if fmt == "GIF" and getattr(img, "is_animated", False):
+            save_kwargs["save_all"] = True
+        img.save(buf, format=fmt, **save_kwargs)
+        buf.seek(0)
+        return buf
+    except Exception:
+        logger.warning("Pillow re-encode failed for %s", ext, exc_info=True)
+        return None
 
 
 # --- Save (public API) ---------------------------------------------------------
@@ -175,6 +211,12 @@ def save_upload(file, subfolder: str = "general") -> str | None:
     if result is None:
         return None
     declared_ext, safe_name = result
+
+    clean_buf = _reencode_image(file.stream, declared_ext)
+    if clean_buf is not None:
+        file.stream = clean_buf
+    else:
+        file.stream.seek(0)
 
     if _s3_enabled():
         try:
