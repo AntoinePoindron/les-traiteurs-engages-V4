@@ -4,6 +4,7 @@ Revision ID: e7d9c4a1b203
 Revises: f3a7b2c1d9e4
 Create Date: 2026-04-30
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa

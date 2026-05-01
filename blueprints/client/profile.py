@@ -27,8 +27,13 @@ def register(bp):
             new_email = (form.email.data or "").strip().lower()
             if new_email and new_email != u.email:
                 pwd = form.current_password.data or ""
-                if not pwd or not bcrypt.checkpw(pwd.encode(), u.password_hash.encode()):
-                    flash("Mot de passe actuel incorrect. Le changement d'email necessite une re-authentification.", "error")
+                if not pwd or not bcrypt.checkpw(
+                    pwd.encode(), u.password_hash.encode()
+                ):
+                    flash(
+                        "Mot de passe actuel incorrect. Le changement d'email necessite une re-authentification.",
+                        "error",
+                    )
                     return render_template("client/profile.html", user=user), 400
                 u.email = new_email
             db.commit()
@@ -47,7 +52,9 @@ def register(bp):
             company = db.get(Company, user.company_id)
             if not form.validate_on_submit():
                 flash("Veuillez corriger les erreurs du formulaire.", "error")
-                return render_template("client/settings.html", user=user, company=company), 400
+                return render_template(
+                    "client/settings.html", user=user, company=company
+                ), 400
             if form.name.data is not None:
                 company.name = (form.name.data or "").strip() or company.name
             if form.siret.data is not None:

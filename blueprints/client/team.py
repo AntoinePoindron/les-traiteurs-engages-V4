@@ -5,7 +5,11 @@ from sqlalchemy import func, select
 
 from blueprints.client._helpers import own_service_id
 from blueprints.middleware import login_required, role_required
-from blueprints.scoping import get_company_employee, get_company_service, get_pending_user
+from blueprints.scoping import (
+    get_company_employee,
+    get_company_service,
+    get_pending_user,
+)
 from database import get_db
 from forms.client import EmployeeForm, ServiceForm
 from models import CompanyEmployee, CompanyService, MembershipStatus, User
@@ -85,10 +89,15 @@ def register(bp):
         db = get_db()
         service = get_company_service(service_id, user.company_id)
         employee_count = db.scalar(
-            select(func.count(CompanyEmployee.id)).where(CompanyEmployee.service_id == service_id)
+            select(func.count(CompanyEmployee.id)).where(
+                CompanyEmployee.service_id == service_id
+            )
         )
         if employee_count > 0:
-            flash("Impossible de supprimer un service auquel des employes sont rattaches.", "error")
+            flash(
+                "Impossible de supprimer un service auquel des employes sont rattaches.",
+                "error",
+            )
             return redirect(url_for("client.team"))
         db.delete(service)
         db.commit()
@@ -178,8 +187,10 @@ def register(bp):
         existing = db.scalar(
             select(CompanyEmployee).where(
                 CompanyEmployee.company_id == admin.company_id,
-                ((CompanyEmployee.user_id == target_user.id)
-                 | (CompanyEmployee.email == target_user.email)),
+                (
+                    (CompanyEmployee.user_id == target_user.id)
+                    | (CompanyEmployee.email == target_user.email)
+                ),
             )
         )
         if existing:
@@ -188,13 +199,15 @@ def register(bp):
             existing.last_name = target_user.last_name
             existing.email = target_user.email
         else:
-            db.add(CompanyEmployee(
-                company_id=admin.company_id,
-                first_name=target_user.first_name,
-                last_name=target_user.last_name,
-                email=target_user.email,
-                user_id=target_user.id,
-            ))
+            db.add(
+                CompanyEmployee(
+                    company_id=admin.company_id,
+                    first_name=target_user.first_name,
+                    last_name=target_user.last_name,
+                    email=target_user.email,
+                    user_id=target_user.id,
+                )
+            )
 
         db.commit()
         flash("Membre approuve et ajoute aux effectifs.", "success")

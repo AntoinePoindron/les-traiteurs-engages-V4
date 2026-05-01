@@ -26,34 +26,51 @@ def register(bp):
         active_requests_count = db.execute(
             select(func.count(QuoteRequest.id)).where(
                 QuoteRequest.company_id == user.company_id,
-                QuoteRequest.status.in_([
-                    QuoteRequestStatus.draft,
-                    QuoteRequestStatus.pending_review,
-                    QuoteRequestStatus.sent_to_caterers,
-                ]),
+                QuoteRequest.status.in_(
+                    [
+                        QuoteRequestStatus.draft,
+                        QuoteRequestStatus.pending_review,
+                        QuoteRequestStatus.sent_to_caterers,
+                    ]
+                ),
             )
         ).scalar_one()
 
-        recent_orders = db.execute(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
-            .options(joinedload(Order.quote).joinedload(Quote.caterer))
-            .where(QuoteRequest.company_id == user.company_id)
-            .order_by(Order.created_at.desc())
-            .limit(5)
-        ).unique().scalars().all()
+        recent_orders = (
+            db.execute(
+                select(Order)
+                .join(Quote, Order.quote_id == Quote.id)
+                .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
+                .options(joinedload(Order.quote).joinedload(Quote.caterer))
+                .where(QuoteRequest.company_id == user.company_id)
+                .order_by(Order.created_at.desc())
+                .limit(5)
+            )
+            .unique()
+            .scalars()
+            .all()
+        )
 
-        recent_requests = db.execute(
-            select(QuoteRequest)
-            .where(QuoteRequest.company_id == user.company_id)
-            .order_by(QuoteRequest.created_at.desc())
-            .limit(10)
-        ).scalars().all()
+        recent_requests = (
+            db.execute(
+                select(QuoteRequest)
+                .where(QuoteRequest.company_id == user.company_id)
+                .order_by(QuoteRequest.created_at.desc())
+                .limit(10)
+            )
+            .scalars()
+            .all()
+        )
 
-        services = db.execute(
-            select(CompanyService).where(CompanyService.company_id == user.company_id)
-        ).scalars().all()
+        services = (
+            db.execute(
+                select(CompanyService).where(
+                    CompanyService.company_id == user.company_id
+                )
+            )
+            .scalars()
+            .all()
+        )
 
         budget_data = []
         for service in services:
@@ -67,11 +84,13 @@ def register(bp):
                     Quote.status == QuoteStatus.accepted,
                 )
             ).scalar_one()
-            budget_data.append({
-                "name": service.name,
-                "budget": float(service.annual_budget or 0),
-                "spent": float(spent),
-            })
+            budget_data.append(
+                {
+                    "name": service.name,
+                    "budget": float(service.annual_budget or 0),
+                    "spent": float(spent),
+                }
+            )
 
         # Company-wide consumed budget = sum of accepted-quote totals across
         # every service. Surfaced as a top KPI on the dashboard.

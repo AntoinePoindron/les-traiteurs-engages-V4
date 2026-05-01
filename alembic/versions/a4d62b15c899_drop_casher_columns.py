@@ -4,6 +4,7 @@ Revision ID: a4d62b15c899
 Revises: f9c8e2b53741
 Create Date: 2026-04-30
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -25,11 +26,15 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.add_column(
         "caterers",
-        sa.Column("dietary_casher", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column(
+            "dietary_casher", sa.Boolean(), nullable=False, server_default=sa.false()
+        ),
     )
     op.add_column(
         "quote_requests",
-        sa.Column("dietary_casher", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column(
+            "dietary_casher", sa.Boolean(), nullable=False, server_default=sa.false()
+        ),
     )
     op.add_column(
         "quote_requests",
