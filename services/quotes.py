@@ -16,6 +16,7 @@ LEGAL_TVA_RATES: frozenset[Decimal] = frozenset(
 # enough to catch malicious input before it reaches Stripe.
 MAX_QUANTITY = Decimal("10000")
 MAX_UNIT_PRICE_HT = Decimal("100000")
+MAX_LINE_TOTAL_HT = Decimal("10000000")
 
 
 def _parse_finite_decimal(raw, field: str) -> Decimal:
@@ -48,6 +49,8 @@ def lines_from_dicts(line_dicts: list[dict]) -> list[QuoteLine]:
             raise ValueError(f"line {i}: quantity out of range ({quantity})")
         if unit_price_ht < 0 or unit_price_ht > MAX_UNIT_PRICE_HT:
             raise ValueError(f"line {i}: unit_price_ht out of range ({unit_price_ht})")
+        if quantity * unit_price_ht > MAX_LINE_TOTAL_HT:
+            raise ValueError(f"line {i}: line total exceeds {MAX_LINE_TOTAL_HT} EUR")
         if tva_rate not in LEGAL_TVA_RATES:
             raise ValueError(f"line {i}: tva_rate {tva_rate} not in {sorted(LEGAL_TVA_RATES)}")
 
