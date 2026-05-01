@@ -49,7 +49,7 @@ _MAGIC_SIGNATURES = {
     "png": [(b"\x89PNG\r\n\x1a\n", 0)],
     "jpg": [(b"\xff\xd8\xff", 0)],
     "jpeg": [(b"\xff\xd8\xff", 0)],
-    "gif": [(b"GIF87a", 0), (b"GIF89a", 0)],
+    "gif": [(b"GIF8", 0)],
     # WEBP files start with "RIFF" then 4 bytes of size then "WEBP"
     "webp": [(b"RIFF", 0), (b"WEBP", 8)],
     "pdf": [(b"%PDF-", 0)],

@@ -18,7 +18,7 @@ def test_back_button_with_history(app):
     out = _render(
         app, '{% from "components/ui.html" import back_button %}{{ back_button() }}'
     )
-    assert "history.back()" in out
+    assert 'data-action="history-back"' in out
     assert "Retour" in out
     assert "chevron-left" in out
 
@@ -31,7 +31,7 @@ def test_back_button_with_href(app):
     )
     assert 'href="/admin/dashboard"' in out
     assert "Tableau de bord" in out
-    assert "history.back()" not in out  # uses <a> not <button>
+    assert "history-back" not in out  # uses <a> not <button>
 
 
 def test_info_chip_with_label(app):

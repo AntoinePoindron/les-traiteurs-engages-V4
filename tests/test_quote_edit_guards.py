@@ -25,9 +25,11 @@ def _seed_request_with_quote(status_literal: str):
     from models import (
         Caterer,
         Company,
+        QRCStatus,
         Quote,
         QuoteLine,
         QuoteRequest,
+        QuoteRequestCaterer,
         QuoteRequestStatus,
         QuoteStatus,
         User,
@@ -52,6 +54,14 @@ def _seed_request_with_quote(status_literal: str):
             event_date=_dt.date.today() + _dt.timedelta(days=30),
         )
         s.add(qr)
+        s.flush()
+
+        qrc = QuoteRequestCaterer(
+            quote_request_id=qr.id,
+            caterer_id=caterer.id,
+            status=QRCStatus.selected,
+        )
+        s.add(qrc)
         s.flush()
 
         quote = Quote(
