@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
+from extensions import limiter
 from forms.caterer import CatererProfileForm
 from models import SERVICE_OFFERING_LABELS
 from services.json_schemas import ServiceConfig
@@ -91,6 +92,7 @@ def register(bp):
         )
 
     @bp.route("/profile", methods=["POST"])
+    @limiter.limit("10 per hour")
     @login_required
     @role_required("caterer")
     def profile_save():
