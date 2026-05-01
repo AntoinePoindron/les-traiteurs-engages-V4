@@ -13,7 +13,7 @@ from blueprints.client._helpers import (
     own_service_id,
 )
 from blueprints.middleware import login_required, role_required
-from blueprints.scoping import get_company_request
+from blueprints.scoping import get_company_request, own_requests_filter
 from database import get_db
 from extensions import limiter
 from forms.client import QuoteAcceptForm, QuoteRefuseForm, QuoteRequestForm
@@ -107,6 +107,9 @@ def register(bp):
             .options(selectinload(QuoteRequest.quotes))
             .order_by(QuoteRequest.created_at.desc())
         )
+        own_only = own_requests_filter(user)
+        if own_only is not None:
+            stmt = stmt.where(own_only)
         requests = db.execute(stmt).scalars().all()
 
         # Hydrate row-level helpers used by the template so it stays
@@ -290,7 +293,7 @@ def register(bp):
     def request_detail(request_id):
         user = g.current_user
         db = get_db()
-        qr = get_company_request(request_id, user.company_id)
+        qr = get_company_request(request_id, user)
 
         qrcs = (
             db.execute(
@@ -415,7 +418,7 @@ def register(bp):
     def request_edit(request_id):
         user = g.current_user
         db = get_db()
-        qr = get_company_request(request_id, user.company_id)
+        qr = get_company_request(request_id, user)
         if qr.status not in (
             QuoteRequestStatus.draft,
             QuoteRequestStatus.pending_review,
@@ -447,7 +450,7 @@ def register(bp):
         user = g.current_user
 
         db = get_db()
-        qr = get_company_request(request_id, user.company_id)
+        qr = get_company_request(request_id, user)
         if qr.status not in (
             QuoteRequestStatus.draft,
             QuoteRequestStatus.pending_review,

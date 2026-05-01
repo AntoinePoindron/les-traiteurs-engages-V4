@@ -2,6 +2,13 @@
 
 Every query that fetches a resource owned by a client company or caterer
 MUST go through these helpers so the ownership filter cannot be forgotten.
+
+For requests/orders, the role of the caller decides the scope:
+  - `client_admin`  → sees every demand/commande of the company.
+  - `client_user`   → sees only the demands they created themselves
+                      (and the commandes that flow from those).
+This keeps a regular user's space focused on their own activity, while
+the admin keeps the company-wide overview needed to coordinate.
 """
 
 from flask import abort
@@ -16,37 +23,69 @@ from models import (
     QuoteRequest,
     QuoteRequestCaterer,
     User,
+    UserRole,
 )
 
 
+def own_requests_filter(user):
+    """SQL predicate restricting QuoteRequest to the user's own demands
+    when they are a `client_user`. For `client_admin` (and other roles),
+    returns None so the caller can skip the filter without branching.
+
+    Use as:
+        stmt = select(QuoteRequest).where(QuoteRequest.company_id == user.company_id)
+        own_only = own_requests_filter(user)
+        if own_only is not None:
+            stmt = stmt.where(own_only)
+    """
+    if user.role == UserRole.client_user:
+        return QuoteRequest.user_id == user.id
+    return None
+
+
 # ---------------------------------------------------------------------------
-# Client-side: scope by company_id
+# Client-side: scope by company_id (and by user_id for client_user)
 # ---------------------------------------------------------------------------
 
 
-def get_company_request(request_id, company_id):
-    """Fetch a QuoteRequest owned by `company_id`, or abort 404."""
+def get_company_request(request_id, user):
+    """Fetch a QuoteRequest the `user` is allowed to see, or abort 404.
+
+    `user` is the current User; admin sees the whole company, client_user
+    sees only their own demands.
+    """
     db = get_db()
-    qr = db.execute(
-        select(QuoteRequest).where(
-            QuoteRequest.id == request_id,
-            QuoteRequest.company_id == company_id,
-        )
-    ).scalar_one_or_none()
+    stmt = select(QuoteRequest).where(
+        QuoteRequest.id == request_id,
+        QuoteRequest.company_id == user.company_id,
+    )
+    own_only = own_requests_filter(user)
+    if own_only is not None:
+        stmt = stmt.where(own_only)
+    qr = db.execute(stmt).scalar_one_or_none()
     if not qr:
         abort(404)
     return qr
 
 
-def get_company_order(order_id, company_id):
-    """Fetch an Order whose QuoteRequest belongs to `company_id`, or abort 404."""
+def get_company_order(order_id, user):
+    """Fetch an Order the `user` is allowed to see, or abort 404.
+
+    Scoped via the underlying QuoteRequest: admins see all the company's
+    orders, client_user sees only the orders flowing from QRs they
+    themselves created.
+    """
     db = get_db()
-    order = db.execute(
+    stmt = (
         select(Order)
         .join(Quote, Order.quote_id == Quote.id)
         .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
-        .where(Order.id == order_id, QuoteRequest.company_id == company_id)
-    ).scalar_one_or_none()
+        .where(Order.id == order_id, QuoteRequest.company_id == user.company_id)
+    )
+    own_only = own_requests_filter(user)
+    if own_only is not None:
+        stmt = stmt.where(own_only)
+    order = db.execute(stmt).scalar_one_or_none()
     if not order:
         abort(404)
     return order

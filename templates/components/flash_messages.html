@@ -7,8 +7,9 @@
 <div class="fixed top-4 left-0 right-0 z-50 px-4" style="pointer-events:none;">
   <div class="max-w-2xl mx-auto space-y-3">
     {% for category, message in messages %}
-    <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm border shadow-lg
+    <div class="flash-toast flex items-center justify-between px-4 py-3 rounded-xl text-sm border shadow-lg
       {% if category == 'success' %}text-green-800 bg-flash-success border-flash-success{% elif category == 'error' %}text-red-800 bg-error-light border-error{% else %}text-text bg-info border-info{% endif %}"
+      data-flash-category="{{ category }}"
       style="pointer-events:auto;">
       <div class="flex items-center gap-2">
         {% if category == 'success' %}
