@@ -28,7 +28,7 @@ flask-limiter==4.1.1
 dramatiq[redis]==1.17.0
 redis==5.0.3
 boto3==1.38.16
-Pillow==11.2.1
+Pillow==12.2.0
 pikepdf==9.7.0
 
 # --- dev / test ---
