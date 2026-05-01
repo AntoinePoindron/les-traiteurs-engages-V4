@@ -24,7 +24,11 @@ def _ensure_test_db():
         "DATABASE_URL", "postgresql://traiteurs:traiteurs@db:5432/traiteurs"
     )
     test_db_name = "traiteurs_test"
-    parent_engine = create_engine(parent_url, isolation_level="AUTOCOMMIT")
+    # Connect to the 'postgres' maintenance DB so we never hold a connection
+    # to traiteurs_test while trying to drop it (CI sets DATABASE_URL to
+    # traiteurs_test directly, causing "cannot drop the currently open database").
+    maint_url = parent_url.rsplit("/", 1)[0] + "/postgres"
+    parent_engine = create_engine(maint_url, isolation_level="AUTOCOMMIT")
     with parent_engine.connect() as conn:
         # Disconnect anyone holding the test DB open before dropping
         conn.execute(
