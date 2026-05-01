@@ -1,13 +1,11 @@
-import uuid
-
 from flask import abort, g, render_template, request, url_for
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 
 from blueprints.client._helpers import ORDER_STATUS_LABELS
 from blueprints.middleware import login_required, role_required
 from blueprints.scoping import get_company_order
 from database import get_db
-from models import MEAL_TYPE_LABELS, Order, OrderStatus, Quote, QuoteRequest
+from models import MEAL_TYPE_LABELS, Message, Order, OrderStatus, Quote, QuoteRequest
 
 
 # Filter tabs visible on /client/orders. Keys map to ?status= URL params,
@@ -76,14 +74,26 @@ def register(bp):
     @role_required("client_admin", "client_user")
     def order_detail(order_id):
         user = g.current_user
+        db = get_db()
         order = get_company_order(order_id, user.company_id)
 
         caterer = order.quote.caterer
         caterer_user = caterer.users[0] if caterer.users else None
         if caterer_user:
-            pair = sorted([str(user.id), str(caterer_user.id)])
-            thread_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{pair[0]}:{pair[1]}")
-            caterer_message_href = url_for("client.message_thread", thread_id=thread_id)
+            existing_tid = db.scalar(
+                select(Message.thread_id)
+                .where(
+                    or_(
+                        and_(Message.sender_id == user.id, Message.recipient_id == caterer_user.id),
+                        and_(Message.sender_id == caterer_user.id, Message.recipient_id == user.id),
+                    )
+                )
+                .limit(1)
+            )
+            if existing_tid:
+                caterer_message_href = url_for("client.message_thread", thread_id=existing_tid)
+            else:
+                caterer_message_href = url_for("client.messages")
         else:
             caterer_message_href = url_for("client.messages")
 

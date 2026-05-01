@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from flask import Blueprint, abort, g, jsonify, request
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
@@ -260,18 +260,18 @@ def send_message():
         if recipient_id not in allowed:
             return jsonify({"error": "Destinataire non autorise."}), 403
 
-    # DESIGN: thread_id is deterministic per pair of users.
-    # Any two users share exactly one thread, for life — messages about order
-    # #42 and order #87 pile up together. `Message.order_id` and
-    # `Message.quote_request_id` still scope individual messages, but the
-    # thread itself is one continuous conversation between the pair.
-    #
-    # Consequences: no archival, no per-context threads, no group chats.
-    # If the product ever needs any of those, generate a fresh random
-    # thread_id per conversation and attach it to the spawning context
-    # (order, quote_request) instead of hashing the user pair here.
-    pair = sorted([str(user.id), str(recipient_id)])
-    thread_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{pair[0]}:{pair[1]}")
+    # Thread per user-pair: look up existing thread or create a random one.
+    existing = db.scalar(
+        select(Message.thread_id)
+        .where(
+            or_(
+                and_(Message.sender_id == user.id, Message.recipient_id == recipient_id),
+                and_(Message.sender_id == recipient_id, Message.recipient_id == user.id),
+            )
+        )
+        .limit(1)
+    )
+    thread_id = existing if existing else uuid.uuid4()
 
     msg = Message(
         thread_id=thread_id,
