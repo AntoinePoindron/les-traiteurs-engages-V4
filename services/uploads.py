@@ -21,6 +21,7 @@ import os
 import uuid
 
 from botocore.exceptions import BotoCoreError, ClientError
+import pikepdf
 from PIL import Image
 from werkzeug.utils import secure_filename
 
@@ -142,6 +143,29 @@ def _reencode_image(stream, ext: str):
         return None
 
 
+def _reencode_pdf(stream):
+    """Re-save PDF via pikepdf to strip JavaScript, auto-open actions, and embedded files."""
+    try:
+        pdf = pikepdf.open(stream)
+        if pikepdf.Name.Names in pdf.Root:
+            names = pdf.Root[pikepdf.Name.Names]
+            for key in (pikepdf.Name.JavaScript, pikepdf.Name.EmbeddedFiles):
+                if key in names:
+                    del names[key]
+        if pikepdf.Name.OpenAction in pdf.Root:
+            del pdf.Root[pikepdf.Name.OpenAction]
+        if pikepdf.Name.AA in pdf.Root:
+            del pdf.Root[pikepdf.Name.AA]
+        buf = io.BytesIO()
+        pdf.save(buf)
+        buf.seek(0)
+        pdf.close()
+        return buf
+    except Exception:
+        logger.warning("pikepdf re-encode failed", exc_info=True)
+        return None
+
+
 # --- Save (public API) ---------------------------------------------------------
 
 def _validate(file):
@@ -212,7 +236,10 @@ def save_upload(file, subfolder: str = "general") -> str | None:
         return None
     declared_ext, safe_name = result
 
-    clean_buf = _reencode_image(file.stream, declared_ext)
+    if declared_ext == "pdf":
+        clean_buf = _reencode_pdf(file.stream)
+    else:
+        clean_buf = _reencode_image(file.stream, declared_ext)
     if clean_buf is not None:
         file.stream = clean_buf
     else:

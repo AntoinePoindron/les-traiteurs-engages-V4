@@ -29,6 +29,7 @@ dramatiq[redis]==1.17.0
 redis==5.0.3
 boto3==1.38.16
 Pillow==11.2.1
+pikepdf==9.7.0
 
 # --- dev / test ---
 pytest==9.0.3
