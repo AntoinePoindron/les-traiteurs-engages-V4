@@ -27,64 +27,89 @@ def register(bp):
         caterer = g.current_user.caterer
         db = get_db()
 
-        new_requests_count = db.scalar(
-            select(func.count(QuoteRequestCaterer.id))
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-            .where(QuoteRequestCaterer.status == QRCStatus.selected)
-        ) or 0
-
-        pending_quotes_count = db.scalar(
-            select(func.count(Quote.id))
-            .where(Quote.caterer_id == caterer.id)
-            .where(Quote.status == QuoteStatus.sent)
-        ) or 0
-
-        orders_in_progress_count = db.scalar(
-            select(func.count(Order.id))
-            .join(Quote, Order.quote_id == Quote.id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Order.status.in_([
-                OrderStatus.confirmed,
-                OrderStatus.delivered,
-                OrderStatus.invoicing,
-                OrderStatus.invoiced,
-            ]))
-        ) or 0
-
-        total_revenue = db.scalar(
-            select(func.sum(Payment.amount_to_caterer_cents))
-            .join(Order, Payment.order_id == Order.id)
-            .join(Quote, Order.quote_id == Quote.id)
-            .where(Quote.caterer_id == caterer.id)
-            .where(Payment.status == PaymentStatus.succeeded)
-        ) or 0
-
-        new_requests = db.scalars(
-            select(QuoteRequestCaterer)
-            .options(
-                joinedload(QuoteRequestCaterer.quote_request)
-                .joinedload(QuoteRequest.company)
+        new_requests_count = (
+            db.scalar(
+                select(func.count(QuoteRequestCaterer.id))
+                .where(QuoteRequestCaterer.caterer_id == caterer.id)
+                .where(QuoteRequestCaterer.status == QRCStatus.selected)
             )
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
-            .where(QuoteRequestCaterer.status == QRCStatus.selected)
-            .order_by(QuoteRequestCaterer.id.desc())
-            .limit(10)
-        ).unique().all()
+            or 0
+        )
 
-        upcoming_deliveries = db.scalars(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .options(
-                joinedload(Order.quote)
-                .joinedload(Quote.quote_request)
-                .joinedload(QuoteRequest.company)
+        pending_quotes_count = (
+            db.scalar(
+                select(func.count(Quote.id))
+                .where(Quote.caterer_id == caterer.id)
+                .where(Quote.status == QuoteStatus.sent)
             )
-            .where(Quote.caterer_id == caterer.id)
-            .where(Order.status == OrderStatus.confirmed)
-            .where(Order.delivery_date >= date.today())
-            .order_by(Order.delivery_date)
-            .limit(5)
-        ).unique().all()
+            or 0
+        )
+
+        orders_in_progress_count = (
+            db.scalar(
+                select(func.count(Order.id))
+                .join(Quote, Order.quote_id == Quote.id)
+                .where(Quote.caterer_id == caterer.id)
+                .where(
+                    Order.status.in_(
+                        [
+                            OrderStatus.confirmed,
+                            OrderStatus.delivered,
+                            OrderStatus.invoicing,
+                            OrderStatus.invoiced,
+                        ]
+                    )
+                )
+            )
+            or 0
+        )
+
+        total_revenue = (
+            db.scalar(
+                select(func.sum(Payment.amount_to_caterer_cents))
+                .join(Order, Payment.order_id == Order.id)
+                .join(Quote, Order.quote_id == Quote.id)
+                .where(Quote.caterer_id == caterer.id)
+                .where(Payment.status == PaymentStatus.succeeded)
+            )
+            or 0
+        )
+
+        new_requests = (
+            db.scalars(
+                select(QuoteRequestCaterer)
+                .options(
+                    joinedload(QuoteRequestCaterer.quote_request).joinedload(
+                        QuoteRequest.company
+                    )
+                )
+                .where(QuoteRequestCaterer.caterer_id == caterer.id)
+                .where(QuoteRequestCaterer.status == QRCStatus.selected)
+                .order_by(QuoteRequestCaterer.id.desc())
+                .limit(10)
+            )
+            .unique()
+            .all()
+        )
+
+        upcoming_deliveries = (
+            db.scalars(
+                select(Order)
+                .join(Quote, Order.quote_id == Quote.id)
+                .options(
+                    joinedload(Order.quote)
+                    .joinedload(Quote.quote_request)
+                    .joinedload(QuoteRequest.company)
+                )
+                .where(Quote.caterer_id == caterer.id)
+                .where(Order.status == OrderStatus.confirmed)
+                .where(Order.delivery_date >= date.today())
+                .order_by(Order.delivery_date)
+                .limit(5)
+            )
+            .unique()
+            .all()
+        )
 
         return render_template(
             "caterer/dashboard.html",

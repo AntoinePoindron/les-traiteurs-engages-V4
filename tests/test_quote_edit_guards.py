@@ -12,6 +12,7 @@ Background:
     Mitigation: refuse the edit unless status == draft. Same semantics as
     `submit_quote`, which only promotes draft -> sent.
 """
+
 import datetime as _dt
 import json
 from decimal import Decimal
@@ -64,12 +65,14 @@ def _seed_request_with_quote(status_literal: str):
         )
         s.add(quote)
         s.flush()
-        s.add(QuoteLine(
-            quote_id=quote.id,
-            description="Plateau initial",
-            unit_price_ht=Decimal("100"),
-            quantity=Decimal("10"),
-        ))
+        s.add(
+            QuoteLine(
+                quote_id=quote.id,
+                description="Plateau initial",
+                unit_price_ht=Decimal("100"),
+                quantity=Decimal("10"),
+            )
+        )
         s.commit()
         return qr.id, quote.id
     finally:
@@ -91,10 +94,15 @@ def _malicious_payload():
     """A line set whose total (€1) is dramatically lower than the seeded €1000.
     If the guard is missing, this would let the caterer shave the bill."""
     return {
-        "details": json.dumps([
-            {"description": "Plateau revu a la baisse",
-             "unit_price_ht": "0.10", "quantity": 10}
-        ]),
+        "details": json.dumps(
+            [
+                {
+                    "description": "Plateau revu a la baisse",
+                    "unit_price_ht": "0.10",
+                    "quantity": 10,
+                }
+            ]
+        ),
         "notes": "edit attempt",
         "valid_until": "",
     }
@@ -144,10 +152,15 @@ def test_editing_draft_quote_still_works(client, login):
     resp = client.post(
         f"/caterer/requests/{qr_id}/quote/{quote_id}/edit",
         data={
-            "details": json.dumps([
-                {"description": "Plateau revu",
-                 "unit_price_ht": "120", "quantity": 10}
-            ]),
+            "details": json.dumps(
+                [
+                    {
+                        "description": "Plateau revu",
+                        "unit_price_ht": "120",
+                        "quantity": 10,
+                    }
+                ]
+            ),
             "notes": "tweak",
             "valid_until": "",
         },

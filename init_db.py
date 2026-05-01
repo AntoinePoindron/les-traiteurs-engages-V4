@@ -3,6 +3,7 @@
 Schema management is owned by Alembic — run `alembic upgrade head` for that.
 This script is a no-op when ADMIN_INITIAL_PASSWORD is unset.
 """
+
 import bcrypt
 from sqlalchemy import select
 

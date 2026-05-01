@@ -7,6 +7,7 @@ silent actions).
 
 Never delete rows from `audit_logs` from application code.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -46,13 +47,15 @@ def log_admin_action(
         ip = request.remote_addr
         ua = (request.user_agent.string or "")[:500] or None
 
-    db.add(AuditLog(
-        actor_id=actor.id if actor else None,
-        actor_email=actor.email if actor else None,
-        action=action,
-        target_type=target_type,
-        target_id=target_id,
-        extra=extra,
-        ip_address=ip,
-        user_agent=ua,
-    ))
+    db.add(
+        AuditLog(
+            actor_id=actor.id if actor else None,
+            actor_email=actor.email if actor else None,
+            action=action,
+            target_type=target_type,
+            target_id=target_id,
+            extra=extra,
+            ip_address=ip,
+            user_agent=ua,
+        )
+    )

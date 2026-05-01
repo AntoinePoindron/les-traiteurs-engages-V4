@@ -11,6 +11,7 @@ numbering to a Postgres SEQUENCE. Required for French fiscal compliance
 Also makes `invoices.tva_rate` nullable so we can store NULL when a
 quote has zero HT (rather than fabricating a fake 10% rate).
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -73,5 +74,7 @@ def downgrade() -> None:
         "commission_invoices",
         type_="unique",
     )
-    op.execute("ALTER TABLE commission_invoices ALTER COLUMN invoice_number DROP DEFAULT")
+    op.execute(
+        "ALTER TABLE commission_invoices ALTER COLUMN invoice_number DROP DEFAULT"
+    )
     op.execute(f"DROP SEQUENCE IF EXISTS {SEQ_NAME}")

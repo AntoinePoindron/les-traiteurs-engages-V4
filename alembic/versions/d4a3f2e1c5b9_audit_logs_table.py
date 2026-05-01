@@ -8,6 +8,7 @@ Append-only journal of sensitive admin actions (caterer validation,
 quote-request qualification, etc.). Written by services.audit.log_admin_action.
 Application code never updates or deletes rows in this table.
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -32,7 +33,9 @@ def upgrade() -> None:
         sa.Column("extra", sa.JSON(), nullable=True),
         sa.Column("ip_address", sa.String(length=45), nullable=True),
         sa.Column("user_agent", sa.String(length=500), nullable=True),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.func.now(), nullable=False
+        ),
     )
     op.create_index("ix_audit_logs_actor_id", "audit_logs", ["actor_id"])
     op.create_index("ix_audit_logs_action", "audit_logs", ["action"])

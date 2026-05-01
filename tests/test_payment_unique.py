@@ -8,6 +8,7 @@ them, leaving the other stuck at `pending` forever.
 This test exercises the DB-level constraint directly: a second insert
 with the same stripe_invoice_id must raise IntegrityError.
 """
+
 import pytest
 
 
@@ -35,7 +36,8 @@ def _seed_order():
         caterer = s.scalar(select(Caterer).where(Caterer.siret == "98765432109876"))
         alice = s.scalar(select(User).where(User.email == "alice@test.local"))
         qr = QuoteRequest(company_id=acme.id, user_id=alice.id, guest_count=10)
-        s.add(qr); s.flush()
+        s.add(qr)
+        s.flush()
         quote = Quote(
             quote_request_id=qr.id,
             caterer_id=caterer.id,
@@ -43,13 +45,15 @@ def _seed_order():
             total_amount_ht=Decimal("100"),
             status=QuoteStatus.accepted,
         )
-        s.add(quote); s.flush()
+        s.add(quote)
+        s.flush()
         order = Order(
             quote_id=quote.id,
             client_admin_id=alice.id,
             status=OrderStatus.invoiced,
         )
-        s.add(order); s.commit()
+        s.add(order)
+        s.commit()
         return order.id, caterer.id
     finally:
         s.close()
@@ -67,24 +71,28 @@ def test_duplicate_stripe_invoice_id_is_rejected(app):
 
     s1 = session_factory()
     try:
-        s1.add(Payment(
-            order_id=order_id,
-            caterer_id=caterer_id,
-            stripe_invoice_id=invoice_id,
-            status=PaymentStatus.pending,
-        ))
+        s1.add(
+            Payment(
+                order_id=order_id,
+                caterer_id=caterer_id,
+                stripe_invoice_id=invoice_id,
+                status=PaymentStatus.pending,
+            )
+        )
         s1.commit()
     finally:
         s1.close()
 
     s2 = session_factory()
     try:
-        s2.add(Payment(
-            order_id=order_id,
-            caterer_id=caterer_id,
-            stripe_invoice_id=invoice_id,
-            status=PaymentStatus.pending,
-        ))
+        s2.add(
+            Payment(
+                order_id=order_id,
+                caterer_id=caterer_id,
+                stripe_invoice_id=invoice_id,
+                status=PaymentStatus.pending,
+            )
+        )
         with pytest.raises(IntegrityError):
             s2.commit()
     finally:

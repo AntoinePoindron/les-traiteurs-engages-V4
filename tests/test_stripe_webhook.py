@@ -11,6 +11,7 @@ conftest `_required_env` fixture rewrites `DATABASE_URL` at session start,
 and `database.engine` binds at module import — so we must defer these
 imports until inside test functions, after the fixture has run.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -290,7 +291,8 @@ def test_duplicate_event_id_is_idempotent(client, monkeypatch):
     header = _sign(payload, TEST_SECRET)
 
     r1 = client.post(
-        "/api/webhooks/stripe", data=payload,
+        "/api/webhooks/stripe",
+        data=payload,
         headers={"Content-Type": "application/json", "Stripe-Signature": header},
     )
     assert r1.status_code == 200
@@ -317,7 +319,8 @@ def test_duplicate_event_id_is_idempotent(client, monkeypatch):
 
     # Replay the exact same signed event.
     r2 = client.post(
-        "/api/webhooks/stripe", data=payload,
+        "/api/webhooks/stripe",
+        data=payload,
         headers={"Content-Type": "application/json", "Stripe-Signature": header},
     )
     assert r2.status_code == 200

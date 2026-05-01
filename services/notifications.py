@@ -4,7 +4,15 @@ from sqlalchemy.orm import Session
 from models import Notification
 
 
-def create_notification(session: Session, user_id, type, title, body, related_entity_type=None, related_entity_id=None):
+def create_notification(
+    session: Session,
+    user_id,
+    type,
+    title,
+    body,
+    related_entity_type=None,
+    related_entity_id=None,
+):
     notification = Notification(
         user_id=user_id,
         type=type,

@@ -14,6 +14,7 @@ Two safeguards keep that risk contained:
      Even if the flag accidentally leaked into prod, only the seven
      well-known demo accounts could be impersonated — not real users.
 """
+
 from __future__ import annotations
 
 from flask import Blueprint, abort, flash, redirect, request, session, url_for
@@ -27,13 +28,33 @@ devtools_bp = Blueprint("devtools", __name__, url_prefix="/dev")
 
 # Centralised so app.py can pass the same list to the template renderer.
 DEMO_ACCOUNTS = [
-    {"email": "admin@traiteurs-engages.fr",     "label": "Super Admin",          "role": "super_admin"},
-    {"email": "alice@acme-solutions.fr",        "label": "Alice (Acme)",         "role": "client_admin"},
-    {"email": "bob@techcorp.fr",                "label": "Bob (TechCorp)",       "role": "client_admin"},
-    {"email": "claire@acme-solutions.fr",       "label": "Claire (Acme)",        "role": "client_user"},
-    {"email": "contact@saveurs-solidaires.fr",  "label": "ESAT Saveurs",         "role": "caterer"},
-    {"email": "contact@traiteur-co.fr",         "label": "EA Traiteur & Co",     "role": "caterer"},
-    {"email": "contact@delices-engages.fr",     "label": "EI Delices Engages",   "role": "caterer"},
+    {
+        "email": "admin@traiteurs-engages.fr",
+        "label": "Super Admin",
+        "role": "super_admin",
+    },
+    {
+        "email": "alice@acme-solutions.fr",
+        "label": "Alice (Acme)",
+        "role": "client_admin",
+    },
+    {"email": "bob@techcorp.fr", "label": "Bob (TechCorp)", "role": "client_admin"},
+    {
+        "email": "claire@acme-solutions.fr",
+        "label": "Claire (Acme)",
+        "role": "client_user",
+    },
+    {
+        "email": "contact@saveurs-solidaires.fr",
+        "label": "ESAT Saveurs",
+        "role": "caterer",
+    },
+    {"email": "contact@traiteur-co.fr", "label": "EA Traiteur & Co", "role": "caterer"},
+    {
+        "email": "contact@delices-engages.fr",
+        "label": "EI Delices Engages",
+        "role": "caterer",
+    },
 ]
 _DEMO_EMAILS = {a["email"] for a in DEMO_ACCOUNTS}
 

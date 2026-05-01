@@ -3,6 +3,7 @@
 No DB, no app, no fixtures — pure Decimal math. These are the first real
 tests for the financial code path that ships numbers to Stripe.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -74,8 +75,10 @@ def test_guest_count_none_amount_per_person_is_zero():
 
 def test_mixed_tva_rates_grouped_correctly():
     lines = [
-        _line(section="principal", quantity=10, unit_price_ht=50, tva_rate=10),  # 500 HT
-        _line(section="boissons", quantity=5, unit_price_ht=10, tva_rate=20),    # 50 HT
+        _line(
+            section="principal", quantity=10, unit_price_ht=50, tva_rate=10
+        ),  # 500 HT
+        _line(section="boissons", quantity=5, unit_price_ht=10, tva_rate=20),  # 50 HT
     ]
     t = calculate_quote_totals(lines, guest_count=10)
     assert t["total_ht"] == Decimal("550.00")
@@ -93,10 +96,10 @@ def test_mixed_tva_rates_grouped_correctly():
 
 def test_section_totals_split_correctly():
     lines = [
-        _line(section="principal", quantity=10, unit_price_ht=40),   # 400
-        _line(section="principal", quantity=5,  unit_price_ht=20),   # 100
-        _line(section="boissons",  quantity=10, unit_price_ht=5),    # 50
-        _line(section="extras",    quantity=1,  unit_price_ht=25),   # 25
+        _line(section="principal", quantity=10, unit_price_ht=40),  # 400
+        _line(section="principal", quantity=5, unit_price_ht=20),  # 100
+        _line(section="boissons", quantity=10, unit_price_ht=5),  # 50
+        _line(section="extras", quantity=1, unit_price_ht=25),  # 25
     ]
     t = calculate_quote_totals(lines, guest_count=10)
     assert t["section_totals"]["principal"] == Decimal("500.00")
@@ -124,10 +127,12 @@ def test_platform_fee_is_5pct_of_ht():
 def test_platform_fee_independent_of_line_tva_rates():
     """Platform fee TVA is always 20 %, never follows the line TVA."""
     t_low = calculate_quote_totals(
-        [_line(quantity=10, unit_price_ht=100, tva_rate=10)], guest_count=10,
+        [_line(quantity=10, unit_price_ht=100, tva_rate=10)],
+        guest_count=10,
     )
     t_high = calculate_quote_totals(
-        [_line(quantity=10, unit_price_ht=100, tva_rate=20)], guest_count=10,
+        [_line(quantity=10, unit_price_ht=100, tva_rate=20)],
+        guest_count=10,
     )
     # Both should produce the same platform fee TTC because base HT is equal
     assert t_low["platform_fee_ttc"] == t_high["platform_fee_ttc"] == Decimal("60.00")
@@ -172,10 +177,19 @@ def test_returned_values_are_decimal_not_float():
         [_line(quantity=1, unit_price_ht=10, tva_rate=10)],
         guest_count=1,
     )
-    for key in ("total_ht", "total_tva", "total_ttc", "amount_per_person",
-                "platform_fee_ht", "platform_fee_tva", "platform_fee_ttc",
-                "valorisable_agefiph"):
-        assert isinstance(t[key], Decimal), f"{key} should be Decimal, got {type(t[key])}"
+    for key in (
+        "total_ht",
+        "total_tva",
+        "total_ttc",
+        "amount_per_person",
+        "platform_fee_ht",
+        "platform_fee_tva",
+        "platform_fee_ttc",
+        "valorisable_agefiph",
+    ):
+        assert isinstance(t[key], Decimal), (
+            f"{key} should be Decimal, got {type(t[key])}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -210,18 +224,37 @@ def test_line_missing_fields_default_to_zero():
     "lines,guests,expected_ttc,expected_per_person,expected_fee_ttc",
     [
         # Buffet déjeuner 20 couverts
-        ([_line(quantity=20, unit_price_ht=35, tva_rate=10)],
-         20, Decimal("770.00"), Decimal("38.50"), Decimal("42.00")),
+        (
+            [_line(quantity=20, unit_price_ht=35, tva_rate=10)],
+            20,
+            Decimal("770.00"),
+            Decimal("38.50"),
+            Decimal("42.00"),
+        ),
         # Cocktail 50 couverts avec boissons TVA 20
-        ([_line(section="principal", quantity=50, unit_price_ht=15, tva_rate=10),
-          _line(section="boissons",  quantity=50, unit_price_ht=4,  tva_rate=20)],
-         50, Decimal("1065.00"), Decimal("21.30"), Decimal("57.00")),
+        (
+            [
+                _line(section="principal", quantity=50, unit_price_ht=15, tva_rate=10),
+                _line(section="boissons", quantity=50, unit_price_ht=4, tva_rate=20),
+            ],
+            50,
+            Decimal("1065.00"),
+            Decimal("21.30"),
+            Decimal("57.00"),
+        ),
         # Dîner premium
-        ([_line(quantity=12, unit_price_ht=85, tva_rate=10)],
-         12, Decimal("1122.00"), Decimal("93.50"), Decimal("61.20")),
+        (
+            [_line(quantity=12, unit_price_ht=85, tva_rate=10)],
+            12,
+            Decimal("1122.00"),
+            Decimal("93.50"),
+            Decimal("61.20"),
+        ),
     ],
 )
-def test_realistic_scenarios(lines, guests, expected_ttc, expected_per_person, expected_fee_ttc):
+def test_realistic_scenarios(
+    lines, guests, expected_ttc, expected_per_person, expected_fee_ttc
+):
     t = calculate_quote_totals(lines, guest_count=guests)
     assert t["total_ttc"] == expected_ttc
     assert t["amount_per_person"] == expected_per_person

@@ -52,16 +52,20 @@ def lines_from_dicts(line_dicts: list[dict]) -> list[QuoteLine]:
         if quantity * unit_price_ht > MAX_LINE_TOTAL_HT:
             raise ValueError(f"line {i}: line total exceeds {MAX_LINE_TOTAL_HT} EUR")
         if tva_rate not in LEGAL_TVA_RATES:
-            raise ValueError(f"line {i}: tva_rate {tva_rate} not in {sorted(LEGAL_TVA_RATES)}")
+            raise ValueError(
+                f"line {i}: tva_rate {tva_rate} not in {sorted(LEGAL_TVA_RATES)}"
+            )
 
-        result.append(QuoteLine(
-            position=i,
-            section=str(d.get("section") or "principal")[:50],
-            description=d.get("description") or None,
-            quantity=quantity,
-            unit_price_ht=unit_price_ht,
-            tva_rate=tva_rate,
-        ))
+        result.append(
+            QuoteLine(
+                position=i,
+                section=str(d.get("section") or "principal")[:50],
+                description=d.get("description") or None,
+                quantity=quantity,
+                unit_price_ht=unit_price_ht,
+                tva_rate=tva_rate,
+            )
+        )
     return result
 
 
@@ -145,7 +149,9 @@ def calculate_quote_totals(details, guest_count, commission_rate=None):
     platform_fee_tva = platform_fee_ht * Decimal("0.20")
     platform_fee_ttc = platform_fee_ht + platform_fee_tva
 
-    amount_per_person = total_ttc / Decimal(str(guest_count)) if guest_count else Decimal("0")
+    amount_per_person = (
+        total_ttc / Decimal(str(guest_count)) if guest_count else Decimal("0")
+    )
 
     # AGEFIPH: total HT is valorisable for ESAT/EA structures
     valorisable_agefiph = total_ht

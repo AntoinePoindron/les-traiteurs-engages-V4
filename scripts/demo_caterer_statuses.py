@@ -17,6 +17,7 @@ before re-creating it, so it's safe to call after every db reset.
 Pre-req: scripts/seed_data.py must have run first (we reuse its caterer
 ESAT and the Acme Solutions client, instead of re-seeding the world).
 """
+
 from __future__ import annotations
 
 import datetime
@@ -61,9 +62,7 @@ def _wipe_previous_fixtures(db) -> int:
     we don't leave orphans.
     """
     old_qrs = db.scalars(
-        select(QuoteRequest).where(
-            QuoteRequest.message_to_caterer.like(f"{DEMO_TAG}%")
-        )
+        select(QuoteRequest).where(QuoteRequest.message_to_caterer.like(f"{DEMO_TAG}%"))
     ).all()
     for qr in old_qrs:
         for qrc in list(qr.caterers):
@@ -85,18 +84,17 @@ def main():
 
     with get_session() as db:
         # --- Resolve seed dependencies ---
-        caterer = db.scalar(
-            select(Caterer).where(Caterer.siret == "11111111111111")
-        )
+        caterer = db.scalar(select(Caterer).where(Caterer.siret == "11111111111111"))
         if not caterer:
             print("Caterer ESAT not found — run seed_data.py first.", file=sys.stderr)
             sys.exit(1)
 
-        company = db.scalar(
-            select(Company).where(Company.name == "Acme Solutions")
-        )
+        company = db.scalar(select(Company).where(Company.name == "Acme Solutions"))
         if not company:
-            print("Company 'Acme Solutions' not found — run seed_data.py first.", file=sys.stderr)
+            print(
+                "Company 'Acme Solutions' not found — run seed_data.py first.",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         client_admin = db.scalar(
@@ -105,7 +103,10 @@ def main():
             .where(User.company_id == company.id)
         )
         if not client_admin:
-            print("No client_admin found for Acme — run seed_data.py first.", file=sys.stderr)
+            print(
+                "No client_admin found for Acme — run seed_data.py first.",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         # --- Wipe previous demo fixtures so the script stays idempotent ---
@@ -191,34 +192,36 @@ def main():
         db.flush()
 
         # --- QRCs (one per QR, all targeting our caterer) ---
-        db.add_all([
-            QuoteRequestCaterer(
-                quote_request_id=qr_new.id,
-                caterer_id=caterer.id,
-                status=QRCStatus.selected,
-            ),
-            QuoteRequestCaterer(
-                quote_request_id=qr_sent.id,
-                caterer_id=caterer.id,
-                status=QRCStatus.transmitted_to_client,
-                responded_at=now - datetime.timedelta(days=1),
-                response_rank=1,
-            ),
-            QuoteRequestCaterer(
-                quote_request_id=qr_refused.id,
-                caterer_id=caterer.id,
-                status=QRCStatus.transmitted_to_client,
-                responded_at=now - datetime.timedelta(days=4),
-                response_rank=1,
-            ),
-            QuoteRequestCaterer(
-                quote_request_id=qr_accepted.id,
-                caterer_id=caterer.id,
-                status=QRCStatus.transmitted_to_client,
-                responded_at=now - datetime.timedelta(days=8),
-                response_rank=1,
-            ),
-        ])
+        db.add_all(
+            [
+                QuoteRequestCaterer(
+                    quote_request_id=qr_new.id,
+                    caterer_id=caterer.id,
+                    status=QRCStatus.selected,
+                ),
+                QuoteRequestCaterer(
+                    quote_request_id=qr_sent.id,
+                    caterer_id=caterer.id,
+                    status=QRCStatus.transmitted_to_client,
+                    responded_at=now - datetime.timedelta(days=1),
+                    response_rank=1,
+                ),
+                QuoteRequestCaterer(
+                    quote_request_id=qr_refused.id,
+                    caterer_id=caterer.id,
+                    status=QRCStatus.transmitted_to_client,
+                    responded_at=now - datetime.timedelta(days=4),
+                    response_rank=1,
+                ),
+                QuoteRequestCaterer(
+                    quote_request_id=qr_accepted.id,
+                    caterer_id=caterer.id,
+                    status=QRCStatus.transmitted_to_client,
+                    responded_at=now - datetime.timedelta(days=8),
+                    response_rank=1,
+                ),
+            ]
+        )
         db.flush()
 
         # --- Quotes (3 of 4 — "Nouvelle" deliberately has none) ---
@@ -238,10 +241,22 @@ def main():
             valid_until=today + datetime.timedelta(days=30),
             status=QuoteStatus.sent,
             lines=[
-                QuoteLine(position=0, section="principal", description="Buffet cocktail",
-                          quantity=Decimal("40"), unit_price_ht=Decimal("40"), tva_rate=Decimal("10")),
-                QuoteLine(position=1, section="boissons", description="Boissons sans alcool",
-                          quantity=Decimal("40"), unit_price_ht=Decimal("5"), tva_rate=Decimal("10")),
+                QuoteLine(
+                    position=0,
+                    section="principal",
+                    description="Buffet cocktail",
+                    quantity=Decimal("40"),
+                    unit_price_ht=Decimal("40"),
+                    tva_rate=Decimal("10"),
+                ),
+                QuoteLine(
+                    position=1,
+                    section="boissons",
+                    description="Boissons sans alcool",
+                    quantity=Decimal("40"),
+                    unit_price_ht=Decimal("5"),
+                    tva_rate=Decimal("10"),
+                ),
             ],
         )
 
@@ -260,8 +275,14 @@ def main():
                 "annuelle pour les petits-dejeuners de ce trimestre."
             ),
             lines=[
-                QuoteLine(position=0, section="principal", description="Petit-dejeuner buffet",
-                          quantity=Decimal("15"), unit_price_ht=Decimal("28"), tva_rate=Decimal("10")),
+                QuoteLine(
+                    position=0,
+                    section="principal",
+                    description="Petit-dejeuner buffet",
+                    quantity=Decimal("15"),
+                    unit_price_ht=Decimal("28"),
+                    tva_rate=Decimal("10"),
+                ),
             ],
         )
 
@@ -276,10 +297,22 @@ def main():
             valid_until=today + datetime.timedelta(days=20),
             status=QuoteStatus.accepted,
             lines=[
-                QuoteLine(position=0, section="principal", description="Diner 3 services",
-                          quantity=Decimal("30"), unit_price_ht=Decimal("50"), tva_rate=Decimal("10")),
-                QuoteLine(position=1, section="boissons", description="Vin et boissons",
-                          quantity=Decimal("30"), unit_price_ht=Decimal("6.67"), tva_rate=Decimal("20")),
+                QuoteLine(
+                    position=0,
+                    section="principal",
+                    description="Diner 3 services",
+                    quantity=Decimal("30"),
+                    unit_price_ht=Decimal("50"),
+                    tva_rate=Decimal("10"),
+                ),
+                QuoteLine(
+                    position=1,
+                    section="boissons",
+                    description="Vin et boissons",
+                    quantity=Decimal("30"),
+                    unit_price_ht=Decimal("6.67"),
+                    tva_rate=Decimal("20"),
+                ),
             ],
         )
 
@@ -305,7 +338,9 @@ def main():
         print("Visit /caterer/requests to see all four:")
         print("  1. Nouvelle           - Dejeuner 25 pers., Paris")
         print("  2. Devis envoye       - Cocktail 40 pers., Paris")
-        print("  3. Devis refuse       - Petit-dejeuner 15 pers., Paris (with refusal reason)")
+        print(
+            "  3. Devis refuse       - Petit-dejeuner 15 pers., Paris (with refusal reason)"
+        )
         print("  4. Commande creee    - Diner 30 pers., Paris (with order)")
 
 

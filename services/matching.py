@@ -2,7 +2,7 @@ import math
 
 from sqlalchemy import select
 
-from models import Caterer, QuoteRequest
+from models import Caterer
 
 
 def haversine_km(lat1, lng1, lat2, lng2):
@@ -12,7 +12,9 @@ def haversine_km(lat1, lng1, lat2, lng2):
     dlng = math.radians(lng2 - lng1)
     a = (
         math.sin(dlat / 2) ** 2
-        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(dlng / 2) ** 2
     )
     return 2 * r * math.asin(math.sqrt(a))
 
@@ -31,7 +33,9 @@ def find_matching_caterers(session, quote_request):
     if quote_request.event_latitude is None or quote_request.event_longitude is None:
         return []
 
-    caterers = session.scalars(select(Caterer).where(Caterer.is_validated.is_(True))).all()
+    caterers = session.scalars(
+        select(Caterer).where(Caterer.is_validated.is_(True))
+    ).all()
     results = []
 
     for caterer in caterers:
@@ -49,9 +53,15 @@ def find_matching_caterers(session, quote_request):
             continue
 
         if quote_request.guest_count is not None:
-            if caterer.capacity_min and quote_request.guest_count < caterer.capacity_min:
+            if (
+                caterer.capacity_min
+                and quote_request.guest_count < caterer.capacity_min
+            ):
                 continue
-            if caterer.capacity_max and quote_request.guest_count > caterer.capacity_max:
+            if (
+                caterer.capacity_max
+                and quote_request.guest_count > caterer.capacity_max
+            ):
                 continue
 
         if not _dietary_compatible(quote_request, caterer):
@@ -76,5 +86,9 @@ def _dietary_compatible(request, caterer):
 def _service_compatible(request, caterer):
     if not request.meal_type or not caterer.service_config:
         return True
-    meal = request.meal_type.value if hasattr(request.meal_type, "value") else request.meal_type
+    meal = (
+        request.meal_type.value
+        if hasattr(request.meal_type, "value")
+        else request.meal_type
+    )
     return caterer.service_config.get(meal, False)

@@ -11,6 +11,7 @@ Before the fix, `amount_to_caterer_cents` was recorded as
 which double-deducts the fee and makes the ledger understate caterer
 payouts by fee_ttc.
 """
+
 from decimal import Decimal
 
 
@@ -23,9 +24,9 @@ def test_split_invoice_amounts_matches_stripe_transfer():
     """
     from services.stripe_service import split_invoice_amounts
 
-    total_ttc = Decimal("120.00")     # e.g. 100 HT + 20 TVA
-    fee_ht = Decimal("5.00")          # 5% of 100 HT
-    fee_tva = Decimal("1.00")         # 20% TVA on 5 HT
+    total_ttc = Decimal("120.00")  # e.g. 100 HT + 20 TVA
+    fee_ht = Decimal("5.00")  # 5% of 100 HT
+    fee_tva = Decimal("1.00")  # 20% TVA on 5 HT
 
     result = split_invoice_amounts(
         total_ttc=total_ttc,

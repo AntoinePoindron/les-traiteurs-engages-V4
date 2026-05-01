@@ -8,6 +8,7 @@ this module is ~150 LOC shorter and closes audit Vuln 5 (no replay-attack
 tolerance) by using `stripe.Webhook.construct_event` which enforces a
 timestamp window by default.
 """
+
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -41,6 +42,7 @@ class InvoiceAmounts:
     Invariant: `amount_to_caterer_cents + application_fee_cents ==
     invoice_total_cents`.
     """
+
     invoice_total_cents: int
     application_fee_cents: int
     amount_to_caterer_cents: int
@@ -75,6 +77,7 @@ def split_invoice_amounts(
         application_fee_cents=fee_ttc_cents,
         amount_to_caterer_cents=invoice_total_cents - fee_ttc_cents,
     )
+
 
 # Pin the API version so Stripe-side changes don't silently change behavior.
 # Bump deliberately after testing each new version.
@@ -179,7 +182,9 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
         for ln in quote.lines
     ]
     totals = calculate_quote_totals(
-        line_dicts, quote.quote_request.guest_count, commission_rate=caterer.commission_rate
+        line_dicts,
+        quote.quote_request.guest_count,
+        commission_rate=caterer.commission_rate,
     )
 
     customer_id = get_or_create_customer(session, client_user)
@@ -274,7 +279,9 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
     total_tva = totals["total_tva"]
     # Single-rate weighted average; if base is zero we have no rate to report
     # rather than fabricate one. Mixed-rate quotes need a richer model later.
-    avg_tva_rate = (total_tva / total_ht).quantize(Decimal("0.0001")) if total_ht else None
+    avg_tva_rate = (
+        (total_tva / total_ht).quantize(Decimal("0.0001")) if total_ht else None
+    )
 
     invoice_record = Invoice(
         order_id=order.id,
@@ -282,9 +289,11 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
         reference=invoice_ref,
         amount_ht=total_ht,
         tva_rate=avg_tva_rate,
-        amount_ttc=total_ttc,
+        amount_ttc=totals["total_ttc"],
         valorisable_agefiph=totals["valorisable_agefiph"],
-        esat_mention=f"Structure {caterer.structure_type}" if caterer.structure_type else None,
+        esat_mention=f"Structure {caterer.structure_type}"
+        if caterer.structure_type
+        else None,
     )
     session.add(invoice_record)
 

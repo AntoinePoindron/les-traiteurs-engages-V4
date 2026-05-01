@@ -10,6 +10,7 @@ check tolerates a 300s window in which an attacker could replay a captured
 body+signature. Inserting event.id inside the handler gives us an atomic
 "already processed" signal via UNIQUE violation.
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -27,7 +28,9 @@ def upgrade() -> None:
         "stripe_events",
         sa.Column("id", sa.String(length=255), primary_key=True),
         sa.Column("event_type", sa.String(length=100), nullable=False),
-        sa.Column("received_at", sa.DateTime(), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "received_at", sa.DateTime(), server_default=sa.func.now(), nullable=False
+        ),
     )
 
 

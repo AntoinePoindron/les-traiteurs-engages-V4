@@ -11,8 +11,18 @@ from extensions import csrf, limiter
 from blueprints.middleware import login_required
 from database import get_db
 from models import (
-    Caterer, Message, Notification, Order, OrderStatus, Payment,
-    PaymentStatus, Quote, QuoteRequest, QuoteRequestCaterer, StripeEvent, User,
+    Caterer,
+    Message,
+    Notification,
+    Order,
+    OrderStatus,
+    Payment,
+    PaymentStatus,
+    Quote,
+    QuoteRequest,
+    QuoteRequestCaterer,
+    StripeEvent,
+    User,
 )
 from services.audit import log_admin_action
 from services.notifications import create_notification, get_unread_count, mark_as_read
@@ -43,7 +53,9 @@ def stripe_webhook():
     sig_header = request.headers.get("Stripe-Signature", "")
 
     try:
-        event = verify_webhook_signature(payload, sig_header, config.STRIPE_WEBHOOK_SECRET)
+        event = verify_webhook_signature(
+            payload, sig_header, config.STRIPE_WEBHOOK_SECRET
+        )
     except ValueError:
         logger.warning("Invalid Stripe webhook signature")
         return jsonify({"error": "invalid signature"}), 400
@@ -97,7 +109,8 @@ def stripe_webhook():
         elif payment:
             logger.warning(
                 "Ignoring stale invoice.payment_failed for payment %s (current status: %s)",
-                payment.id, payment.status,
+                payment.id,
+                payment.status,
             )
         db.commit()
 
@@ -107,8 +120,12 @@ def stripe_webhook():
             select(Caterer).where(Caterer.stripe_account_id == account_id)
         )
         if caterer:
-            caterer.stripe_charges_enabled = _field(data_object, "charges_enabled", False)
-            caterer.stripe_payouts_enabled = _field(data_object, "payouts_enabled", False)
+            caterer.stripe_charges_enabled = _field(
+                data_object, "charges_enabled", False
+            )
+            caterer.stripe_payouts_enabled = _field(
+                data_object, "payouts_enabled", False
+            )
         db.commit()
 
     return jsonify({"status": "ok"}), 200
@@ -131,14 +148,19 @@ def get_messages(thread_id):
             or_(Message.sender_id == user.id, Message.recipient_id == user.id)
         )
     else:
-        log_admin_action(db, user, "message.admin_view",
-                         target_type="thread", target_id=thread_id)
+        log_admin_action(
+            db, user, "message.admin_view", target_type="thread", target_id=thread_id
+        )
     messages = db.scalars(stmt).all()
 
     if not is_admin:
         db.execute(
             Message.__table__.update()
-            .where(Message.thread_id == thread_id, Message.recipient_id == user.id, Message.is_read.is_(False))
+            .where(
+                Message.thread_id == thread_id,
+                Message.recipient_id == user.id,
+                Message.is_read.is_(False),
+            )
             .values(is_read=True)
         )
     db.commit()
@@ -146,16 +168,20 @@ def get_messages(thread_id):
     result = []
     for msg in messages:
         sender = msg.sender
-        result.append({
-            "id": str(msg.id),
-            "thread_id": str(msg.thread_id),
-            "sender_id": str(msg.sender_id),
-            "recipient_id": str(msg.recipient_id),
-            "sender_name": f"{sender.first_name} {sender.last_name}" if sender else "Inconnu",
-            "body": msg.body,
-            "is_read": msg.is_read,
-            "created_at": msg.created_at.isoformat(),
-        })
+        result.append(
+            {
+                "id": str(msg.id),
+                "thread_id": str(msg.thread_id),
+                "sender_id": str(msg.sender_id),
+                "recipient_id": str(msg.recipient_id),
+                "sender_name": f"{sender.first_name} {sender.last_name}"
+                if sender
+                else "Inconnu",
+                "body": msg.body,
+                "is_read": msg.is_read,
+                "created_at": msg.created_at.isoformat(),
+            }
+        )
     return jsonify({"messages": result})
 
 
@@ -251,9 +277,11 @@ def send_message():
     is_admin = user.role == "super_admin"
     if not is_admin:
         if not order_id and not quote_request_id:
-            return jsonify({
-                "error": "Le message doit etre lie a une commande ou une demande de devis."
-            }), 400
+            return jsonify(
+                {
+                    "error": "Le message doit etre lie a une commande ou une demande de devis."
+                }
+            ), 400
         allowed = _allowed_recipients_for(
             db, user, order_id=order_id, quote_request_id=quote_request_id
         )
@@ -265,8 +293,12 @@ def send_message():
         select(Message.thread_id)
         .where(
             or_(
-                and_(Message.sender_id == user.id, Message.recipient_id == recipient_id),
-                and_(Message.sender_id == recipient_id, Message.recipient_id == user.id),
+                and_(
+                    Message.sender_id == user.id, Message.recipient_id == recipient_id
+                ),
+                and_(
+                    Message.sender_id == recipient_id, Message.recipient_id == user.id
+                ),
             )
         )
         .limit(1)
@@ -310,13 +342,16 @@ def get_notifications():
         .order_by(Notification.created_at.desc())
         .limit(20)
     ).all()
-    result = [{
-        "id": str(n.id),
-        "type": n.type,
-        "title": n.title,
-        "body": n.body,
-        "created_at": n.created_at.isoformat(),
-    } for n in notifications]
+    result = [
+        {
+            "id": str(n.id),
+            "type": n.type,
+            "title": n.title,
+            "body": n.body,
+            "created_at": n.created_at.isoformat(),
+        }
+        for n in notifications
+    ]
     return jsonify({"unread_count": count, "notifications": result})
 
 

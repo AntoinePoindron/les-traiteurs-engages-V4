@@ -1,7 +1,16 @@
 import os
 from datetime import timedelta
 
-from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -12,8 +21,17 @@ from database import ScopedSession, get_db
 from extensions import csrf, limiter
 from logging_config import configure_logging, install_request_id_hooks
 from models import (
-    Caterer, Company, MembershipStatus, Order, OrderStatus, PaymentStatus,
-    QRCStatus, QuoteRequestStatus, QuoteStatus, User, UserRole,
+    Caterer,
+    Company,
+    MembershipStatus,
+    Order,
+    OrderStatus,
+    PaymentStatus,
+    QRCStatus,
+    QuoteRequestStatus,
+    QuoteStatus,
+    User,
+    UserRole,
 )
 
 # A non-active membership status should not authorize action. Only users
@@ -114,6 +132,7 @@ def create_app():
     demo_mode = os.getenv("ENABLE_DEMO_SEED") == "1"
     if demo_mode:
         from blueprints.devtools import devtools_bp, DEMO_ACCOUNTS
+
         app.register_blueprint(devtools_bp)
     else:
         DEMO_ACCOUNTS = []
@@ -129,14 +148,14 @@ def create_app():
     # Avoids relying on ADMIN_INITIAL_PASSWORD env var for day-to-day admin
     # lifecycle (P3.2).
     from cli import admin_cli
+
     app.cli.add_command(admin_cli)
 
     @app.before_request
     def load_current_user():
         g.current_user = None
         if request.endpoint and (
-            request.endpoint in ("static", "health")
-            or (request.blueprint == "auth")
+            request.endpoint in ("static", "health") or (request.blueprint == "auth")
         ):
             return
         user_id = session.get("user_id")
@@ -207,7 +226,9 @@ def create_app():
         # Render the styled template so the user gets the same shell as the
         # rest of the site and a clear "wait a bit" message.
         if request.path.startswith("/api/"):
-            return jsonify({"error": "Trop de tentatives. Patientez quelques minutes."}), 429
+            return jsonify(
+                {"error": "Trop de tentatives. Patientez quelques minutes."}
+            ), 429
         return render_template("errors/429.html"), 429
 
     @app.errorhandler(413)
@@ -240,13 +261,19 @@ def create_app():
             endpoint = role_dashboards.get(user.role, "client.dashboard")
             return redirect(url_for(endpoint))
         db = get_db()
-        caterer_count = db.scalar(
-            select(func.count(Caterer.id)).where(Caterer.is_validated.is_(True))
-        ) or 0
+        caterer_count = (
+            db.scalar(
+                select(func.count(Caterer.id)).where(Caterer.is_validated.is_(True))
+            )
+            or 0
+        )
         company_count = db.scalar(select(func.count(Company.id))) or 0
-        order_count = db.scalar(
-            select(func.count(Order.id)).where(Order.status == OrderStatus.paid)
-        ) or 0
+        order_count = (
+            db.scalar(
+                select(func.count(Order.id)).where(Order.status == OrderStatus.paid)
+            )
+            or 0
+        )
         return render_template(
             "landing.html",
             caterer_count=caterer_count,
@@ -264,5 +291,6 @@ if __name__ == "__main__":
     # ignores this block entirely, so the practical risk is a `python app.py`
     # in dev with FLASK_DEBUG accidentally set in the environment.
     import os
+
     debug_flag = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
     create_app().run(debug=debug_flag, port=8000)

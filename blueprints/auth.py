@@ -6,7 +6,15 @@ from sqlalchemy import select
 
 from database import get_db
 from extensions import limiter
-from models import Caterer, Company, CompanyEmployee, CompanyService, MembershipStatus, User, UserRole
+from models import (
+    Caterer,
+    Company,
+    CompanyEmployee,
+    CompanyService,
+    MembershipStatus,
+    User,
+    UserRole,
+)
 from services.slugs import generate_invoice_prefix
 
 auth_bp = Blueprint("auth", __name__)
@@ -24,12 +32,36 @@ SIGNUP_LIMIT = os.environ.get("SIGNUP_LIMIT", "5 per hour")
 # blocklist. For a stronger check, plug in zxcvbn or Have-I-Been-Pwned later.
 PASSWORD_MIN_LENGTH = 12
 PASSWORD_BLOCKLIST = {
-    "password", "password1", "password123", "passw0rd", "motdepasse",
-    "azerty", "azerty123", "qwerty", "qwerty123", "qwertyuiop",
-    "123456", "123456789", "1234567890", "111111", "000000", "12345678",
-    "iloveyou", "admin", "admin123", "letmein", "welcome", "welcome1",
-    "monkey", "dragon", "abc123", "abcdef", "changeme", "changeme123",
-    "secret", "test1234",
+    "password",
+    "password1",
+    "password123",
+    "passw0rd",
+    "motdepasse",
+    "azerty",
+    "azerty123",
+    "qwerty",
+    "qwerty123",
+    "qwertyuiop",
+    "123456",
+    "123456789",
+    "1234567890",
+    "111111",
+    "000000",
+    "12345678",
+    "iloveyou",
+    "admin",
+    "admin123",
+    "letmein",
+    "welcome",
+    "welcome1",
+    "monkey",
+    "dragon",
+    "abc123",
+    "abcdef",
+    "changeme",
+    "changeme123",
+    "secret",
+    "test1234",
 }
 
 # Pre-computed dummy hash so /login always pays bcrypt's cost, whether the
@@ -44,21 +76,26 @@ _DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"timing-safe-dummy", bcrypt.gensalt()).dec
 def validate_password(password: str) -> str | None:
     """Return None if the password passes policy, else a user-facing error."""
     if len(password) < PASSWORD_MIN_LENGTH:
-        return f"Le mot de passe doit comporter au moins {PASSWORD_MIN_LENGTH} caracteres."
+        return (
+            f"Le mot de passe doit comporter au moins {PASSWORD_MIN_LENGTH} caracteres."
+        )
     if password.lower() in PASSWORD_BLOCKLIST:
         return "Ce mot de passe est trop courant. Choisissez-en un plus original."
-    classes = sum([
-        any(c.islower() for c in password),
-        any(c.isupper() for c in password),
-        any(c.isdigit() for c in password),
-        any(not c.isalnum() for c in password),
-    ])
+    classes = sum(
+        [
+            any(c.islower() for c in password),
+            any(c.isupper() for c in password),
+            any(c.isdigit() for c in password),
+            any(not c.isalnum() for c in password),
+        ]
+    )
     if classes < 3:
         return (
             "Le mot de passe doit contenir au moins 3 categories de caracteres "
             "parmi : minuscules, majuscules, chiffres, caracteres speciaux."
         )
     return None
+
 
 ROLE_DASHBOARDS = {
     UserRole.client_admin: "client.dashboard",
@@ -78,9 +115,7 @@ def login():
             flash("Veuillez remplir tous les champs.", "error")
             return render_template("auth/login.html")
         db = get_db()
-        user = db.execute(
-            select(User).where(User.email == email)
-        ).scalar_one_or_none()
+        user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
         # VULN-102: always pay the bcrypt cost — comparing against a dummy
         # hash when the user does not exist keeps the response time
         # constant (~250 ms in both branches) and prevents email
@@ -226,15 +261,17 @@ def signup():
             )
             db.add(direction_service)
             db.flush()
-            db.add(CompanyEmployee(
-                company_id=company.id,
-                service_id=direction_service.id,
-                first_name=first_name,
-                last_name=last_name,
-                email=email,
-                position="Administrateur",
-                user_id=user.id,
-            ))
+            db.add(
+                CompanyEmployee(
+                    company_id=company.id,
+                    service_id=direction_service.id,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=email,
+                    position="Administrateur",
+                    user_id=user.id,
+                )
+            )
             db.commit()
 
             session["user_id"] = str(user.id)
@@ -257,7 +294,10 @@ def signup():
             zip_code = request.form.get("zip_code", "").strip()
 
             if not all([caterer_name, structure_type]):
-                flash("Le nom du traiteur et le type de structure sont obligatoires.", "error")
+                flash(
+                    "Le nom du traiteur et le type de structure sont obligatoires.",
+                    "error",
+                )
                 return render_template("auth/signup.html")
 
             invoice_prefix = generate_invoice_prefix(db)

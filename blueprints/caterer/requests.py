@@ -1,6 +1,14 @@
 import json
 
-from flask import abort, flash, g, redirect, render_template, request as flask_request, url_for
+from flask import (
+    abort,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request as flask_request,
+    url_for,
+)
 from sqlalchemy import select
 
 from blueprints.middleware import login_required, role_required
@@ -17,7 +25,11 @@ from models import (
     QuoteStatus,
 )
 from services import workflow
-from services.quotes import calculate_quote_totals, generate_quote_reference, lines_from_dicts
+from services.quotes import (
+    calculate_quote_totals,
+    generate_quote_reference,
+    lines_from_dicts,
+)
 
 
 def _parse_line_dicts(raw: str) -> list[dict]:
@@ -68,9 +80,8 @@ def register(bp):
         caterer = g.current_user.caterer
         status_filter = flask_request.args.get("status")
         db = get_db()
-        stmt = (
-            select(QuoteRequestCaterer)
-            .where(QuoteRequestCaterer.caterer_id == caterer.id)
+        stmt = select(QuoteRequestCaterer).where(
+            QuoteRequestCaterer.caterer_id == caterer.id
         )
         if status_filter:
             try:
@@ -236,7 +247,9 @@ def register(bp):
                 preview_reference=generate_quote_reference(db, caterer),
                 meal_type_labels=MEAL_TYPE_LABELS,
             ), 400
-        totals = calculate_quote_totals(line_dicts, qr.guest_count, commission_rate=caterer.commission_rate)
+        totals = calculate_quote_totals(
+            line_dicts, qr.guest_count, commission_rate=caterer.commission_rate
+        )
         reference = generate_quote_reference(db, caterer)
         quote = Quote(
             quote_request_id=qr_id,
@@ -331,13 +344,17 @@ def register(bp):
                 preview_reference=quote.reference,
                 meal_type_labels=MEAL_TYPE_LABELS,
             ), 400
-        totals = calculate_quote_totals(line_dicts, qr.guest_count, commission_rate=caterer.commission_rate)
+        totals = calculate_quote_totals(
+            line_dicts, qr.guest_count, commission_rate=caterer.commission_rate
+        )
         quote.lines = new_lines
         quote.total_amount_ht = totals["total_ht"]
         quote.amount_per_person = totals["amount_per_person"]
         quote.valorisable_agefiph = totals["valorisable_agefiph"]
         quote.notes = form.notes.data or ""
-        quote.valid_until = form.valid_until.data if form.valid_until.data else quote.valid_until
+        quote.valid_until = (
+            form.valid_until.data if form.valid_until.data else quote.valid_until
+        )
         db.commit()
         # Same as quote_create: action=send chains save + send so the
         # caterer can ship the quote without leaving the editor.

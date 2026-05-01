@@ -8,6 +8,7 @@ registered. We assert two contracts:
      it must refuse arbitrary emails (audit defence in depth).
   2. The endpoint requires POST + CSRF (handled at the framework level).
 """
+
 import os
 import pytest
 

@@ -32,7 +32,9 @@ def _get_user_threads(db, user_id):
                 other_caterer_logo_url = other_user.caterer.logo_url
             threads[tid] = {
                 "thread_id": tid,
-                "other_name": f"{other_user.first_name} {other_user.last_name}" if other_user else "Inconnu",
+                "other_name": f"{other_user.first_name} {other_user.last_name}"
+                if other_user
+                else "Inconnu",
                 "other_caterer_logo_url": other_caterer_logo_url,
                 "last_message": msg.body[:80],
                 "last_at": msg.created_at,
@@ -65,7 +67,11 @@ def register(bp):
         )
         if not first_msg:
             abort(404)
-        other_id = first_msg.recipient_id if first_msg.sender_id == user.id else first_msg.sender_id
+        other_id = (
+            first_msg.recipient_id
+            if first_msg.sender_id == user.id
+            else first_msg.sender_id
+        )
         other_user = db.get(User, other_id)
         return render_template(
             "client/messages/thread.html",

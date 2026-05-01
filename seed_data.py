@@ -61,14 +61,18 @@ def seed():
         db.flush()
 
         # --- Company services ---
-        svc_direction = CompanyService(company_id=acme.id, name="Direction", annual_budget=25000)
-        svc_marketing = CompanyService(company_id=acme.id, name="Marketing", annual_budget=25000)
+        svc_direction = CompanyService(
+            company_id=acme.id, name="Direction", annual_budget=25000
+        )
+        svc_marketing = CompanyService(
+            company_id=acme.id, name="Marketing", annual_budget=25000
+        )
         svc_rh = CompanyService(company_id=techcorp.id, name="RH", annual_budget=30000)
         db.add_all([svc_direction, svc_marketing, svc_rh])
         db.flush()
 
         # --- Users ---
-        admin = db.scalar(select(User).where(User.role == UserRole.super_admin))
+        db.scalar(select(User).where(User.role == UserRole.super_admin))
 
         alice = User(
             email="alice@acme-solutions.fr",
@@ -120,8 +124,10 @@ def seed():
             is_validated=True,
             invoice_prefix="ESAT1",
             service_offerings=[
-                "petit_dejeuner", "pause_gourmande",
-                "plateaux_repas", "cocktail_dinatoire",
+                "petit_dejeuner",
+                "pause_gourmande",
+                "plateaux_repas",
+                "cocktail_dinatoire",
             ],
             price_per_person_min=Decimal("18"),
             price_per_person_max=Decimal("45"),
@@ -145,8 +151,10 @@ def seed():
             is_validated=True,
             invoice_prefix="EATCO",
             service_offerings=[
-                "plateaux_repas", "cocktail_dinatoire",
-                "cocktail_dejeunatoire", "aperitif",
+                "plateaux_repas",
+                "cocktail_dinatoire",
+                "cocktail_dejeunatoire",
+                "aperitif",
             ],
             price_per_person_min=Decimal("32"),
             price_per_person_max=Decimal("75"),
@@ -170,7 +178,9 @@ def seed():
             is_validated=True,
             invoice_prefix="EIDEL",
             service_offerings=[
-                "petit_dejeuner", "pause_gourmande", "aperitif",
+                "petit_dejeuner",
+                "pause_gourmande",
+                "aperitif",
             ],
             price_per_person_min=Decimal("12"),
             price_per_person_max=Decimal("28"),
@@ -320,10 +330,22 @@ def seed():
             valid_until=today + datetime.timedelta(days=30),
             status=QuoteStatus.sent,
             lines=[
-                QuoteLine(position=0, section="principal", description="Menu dejeuner complet",
-                          quantity=Decimal("30"), unit_price_ht=Decimal("40"), tva_rate=Decimal("10")),
-                QuoteLine(position=1, section="boissons", description="Boissons sans alcool",
-                          quantity=Decimal("30"), unit_price_ht=Decimal("5"), tva_rate=Decimal("10")),
+                QuoteLine(
+                    position=0,
+                    section="principal",
+                    description="Menu dejeuner complet",
+                    quantity=Decimal("30"),
+                    unit_price_ht=Decimal("40"),
+                    tva_rate=Decimal("10"),
+                ),
+                QuoteLine(
+                    position=1,
+                    section="boissons",
+                    description="Boissons sans alcool",
+                    quantity=Decimal("30"),
+                    unit_price_ht=Decimal("5"),
+                    tva_rate=Decimal("10"),
+                ),
             ],
         )
 
@@ -338,10 +360,22 @@ def seed():
             valid_until=today - datetime.timedelta(days=5),
             status=QuoteStatus.accepted,
             lines=[
-                QuoteLine(position=0, section="principal", description="Diner gastronomique",
-                          quantity=Decimal("20"), unit_price_ht=Decimal("50"), tva_rate=Decimal("10")),
-                QuoteLine(position=1, section="boissons", description="Vin et boissons",
-                          quantity=Decimal("20"), unit_price_ht=Decimal("5"), tva_rate=Decimal("20")),
+                QuoteLine(
+                    position=0,
+                    section="principal",
+                    description="Diner gastronomique",
+                    quantity=Decimal("20"),
+                    unit_price_ht=Decimal("50"),
+                    tva_rate=Decimal("10"),
+                ),
+                QuoteLine(
+                    position=1,
+                    section="boissons",
+                    description="Vin et boissons",
+                    quantity=Decimal("20"),
+                    unit_price_ht=Decimal("5"),
+                    tva_rate=Decimal("20"),
+                ),
             ],
         )
         db.add_all([quote_sent, quote_accepted])
@@ -429,17 +463,21 @@ def seed():
         db.add_all(notifications)
 
     print("Seed data created:")
-    print(f"  Companies: Acme Solutions, TechCorp France")
-    print(f"  Services: Direction, Marketing (Acme), RH (TechCorp)")
-    print(f"  Users: alice@acme-solutions.fr, bob@techcorp.fr, claire@acme-solutions.fr")
-    print(f"  Caterers: ESAT Les Saveurs Solidaires, EA Traiteur & Co, EI Delices Engages")
-    print(f"  Caterer users: contact@saveurs-solidaires.fr, contact@traiteur-co.fr, contact@delices-engages.fr")
-    print(f"  Quote requests: 1 draft, 1 sent_to_caterers, 1 completed")
-    print(f"  Quotes: 1 sent, 1 accepted")
-    print(f"  Orders: 1 confirmed")
-    print(f"  Messages: 3")
-    print(f"  Notifications: 3")
-    print(f"  All passwords: password123")
+    print("  Companies: Acme Solutions, TechCorp France")
+    print("  Services: Direction, Marketing (Acme), RH (TechCorp)")
+    print("  Users: alice@acme-solutions.fr, bob@techcorp.fr, claire@acme-solutions.fr")
+    print(
+        "  Caterers: ESAT Les Saveurs Solidaires, EA Traiteur & Co, EI Delices Engages"
+    )
+    print(
+        "  Caterer users: contact@saveurs-solidaires.fr, contact@traiteur-co.fr, contact@delices-engages.fr"
+    )
+    print("  Quote requests: 1 draft, 1 sent_to_caterers, 1 completed")
+    print("  Quotes: 1 sent, 1 accepted")
+    print("  Orders: 1 confirmed")
+    print("  Messages: 3")
+    print("  Notifications: 3")
+    print("  All passwords: password123")
 
 
 if __name__ == "__main__":

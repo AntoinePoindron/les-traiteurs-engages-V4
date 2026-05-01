@@ -13,6 +13,7 @@ The ADMIN_INITIAL_PASSWORD env var bootstrap remains for first-boot use
 but should not be relied on day to day — once the platform is live, all
 admin lifecycle goes through this CLI.
 """
+
 from __future__ import annotations
 
 import getpass
@@ -64,18 +65,22 @@ def create_admin(email: str, first_name: str, last_name: str):
         password = _read_password_twice()
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-        session.add(User(
-            email=email,
-            password_hash=password_hash,
-            first_name=first_name,
-            last_name=last_name,
-            role=UserRole.super_admin,
-            is_active=True,
-        ))
+        session.add(
+            User(
+                email=email,
+                password_hash=password_hash,
+                first_name=first_name,
+                last_name=last_name,
+                role=UserRole.super_admin,
+                is_active=True,
+            )
+        )
         click.echo(f"Super-admin cree : {email}")
 
 
-@admin_cli.command("reset-password", help="Reset the password of an existing super-admin.")
+@admin_cli.command(
+    "reset-password", help="Reset the password of an existing super-admin."
+)
 @click.argument("email")
 def reset_password(email: str):
     email = email.strip().lower()
@@ -96,17 +101,24 @@ def reset_password(email: str):
 def list_admins():
     with get_session() as session:
         rows = session.scalars(
-            select(User).where(User.role == UserRole.super_admin).order_by(User.created_at)
+            select(User)
+            .where(User.role == UserRole.super_admin)
+            .order_by(User.created_at)
         ).all()
         if not rows:
             click.echo("Aucun super-admin.")
             return
         for u in rows:
             status = "actif" if u.is_active else "DESACTIVE"
-            click.echo(f"  - {u.email}  ({u.first_name} {u.last_name}, {status}, cree {u.created_at:%Y-%m-%d})")
+            click.echo(
+                f"  - {u.email}  ({u.first_name} {u.last_name}, {status}, cree {u.created_at:%Y-%m-%d})"
+            )
 
 
-@admin_cli.command("disable", help="Mark a super-admin as inactive (soft delete, audit trail preserved).")
+@admin_cli.command(
+    "disable",
+    help="Mark a super-admin as inactive (soft delete, audit trail preserved).",
+)
 @click.argument("email")
 def disable_admin(email: str):
     email = email.strip().lower()

@@ -10,6 +10,7 @@ est importé *à l'intérieur* des fonctions, pas au top-level. Sinon le
 `traiteurs_test`. Voir `tests/test_accept_quote_guards.py` pour le même
 pattern.
 """
+
 import datetime as _dt
 import uuid
 from decimal import Decimal
@@ -38,6 +39,7 @@ from services import workflow
 def session(app):
     """Session SQLAlchemy par test, rollback à la fin (isolation)."""
     from database import session_factory
+
     s = session_factory()
     try:
         yield s
@@ -46,7 +48,9 @@ def session(app):
         s.close()
 
 
-def _seed_qr_with_quotes(s, *, statuses: list[QuoteStatus]) -> tuple[uuid.UUID, list[uuid.UUID]]:
+def _seed_qr_with_quotes(
+    s, *, statuses: list[QuoteStatus]
+) -> tuple[uuid.UUID, list[uuid.UUID]]:
     from sqlalchemy import select
 
     acme = s.scalar(select(Company).where(Company.siret == "12345678901234"))
@@ -84,7 +88,9 @@ def _seed_qr_with_quotes(s, *, statuses: list[QuoteStatus]) -> tuple[uuid.UUID, 
 def test_refuse_quote_marks_refused_and_keeps_request_open(session):
     from sqlalchemy import select
 
-    qr_id, qids = _seed_qr_with_quotes(session, statuses=[QuoteStatus.sent, QuoteStatus.sent])
+    qr_id, qids = _seed_qr_with_quotes(
+        session, statuses=[QuoteStatus.sent, QuoteStatus.sent]
+    )
     alice = session.scalar(select(User).where(User.email == "alice@test.local"))
 
     workflow.refuse_quote(
@@ -131,7 +137,8 @@ def test_refuse_quote_for_other_company_raises_request_not_found(session):
     intruder = User(
         email=f"intruder-{uuid.uuid4()}@test.local",
         password_hash="x",
-        first_name="I", last_name="N",
+        first_name="I",
+        last_name="N",
         role=UserRole.client_admin,
         company_id=other_co.id,
     )
@@ -178,7 +185,9 @@ def _set_valid_until(s, quote_id: uuid.UUID, valid_until: _dt.date | None) -> No
 def test_accept_quote_creates_order_and_refuses_peers(session):
     from sqlalchemy import select
 
-    qr_id, qids = _seed_qr_with_quotes(session, statuses=[QuoteStatus.sent, QuoteStatus.sent])
+    qr_id, qids = _seed_qr_with_quotes(
+        session, statuses=[QuoteStatus.sent, QuoteStatus.sent]
+    )
     _set_valid_until(session, qids[0], _dt.date.today() + _dt.timedelta(days=7))
     alice = session.scalar(select(User).where(User.email == "alice@test.local"))
 
@@ -243,7 +252,8 @@ def test_accept_quote_for_other_company_raises_request_not_found(session):
     intruder = User(
         email=f"intruder2-{uuid.uuid4()}@test.local",
         password_hash="x",
-        first_name="I", last_name="N",
+        first_name="I",
+        last_name="N",
         role=UserRole.client_admin,
         company_id=other_co.id,
     )
@@ -251,7 +261,9 @@ def test_accept_quote_for_other_company_raises_request_not_found(session):
     session.flush()
 
     with pytest.raises(workflow.RequestNotFound):
-        workflow.accept_quote(session, request_id=qr_id, quote_id=qids[0], user=intruder)
+        workflow.accept_quote(
+            session, request_id=qr_id, quote_id=qids[0], user=intruder
+        )
 
 
 # --- approve_quote_request / reject_quote_request -------------------------
@@ -412,7 +424,9 @@ def test_submit_quote_first_responder_becomes_rank_1(session):
 
     qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(session, n_caterers=3)
 
-    workflow.submit_quote(session, request_id=qr_id, quote_id=qids[0], caterer=caterers[0])
+    workflow.submit_quote(
+        session, request_id=qr_id, quote_id=qids[0], caterer=caterers[0]
+    )
 
     quote = session.scalar(select(Quote).where(Quote.id == qids[0]))
     qrc = session.scalar(
@@ -429,10 +443,14 @@ def test_submit_quote_third_responder_closes_others(session):
     from sqlalchemy import select
 
     qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(
-        session, n_caterers=4, prior_transmitted=2,
+        session,
+        n_caterers=4,
+        prior_transmitted=2,
     )
     # Le 3e caterer (index 2) est encore en `selected` ; il soumet.
-    workflow.submit_quote(session, request_id=qr_id, quote_id=qids[2], caterer=caterers[2])
+    workflow.submit_quote(
+        session, request_id=qr_id, quote_id=qids[2], caterer=caterers[2]
+    )
 
     qrc_third = session.scalar(
         select(QuoteRequestCaterer)
@@ -455,21 +473,27 @@ def test_submit_quote_fourth_responder_after_lockout_stays_responded(session):
     from sqlalchemy import select
 
     qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(
-        session, n_caterers=4, prior_transmitted=3,
+        session,
+        n_caterers=4,
+        prior_transmitted=3,
     )
     # Forcer le 4e à être encore `selected` (pas transmitted) pour pouvoir soumettre.
     qrc4 = session.scalar(
-        select(QuoteRequestCaterer)
-        .where(QuoteRequestCaterer.caterer_id == caterers[3].id)
+        select(QuoteRequestCaterer).where(
+            QuoteRequestCaterer.caterer_id == caterers[3].id
+        )
     )
     qrc4.status = QRCStatus.selected
     session.flush()
 
-    workflow.submit_quote(session, request_id=qr_id, quote_id=qids[3], caterer=caterers[3])
+    workflow.submit_quote(
+        session, request_id=qr_id, quote_id=qids[3], caterer=caterers[3]
+    )
 
     qrc4 = session.scalar(
-        select(QuoteRequestCaterer)
-        .where(QuoteRequestCaterer.caterer_id == caterers[3].id)
+        select(QuoteRequestCaterer).where(
+            QuoteRequestCaterer.caterer_id == caterers[3].id
+        )
     )
     assert qrc4.status == QRCStatus.responded
     assert qrc4.response_rank is None
@@ -513,7 +537,9 @@ def test_concurrent_submit_only_one_becomes_rank_3(app):
 
     setup = session_factory()
     qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(
-        setup, n_caterers=4, prior_transmitted=2,
+        setup,
+        n_caterers=4,
+        prior_transmitted=2,
     )
     setup.commit()
     caterer_ids = [c.id for c in caterers]
@@ -528,7 +554,10 @@ def test_concurrent_submit_only_one_becomes_rank_3(app):
             cat = s.scalar(select(Caterer).where(Caterer.id == caterer_id))
             barrier.wait(timeout=5)
             workflow.submit_quote(
-                s, request_id=qr_id, quote_id=quote_id, caterer=cat,
+                s,
+                request_id=qr_id,
+                quote_id=quote_id,
+                caterer=cat,
             )
             s.commit()
         finally:
@@ -543,6 +572,7 @@ def test_concurrent_submit_only_one_becomes_rank_3(app):
         check = session_factory()
         try:
             from sqlalchemy import func
+
             rank3_count = check.scalar(
                 select(func.count(QuoteRequestCaterer.id))
                 .where(QuoteRequestCaterer.quote_request_id == qr_id)
@@ -556,9 +586,11 @@ def test_concurrent_submit_only_one_becomes_rank_3(app):
         cleanup = session_factory()
         try:
             cleanup.execute(delete(Quote).where(Quote.quote_request_id == qr_id))
-            cleanup.execute(delete(QuoteRequestCaterer).where(
-                QuoteRequestCaterer.quote_request_id == qr_id,
-            ))
+            cleanup.execute(
+                delete(QuoteRequestCaterer).where(
+                    QuoteRequestCaterer.quote_request_id == qr_id,
+                )
+            )
             cleanup.execute(delete(QuoteRequest).where(QuoteRequest.id == qr_id))
             for cid in caterer_ids:
                 cleanup.execute(delete(Caterer).where(Caterer.id == cid))
@@ -647,7 +679,6 @@ def test_mark_delivered_already_delivered_raises(session):
 
 
 def test_mark_delivered_for_other_caterer_raises(session):
-    from sqlalchemy import select
 
     order_id, _ = _seed_confirmed_order(session)
     intruder = Caterer(
@@ -665,11 +696,8 @@ def test_mark_delivered_for_other_caterer_raises(session):
 
 
 def test_mark_delivered_unknown_order_raises(session):
-    from sqlalchemy import select
 
     _, caterer = _seed_confirmed_order(session)
 
     with pytest.raises(workflow.OrderNotFound):
         workflow.mark_delivered(session, order_id=uuid.uuid4(), caterer=caterer)
-
-

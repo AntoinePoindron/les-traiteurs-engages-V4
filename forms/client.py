@@ -7,6 +7,7 @@ with a flash message + re-render rather than raising and 500ing.
 Field names match the corresponding `<input name="...">` in the existing
 templates so no template changes are required for the binding to work.
 """
+
 from flask_wtf import FlaskForm
 from wtforms import (
     BooleanField,
@@ -44,9 +45,13 @@ class QuoteRequestForm(FlaskForm):
     event_city = StringField(validators=[Optional(), Length(max=255)])
     event_zip_code = StringField(validators=[Optional(), Length(max=10)])
     event_latitude = FloatField(validators=[Optional(), NumberRange(min=-90, max=90)])
-    event_longitude = FloatField(validators=[Optional(), NumberRange(min=-180, max=180)])
+    event_longitude = FloatField(
+        validators=[Optional(), NumberRange(min=-180, max=180)]
+    )
     budget_global = DecimalField(places=2, validators=[Optional(), NumberRange(min=0)])
-    budget_per_person = DecimalField(places=2, validators=[Optional(), NumberRange(min=0)])
+    budget_per_person = DecimalField(
+        places=2, validators=[Optional(), NumberRange(min=0)]
+    )
 
     dietary_vegetarian = BooleanField()
     dietary_vegan = BooleanField()
@@ -54,11 +59,17 @@ class QuoteRequestForm(FlaskForm):
     dietary_gluten_free = BooleanField()
     dietary_lactose_free = BooleanField()
 
-    vegetarian_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
+    vegetarian_count = IntegerField(
+        validators=[Optional(), NumberRange(min=0, max=10000)]
+    )
     vegan_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
     halal_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
-    gluten_free_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
-    lactose_free_count = IntegerField(validators=[Optional(), NumberRange(min=0, max=10000)])
+    gluten_free_count = IntegerField(
+        validators=[Optional(), NumberRange(min=0, max=10000)]
+    )
+    lactose_free_count = IntegerField(
+        validators=[Optional(), NumberRange(min=0, max=10000)]
+    )
 
     drinks_alcohol = BooleanField()
     drinks_details = TextAreaField(validators=[Optional(), Length(max=5000)])
@@ -112,7 +123,16 @@ class CompanySettingsForm(FlaskForm):
     """POST /client/settings."""
 
     name = StringField(validators=[Optional(), Length(max=255)])
-    siret = StringField(validators=[Optional(), Length(min=14, max=14, message="Le SIRET doit comporter exactement 14 caractères.")])
+    siret = StringField(
+        validators=[
+            Optional(),
+            Length(
+                min=14,
+                max=14,
+                message="Le SIRET doit comporter exactement 14 caractères.",
+            ),
+        ]
+    )
     address = StringField(validators=[Optional(), Length(max=500)])
     city = StringField(validators=[Optional(), Length(max=255)])
     zip_code = StringField(validators=[Optional(), Length(max=10)])

@@ -1,4 +1,4 @@
-from flask import abort, g, render_template, request, url_for
+from flask import g, render_template, request, url_for
 from sqlalchemy import and_, or_, select
 
 from blueprints.client._helpers import ORDER_STATUS_LABELS
@@ -11,10 +11,10 @@ from models import MEAL_TYPE_LABELS, Message, Order, OrderStatus, Quote, QuoteRe
 # Filter tabs visible on /client/orders. Keys map to ?status= URL params,
 # values are the labels rendered in the tab pill.
 ORDER_STATUS_TABS = {
-    "all":      "Toutes",
+    "all": "Toutes",
     "upcoming": "À venir",
-    "to_pay":   "À payer",
-    "paid":     "Payées",
+    "to_pay": "À payer",
+    "paid": "Payées",
 }
 
 
@@ -45,13 +45,17 @@ def register(bp):
         if status_filter not in ORDER_STATUS_TABS:
             status_filter = "all"
 
-        orders = db.execute(
-            select(Order)
-            .join(Quote, Order.quote_id == Quote.id)
-            .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
-            .where(QuoteRequest.company_id == user.company_id)
-            .order_by(Order.created_at.desc())
-        ).scalars().all()
+        orders = (
+            db.execute(
+                select(Order)
+                .join(Quote, Order.quote_id == Quote.id)
+                .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
+                .where(QuoteRequest.company_id == user.company_id)
+                .order_by(Order.created_at.desc())
+            )
+            .scalars()
+            .all()
+        )
 
         for order in orders:
             order.display_status = _derive_order_display_status(order)
@@ -84,14 +88,22 @@ def register(bp):
                 select(Message.thread_id)
                 .where(
                     or_(
-                        and_(Message.sender_id == user.id, Message.recipient_id == caterer_user.id),
-                        and_(Message.sender_id == caterer_user.id, Message.recipient_id == user.id),
+                        and_(
+                            Message.sender_id == user.id,
+                            Message.recipient_id == caterer_user.id,
+                        ),
+                        and_(
+                            Message.sender_id == caterer_user.id,
+                            Message.recipient_id == user.id,
+                        ),
                     )
                 )
                 .limit(1)
             )
             if existing_tid:
-                caterer_message_href = url_for("client.message_thread", thread_id=existing_tid)
+                caterer_message_href = url_for(
+                    "client.message_thread", thread_id=existing_tid
+                )
             else:
                 caterer_message_href = url_for("client.messages")
         else:

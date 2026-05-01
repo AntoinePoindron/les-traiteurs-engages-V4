@@ -10,6 +10,7 @@ requests can both pass the `status==confirmed` gate and insert
 duplicate Payments; the webhook handler then updates only one of them.
 Audit finding #6 (2026-04-24).
 """
+
 from typing import Sequence, Union
 
 from alembic import op

@@ -65,10 +65,22 @@ def _aggregate_legacy_fields(caterer, specs: dict) -> None:
     """
     if not specs:
         return
-    cap_mins = [s["capacity_min"] for s in specs.values() if s.get("capacity_min") is not None]
-    cap_maxs = [s["capacity_max"] for s in specs.values() if s.get("capacity_max") is not None]
-    price_mins = [s["price_per_person_min"] for s in specs.values() if s.get("price_per_person_min") is not None]
-    advance = [s["min_advance_days"] for s in specs.values() if s.get("min_advance_days") is not None]
+    cap_mins = [
+        s["capacity_min"] for s in specs.values() if s.get("capacity_min") is not None
+    ]
+    cap_maxs = [
+        s["capacity_max"] for s in specs.values() if s.get("capacity_max") is not None
+    ]
+    price_mins = [
+        s["price_per_person_min"]
+        for s in specs.values()
+        if s.get("price_per_person_min") is not None
+    ]
+    advance = [
+        s["min_advance_days"]
+        for s in specs.values()
+        if s.get("min_advance_days") is not None
+    ]
     if cap_mins:
         caterer.capacity_min = min(cap_mins)
     if cap_maxs:
@@ -169,7 +181,8 @@ def register(bp):
         # checkbox values; validate against the canonical slug map so a
         # tampered request can't write an unknown slug to the JSON column.
         offered = [
-            v for v in request.form.getlist("service_offerings")
+            v
+            for v in request.form.getlist("service_offerings")
             if v in SERVICE_OFFERING_LABELS
         ]
         caterer.service_offerings = offered or None
@@ -177,7 +190,9 @@ def register(bp):
         # Per-offering specs replace the standalone capacity/price/délai
         # inputs. Only keep specs for offerings the caterer actually offers.
         all_specs = _parse_offering_specs(request.form)
-        kept_specs = {slug: row for slug, row in all_specs.items() if slug in (offered or [])}
+        kept_specs = {
+            slug: row for slug, row in all_specs.items() if slug in (offered or [])
+        }
         caterer.service_offering_specs = kept_specs or None
         _aggregate_legacy_fields(caterer, kept_specs)
 
@@ -193,7 +208,10 @@ def register(bp):
             except ValidationError as exc:
                 first = exc.errors()[0]
                 field = ".".join(str(p) for p in first["loc"]) or "(racine)"
-                flash(f"Configuration JSON invalide en '{field}' : {first['msg']}.", "error")
+                flash(
+                    f"Configuration JSON invalide en '{field}' : {first['msg']}.",
+                    "error",
+                )
                 return redirect(url_for("caterer.profile"))
         db.commit()
         flash("Profil mis a jour.", "success")

@@ -1,6 +1,7 @@
 """Singleton instances of Flask extensions, importable from blueprints
 without creating circular imports with app.py.
 """
+
 import os
 
 from flask_limiter import Limiter
@@ -29,7 +30,11 @@ def _limiter_storage_uri() -> str:
         return "memory://"
     # Carve out a dedicated DB number so dramatiq queues and rate-limiter
     # keys never collide. Strip any trailing /N from REDIS_URL first.
-    base = redis_url.rstrip("/").rsplit("/", 1)[0] if redis_url.count("/") >= 3 else redis_url
+    base = (
+        redis_url.rstrip("/").rsplit("/", 1)[0]
+        if redis_url.count("/") >= 3
+        else redis_url
+    )
     return f"{base}/1"
 
 

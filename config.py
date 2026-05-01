@@ -5,6 +5,7 @@ default fallback. This is deliberate: a missing key must crash the
 process at boot rather than silently signing sessions with a known
 string in production.
 """
+
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -33,6 +34,7 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v.startswith("postgres://"):
             return v.replace("postgres://", "postgresql://", 1)
         return v
+
     # Optional in dev (unit tests stub the broker), required wherever the
     # background worker runs — the app side will only enqueue jobs if set.
     redis_url: str | None = None
@@ -63,10 +65,17 @@ class Settings(BaseSettings):
     trust_proxy_headers: bool = False
 
     @field_validator(
-        "stripe_secret_key", "stripe_publishable_key", "stripe_webhook_secret",
-        "stripe_connect_client_id", "admin_initial_password",
-        "s3_bucket", "s3_region", "s3_access_key", "s3_secret_key",
-        "s3_endpoint_url", "s3_public_url",
+        "stripe_secret_key",
+        "stripe_publishable_key",
+        "stripe_webhook_secret",
+        "stripe_connect_client_id",
+        "admin_initial_password",
+        "s3_bucket",
+        "s3_region",
+        "s3_access_key",
+        "s3_secret_key",
+        "s3_endpoint_url",
+        "s3_public_url",
         mode="before",
     )
     @classmethod
@@ -93,7 +102,13 @@ settings = Settings()
 # `config.SECRET_KEY` etc. SecretStr values are unwrapped at the boundary.
 SECRET_KEY = settings.secret_key.get_secret_value()
 DATABASE_URL = settings.database_url
-STRIPE_SECRET_KEY = settings.stripe_secret_key.get_secret_value() if settings.stripe_secret_key else ""
+STRIPE_SECRET_KEY = (
+    settings.stripe_secret_key.get_secret_value() if settings.stripe_secret_key else ""
+)
 STRIPE_PUBLISHABLE_KEY = settings.stripe_publishable_key or ""
-STRIPE_WEBHOOK_SECRET = settings.stripe_webhook_secret.get_secret_value() if settings.stripe_webhook_secret else ""
+STRIPE_WEBHOOK_SECRET = (
+    settings.stripe_webhook_secret.get_secret_value()
+    if settings.stripe_webhook_secret
+    else ""
+)
 STRIPE_CONNECT_CLIENT_ID = settings.stripe_connect_client_id or ""

@@ -10,6 +10,7 @@ and assert the delta stays under a generous threshold. bcrypt at cost 12
 takes ~250 ms; a leak would be >100 ms; we set the bar at 100 ms which
 is comfortable for the test environment but still catches a regression.
 """
+
 import time
 import pytest
 

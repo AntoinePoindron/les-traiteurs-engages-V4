@@ -3,6 +3,7 @@
 Every query that fetches a resource owned by a client company or caterer
 MUST go through these helpers so the ownership filter cannot be forgotten.
 """
+
 from flask import abort
 from sqlalchemy import select
 
@@ -21,6 +22,7 @@ from models import (
 # ---------------------------------------------------------------------------
 # Client-side: scope by company_id
 # ---------------------------------------------------------------------------
+
 
 def get_company_request(request_id, company_id):
     """Fetch a QuoteRequest owned by `company_id`, or abort 404."""
@@ -81,6 +83,7 @@ def get_company_employee(employee_id, company_id):
 def get_pending_user(user_id, company_id):
     """Fetch a pending User in `company_id`, or abort 404."""
     from models import MembershipStatus
+
     db = get_db()
     user = db.scalar(
         select(User).where(
@@ -97,6 +100,7 @@ def get_pending_user(user_id, company_id):
 # ---------------------------------------------------------------------------
 # Caterer-side: scope by caterer_id
 # ---------------------------------------------------------------------------
+
 
 def get_caterer_qrc(qr_id, caterer_id):
     """Fetch a QuoteRequestCaterer for `caterer_id`, or abort 404."""

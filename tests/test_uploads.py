@@ -1,12 +1,10 @@
 """Tests for the file upload validation and save paths."""
+
 import io
-import os
-import shutil
 
 import pytest
 
 from services.uploads import (
-    ALLOWED_EXTENSIONS,
     MAX_FILE_SIZE,
     _detect_real_type,
     _validate,
@@ -37,13 +35,17 @@ class FakeFile:
 
 # --- _detect_real_type ---------------------------------------------------------
 
-@pytest.mark.parametrize("ext,header", [
-    ("png", PNG_HEADER),
-    ("jpg", JPEG_HEADER),
-    ("gif", GIF_HEADER),
-    ("pdf", PDF_HEADER),
-    ("webp", WEBP_HEADER),
-])
+
+@pytest.mark.parametrize(
+    "ext,header",
+    [
+        ("png", PNG_HEADER),
+        ("jpg", JPEG_HEADER),
+        ("gif", GIF_HEADER),
+        ("pdf", PDF_HEADER),
+        ("webp", WEBP_HEADER),
+    ],
+)
 def test_detect_real_type(ext, header):
     assert _detect_real_type(header) == ext
 
@@ -53,6 +55,7 @@ def test_detect_real_type_unknown():
 
 
 # --- _validate -----------------------------------------------------------------
+
 
 def test_validate_accepts_valid_png():
     f = FakeFile("photo.png", PNG_HEADER + b"\x00" * 100)
@@ -107,6 +110,7 @@ def test_validate_rejects_unknown_magic_bytes():
 
 
 # --- save_upload (local path) --------------------------------------------------
+
 
 @pytest.fixture
 def upload_dir(tmp_path, monkeypatch):

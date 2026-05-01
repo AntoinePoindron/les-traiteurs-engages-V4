@@ -1,0 +1,3 @@
+[lint.per-file-ignores]
+"scripts/*.py" = ["E402"]
+"alembic/env.py" = ["E402"]

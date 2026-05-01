@@ -5,11 +5,13 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 # Make project root importable so we can pull in models + config.
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import config as app_config  # noqa: E402
-from models import Base  # noqa: E402
+import config as app_config
+from models import Base
 
 config = context.config
 
@@ -66,9 +68,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

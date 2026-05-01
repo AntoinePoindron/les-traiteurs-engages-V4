@@ -4,6 +4,7 @@ Revision ID: f3a7b2c1d9e4
 Revises: d4a3f2e1c5b9
 Create Date: 2026-04-29
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -16,7 +17,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("orders", sa.Column("invoice_attempt", sa.Integer(), server_default="0", nullable=False))
+    op.add_column(
+        "orders",
+        sa.Column("invoice_attempt", sa.Integer(), server_default="0", nullable=False),
+    )
 
 
 def downgrade() -> None:

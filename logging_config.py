@@ -7,6 +7,7 @@ Every HTTP request gets a `g.request_id` (client-provided via
 `X-Request-Id` header, or generated if absent) which is added to every
 log record emitted during that request via a contextvar filter.
 """
+
 import logging
 import logging.config
 import uuid
@@ -78,7 +79,9 @@ def install_request_id_hooks(app):
                 "method": request.method,
                 "path": request.path,
                 "status": response.status_code,
-                "user_id": str(g.get("current_user").id) if g.get("current_user") else None,
+                "user_id": str(g.get("current_user").id)
+                if g.get("current_user")
+                else None,
             },
         )
         response.headers.setdefault("X-Request-Id", rid)

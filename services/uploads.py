@@ -15,6 +15,7 @@ Logs at WARNING for postmortem debugging.
 Audit references: VULN-05 (path traversal — uses secure_filename),
 VULN-10 (extension-only validation — closed by magic-byte check).
 """
+
 import io
 import logging
 import os
@@ -28,30 +29,35 @@ from werkzeug.utils import secure_filename
 logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp", "pdf"}
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "uploads")
+UPLOAD_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "static", "uploads"
+)
 MAX_FILENAME_LENGTH = 80
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB per file (global cap is 16 MB total request)
 
 _CONTENT_TYPES = {
-    "jpg": "image/jpeg", "jpeg": "image/jpeg",
-    "png": "image/png", "gif": "image/gif",
-    "webp": "image/webp", "pdf": "application/pdf",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "gif": "image/gif",
+    "webp": "image/webp",
+    "pdf": "application/pdf",
 }
 
 # Magic byte signatures.
 _MAGIC_SIGNATURES = {
-    "png":  [(b"\x89PNG\r\n\x1a\n", 0)],
-    "jpg":  [(b"\xff\xd8\xff", 0)],
+    "png": [(b"\x89PNG\r\n\x1a\n", 0)],
+    "jpg": [(b"\xff\xd8\xff", 0)],
     "jpeg": [(b"\xff\xd8\xff", 0)],
-    "gif":  [(b"GIF87a", 0), (b"GIF89a", 0)],
+    "gif": [(b"GIF87a", 0), (b"GIF89a", 0)],
     # WEBP files start with "RIFF" then 4 bytes of size then "WEBP"
     "webp": [(b"RIFF", 0), (b"WEBP", 8)],
-    "pdf":  [(b"%PDF-", 0)],
+    "pdf": [(b"%PDF-", 0)],
 }
 
 # Extensions that are interchangeable real-world (same actual format).
 _EXTENSION_ALIASES = {
-    "jpg":  {"jpg", "jpeg"},
+    "jpg": {"jpg", "jpeg"},
     "jpeg": {"jpg", "jpeg"},
 }
 
@@ -65,9 +71,12 @@ def _get_s3():
     if _s3_client is None:
         import boto3
         from config import settings
+
         kwargs = {
             "aws_access_key_id": settings.s3_access_key,
-            "aws_secret_access_key": settings.s3_secret_key.get_secret_value() if settings.s3_secret_key else None,
+            "aws_secret_access_key": settings.s3_secret_key.get_secret_value()
+            if settings.s3_secret_key
+            else None,
             "region_name": settings.s3_region,
         }
         if settings.s3_endpoint_url:
@@ -78,15 +87,17 @@ def _get_s3():
 
 def _s3_enabled() -> bool:
     from config import settings
+
     return bool(settings.s3_bucket)
 
 
 # --- Validation helpers --------------------------------------------------------
 
+
 def _detect_real_type(head: bytes) -> str | None:
     """Return the extension key that matches the byte signature, or None."""
     for ext, sigs in _MAGIC_SIGNATURES.items():
-        if all(head[off:off + len(sig)] == sig for sig, off in sigs):
+        if all(head[off : off + len(sig)] == sig for sig, off in sigs):
             return ext
     return None
 
@@ -106,8 +117,11 @@ def allowed_extension(filename: str) -> bool:
 
 
 _PILLOW_FORMAT = {
-    "jpg": "JPEG", "jpeg": "JPEG",
-    "png": "PNG", "gif": "GIF", "webp": "WEBP",
+    "jpg": "JPEG",
+    "jpeg": "JPEG",
+    "png": "PNG",
+    "gif": "GIF",
+    "webp": "WEBP",
 }
 
 _MAX_IMAGE_PIXELS = 25_000_000  # 5000x5000 — prevent decompression bombs
@@ -168,12 +182,15 @@ def _reencode_pdf(stream):
 
 # --- Save (public API) ---------------------------------------------------------
 
+
 def _validate(file):
     """Validate the upload. Returns (declared_ext, safe_name) or None on rejection."""
     if not file or not file.filename:
         return None
 
-    declared_ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    declared_ext = (
+        file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    )
     if declared_ext not in ALLOWED_EXTENSIONS:
         logger.warning("upload rejected: extension '%s' not allowed", declared_ext)
         return None
@@ -183,14 +200,17 @@ def _validate(file):
     file.stream.seek(0)
     real_ext = _detect_real_type(head)
     if real_ext is None:
-        logger.warning("upload rejected: no matching magic bytes (declared %s)", declared_ext)
+        logger.warning(
+            "upload rejected: no matching magic bytes (declared %s)", declared_ext
+        )
         return None
 
     allowed_aliases = _EXTENSION_ALIASES.get(declared_ext, {declared_ext})
     if real_ext not in allowed_aliases:
         logger.warning(
             "upload rejected: magic bytes say %s but extension says %s",
-            real_ext, declared_ext,
+            real_ext,
+            declared_ext,
         )
         return None
 
@@ -216,6 +236,7 @@ def _save_local(file, subfolder: str, safe_name: str) -> str:
 
 def _save_s3(file, subfolder: str, safe_name: str, declared_ext: str) -> str:
     from config import settings
+
     key = f"uploads/{subfolder}/{safe_name}"
     _get_s3().upload_fileobj(
         file.stream,
@@ -226,7 +247,10 @@ def _save_s3(file, subfolder: str, safe_name: str, declared_ext: str) -> str:
             "CacheControl": "public, max-age=31536000, immutable",
         },
     )
-    base = settings.s3_public_url or f"https://{settings.s3_bucket}.s3.{settings.s3_region}.amazonaws.com"
+    base = (
+        settings.s3_public_url
+        or f"https://{settings.s3_bucket}.s3.{settings.s3_region}.amazonaws.com"
+    )
     return f"{base.rstrip('/')}/{key}"
 
 

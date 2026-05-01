@@ -9,6 +9,7 @@ Numeric columns on Quote. After PR 12 moved `lines` into `quote_lines`,
 nothing canonical lived in `details` anymore — half-orphan with duplicated
 truth. Templates and stripe_service recompute totals on demand.
 """
+
 from typing import Sequence, Union
 
 from alembic import op

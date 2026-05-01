@@ -9,6 +9,7 @@ Importing this module configures the dramatiq broker. Two contexts:
 
 REDIS_URL must be set in both contexts. In tests we stub the broker.
 """
+
 from __future__ import annotations
 
 import logging
@@ -74,9 +75,7 @@ def send_invoice_for_order(order_id: str) -> None:
 
     oid = uuid.UUID(order_id)
     with get_session() as db:
-        order = db.scalar(
-            select(Order).where(Order.id == oid)
-        )
+        order = db.scalar(select(Order).where(Order.id == oid))
         if not order:
             logger.error("send_invoice_for_order: order %s not found", oid)
             return
@@ -84,7 +83,8 @@ def send_invoice_for_order(order_id: str) -> None:
             # Already invoiced (race with retry CLI) or moved past; nothing to do.
             logger.info(
                 "send_invoice_for_order: order %s in status %s, skipping",
-                oid, order.status,
+                oid,
+                order.status,
             )
             return
 
@@ -95,6 +95,7 @@ def send_invoice_for_order(order_id: str) -> None:
             # failure. The retry CLI (and dramatiq's own retry) will pick
             # it up. Re-raise so dramatiq counts it as a failure.
             logger.exception(
-                "send_invoice_for_order: Stripe call failed for order %s", oid,
+                "send_invoice_for_order: Stripe call failed for order %s",
+                oid,
             )
             raise

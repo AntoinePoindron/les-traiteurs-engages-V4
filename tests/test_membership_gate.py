@@ -32,15 +32,19 @@ def _seed_pending_user():
         email = "pending@test.local"
         existing = s.scalar(select(User).where(User.email == email))
         if existing is None:
-            s.add(User(
-                email=email,
-                password_hash=bcrypt.hashpw(b"pendingpw", bcrypt.gensalt()).decode(),
-                first_name="P",
-                last_name="P",
-                role=UserRole.client_user,
-                company_id=acme.id,
-                membership_status=MembershipStatus.pending,
-            ))
+            s.add(
+                User(
+                    email=email,
+                    password_hash=bcrypt.hashpw(
+                        b"pendingpw", bcrypt.gensalt()
+                    ).decode(),
+                    first_name="P",
+                    last_name="P",
+                    role=UserRole.client_user,
+                    company_id=acme.id,
+                    membership_status=MembershipStatus.pending,
+                )
+            )
             s.commit()
         return email, "pendingpw"
     finally:
@@ -52,7 +56,9 @@ def test_pending_user_login_refused(client):
     the login page (not a 302 to the dashboard) is the success criterion."""
     email, password = _seed_pending_user()
 
-    resp = client.post("/login", data={"email": email, "password": password}, follow_redirects=False)
+    resp = client.post(
+        "/login", data={"email": email, "password": password}, follow_redirects=False
+    )
     assert resp.status_code == 200, (
         f"login must NOT redirect a pending user to a dashboard; got {resp.status_code}"
     )

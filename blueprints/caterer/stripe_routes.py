@@ -32,7 +32,9 @@ def register(bp):
                 db.commit()
             except stripe.StripeError:
                 logger.exception("Failed to fetch Stripe account status")
-        return render_template("caterer/stripe.html", user=g.current_user, caterer=caterer)
+        return render_template(
+            "caterer/stripe.html", user=g.current_user, caterer=caterer
+        )
 
     @bp.route("/stripe/onboard", methods=["POST"])
     @limiter.limit("5 per minute")
@@ -47,7 +49,9 @@ def register(bp):
             caterer.stripe_account_id = result["id"]
         refresh_url = url_for("caterer.stripe_status", _external=True)
         return_url = url_for("caterer.stripe_complete", _external=True)
-        link_url = create_account_link(caterer.stripe_account_id, refresh_url, return_url)
+        link_url = create_account_link(
+            caterer.stripe_account_id, refresh_url, return_url
+        )
         db.commit()
         return redirect(link_url)
 
@@ -67,7 +71,10 @@ def register(bp):
                     caterer.stripe_onboarded_at = datetime.utcnow()
                     flash("Compte Stripe connecte avec succes.", "success")
                 else:
-                    flash("Verification en cours. Certaines fonctionnalites ne sont pas encore actives.", "warning")
+                    flash(
+                        "Verification en cours. Certaines fonctionnalites ne sont pas encore actives.",
+                        "warning",
+                    )
                 db.commit()
             except stripe.StripeError:
                 logger.exception("Failed to verify Stripe account on completion")

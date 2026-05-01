@@ -1,6 +1,15 @@
 import datetime
 
-from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
@@ -12,7 +21,6 @@ from models import (
     Company,
     CompanyEmployee,
     CompanyService,
-    MealType,
     Message,
     Order,
     OrderStatus,
@@ -20,10 +28,8 @@ from models import (
     PaymentStatus,
     Quote,
     QuoteRequest,
-    QuoteRequestCaterer,
     QuoteRequestStatus,
     QuoteStatus,
-    QRCStatus,
     User,
 )
 from services import workflow
@@ -51,12 +57,16 @@ def dashboard():
     orders_this_month = db.scalar(
         select(func.count(Order.id)).where(Order.created_at >= month_start)
     )
-    recent_requests = db.scalars(
-        select(QuoteRequest)
-        .options(joinedload(QuoteRequest.company))
-        .order_by(QuoteRequest.created_at.desc())
-        .limit(5)
-    ).unique().all()
+    recent_requests = (
+        db.scalars(
+            select(QuoteRequest)
+            .options(joinedload(QuoteRequest.company))
+            .order_by(QuoteRequest.created_at.desc())
+            .limit(5)
+        )
+        .unique()
+        .all()
+    )
 
     return render_template(
         "admin/dashboard.html",
@@ -79,7 +89,9 @@ def qualification():
         .where(QuoteRequest.status == QuoteRequestStatus.pending_review)
         .order_by(QuoteRequest.created_at.desc())
     ).all()
-    return render_template("admin/qualification/list.html", user=g.current_user, requests=requests)
+    return render_template(
+        "admin/qualification/list.html", user=g.current_user, requests=requests
+    )
 
 
 @admin_bp.route("/qualification/<uuid:request_id>")
@@ -112,8 +124,11 @@ def qualification_approve(request_id):
         flash("Aucun traiteur compatible trouve. Impossible d'approuver.", "error")
         return redirect(url_for("admin.qualification_detail", request_id=request_id))
     log_admin_action(
-        db, g.current_user, "quote_request.approve",
-        target_type="quote_request", target_id=request_id,
+        db,
+        g.current_user,
+        "quote_request.approve",
+        target_type="quote_request",
+        target_id=request_id,
         extra={"matched_caterers": len(qrcs)},
     )
     db.commit()
@@ -132,13 +147,18 @@ def qualification_reject(request_id):
     db = get_db()
     try:
         workflow.reject_quote_request(
-            db, request_id=request_id, reason=form.rejection_reason.data,
+            db,
+            request_id=request_id,
+            reason=form.rejection_reason.data,
         )
     except workflow.RequestNotFound:
         abort(404)
     log_admin_action(
-        db, g.current_user, "quote_request.reject",
-        target_type="quote_request", target_id=request_id,
+        db,
+        g.current_user,
+        "quote_request.reject",
+        target_type="quote_request",
+        target_id=request_id,
         extra={"reason": form.rejection_reason.data},
     )
     db.commit()
@@ -152,7 +172,9 @@ def qualification_reject(request_id):
 def caterers_list():
     db = get_db()
     caterers = db.scalars(select(Caterer).order_by(Caterer.name)).all()
-    return render_template("admin/caterers/list.html", user=g.current_user, caterers=caterers)
+    return render_template(
+        "admin/caterers/list.html", user=g.current_user, caterers=caterers
+    )
 
 
 @admin_bp.route("/caterers/<uuid:caterer_id>")
@@ -163,7 +185,9 @@ def caterer_detail(caterer_id):
     caterer = db.get(Caterer, caterer_id)
     if not caterer:
         abort(404)
-    return render_template("admin/caterers/detail.html", user=g.current_user, caterer=caterer)
+    return render_template(
+        "admin/caterers/detail.html", user=g.current_user, caterer=caterer
+    )
 
 
 @admin_bp.route("/caterers/<uuid:caterer_id>/validate", methods=["POST"])
@@ -176,8 +200,11 @@ def caterer_validate(caterer_id):
         abort(404)
     caterer.is_validated = True
     log_admin_action(
-        db, g.current_user, "caterer.validate",
-        target_type="caterer", target_id=caterer_id,
+        db,
+        g.current_user,
+        "caterer.validate",
+        target_type="caterer",
+        target_id=caterer_id,
         extra={"caterer_name": caterer.name},
     )
     db.commit()
@@ -195,8 +222,11 @@ def caterer_invalidate(caterer_id):
         abort(404)
     caterer.is_validated = False
     log_admin_action(
-        db, g.current_user, "caterer.invalidate",
-        target_type="caterer", target_id=caterer_id,
+        db,
+        g.current_user,
+        "caterer.invalidate",
+        target_type="caterer",
+        target_id=caterer_id,
         extra={"caterer_name": caterer.name},
     )
     db.commit()
@@ -210,7 +240,9 @@ def caterer_invalidate(caterer_id):
 def companies_list():
     db = get_db()
     companies = db.scalars(select(Company).order_by(Company.name)).all()
-    return render_template("admin/companies/list.html", user=g.current_user, companies=companies)
+    return render_template(
+        "admin/companies/list.html", user=g.current_user, companies=companies
+    )
 
 
 @admin_bp.route("/companies/<uuid:company_id>")
@@ -258,21 +290,30 @@ def payments():
             stmt = stmt.where(Payment.status == status_enum)
     payment_list = db.scalars(stmt).all()
 
-    total_revenue = db.scalar(
-        select(func.coalesce(func.sum(Payment.amount_total_cents), 0)).where(
-            Payment.status == PaymentStatus.succeeded
+    total_revenue = (
+        db.scalar(
+            select(func.coalesce(func.sum(Payment.amount_total_cents), 0)).where(
+                Payment.status == PaymentStatus.succeeded
+            )
         )
-    ) or 0
-    total_commission = db.scalar(
-        select(func.coalesce(func.sum(Payment.application_fee_cents), 0)).where(
-            Payment.status == PaymentStatus.succeeded
+        or 0
+    )
+    total_commission = (
+        db.scalar(
+            select(func.coalesce(func.sum(Payment.application_fee_cents), 0)).where(
+                Payment.status == PaymentStatus.succeeded
+            )
         )
-    ) or 0
-    pending_count = db.scalar(
-        select(func.count(Payment.id)).where(
-            Payment.status.in_([PaymentStatus.pending, PaymentStatus.processing])
+        or 0
+    )
+    pending_count = (
+        db.scalar(
+            select(func.count(Payment.id)).where(
+                Payment.status.in_([PaymentStatus.pending, PaymentStatus.processing])
+            )
         )
-    ) or 0
+        or 0
+    )
 
     return render_template(
         "admin/payments.html",
@@ -299,17 +340,22 @@ def stats():
             month_end = month_start.replace(year=month_start.year + 1, month=1)
         else:
             month_end = month_start.replace(month=month_start.month + 1)
-        revenue = db.scalar(
-            select(func.coalesce(func.sum(Payment.amount_total_cents), 0)).where(
-                Payment.status == PaymentStatus.succeeded,
-                Payment.created_at >= month_start,
-                Payment.created_at < month_end,
+        revenue = (
+            db.scalar(
+                select(func.coalesce(func.sum(Payment.amount_total_cents), 0)).where(
+                    Payment.status == PaymentStatus.succeeded,
+                    Payment.created_at >= month_start,
+                    Payment.created_at < month_end,
+                )
             )
-        ) or 0
-        months.append({
-            "label": month_start.strftime("%b %Y"),
-            "revenue": revenue / 100,
-        })
+            or 0
+        )
+        months.append(
+            {
+                "label": month_start.strftime("%b %Y"),
+                "revenue": revenue / 100,
+            }
+        )
 
     top_caterers_rows = db.execute(
         select(
@@ -324,20 +370,33 @@ def stats():
         .limit(5)
     ).all()
     top_caterers = [
-        {"name": r.name, "revenue": (r.revenue or 0) / 100, "order_count": r.order_count}
+        {
+            "name": r.name,
+            "revenue": (r.revenue or 0) / 100,
+            "order_count": r.order_count,
+        }
         for r in top_caterers_rows
     ]
 
     total_requests = db.scalar(select(func.count(QuoteRequest.id))) or 0
-    quotes_sent = db.scalar(
-        select(func.count(Quote.id)).where(Quote.status != QuoteStatus.draft)
-    ) or 0
-    quotes_accepted = db.scalar(
-        select(func.count(Quote.id)).where(Quote.status == QuoteStatus.accepted)
-    ) or 0
-    orders_paid = db.scalar(
-        select(func.count(Payment.id)).where(Payment.status == PaymentStatus.succeeded)
-    ) or 0
+    quotes_sent = (
+        db.scalar(select(func.count(Quote.id)).where(Quote.status != QuoteStatus.draft))
+        or 0
+    )
+    quotes_accepted = (
+        db.scalar(
+            select(func.count(Quote.id)).where(Quote.status == QuoteStatus.accepted)
+        )
+        or 0
+    )
+    orders_paid = (
+        db.scalar(
+            select(func.count(Payment.id)).where(
+                Payment.status == PaymentStatus.succeeded
+            )
+        )
+        or 0
+    )
 
     geo_rows = db.execute(
         select(
@@ -389,27 +448,27 @@ def stats():
 
 
 ORDER_STATUS_TABS = {
-    "all":       "Toutes",
-    "upcoming":  "À venir",
+    "all": "Toutes",
+    "upcoming": "À venir",
     "delivered": "Livrées",
-    "invoiced":  "Facturées",
-    "paid":      "Payées",
-    "disputed":  "Litige",
+    "invoiced": "Facturées",
+    "paid": "Payées",
+    "disputed": "Litige",
 }
 
 _TAB_TO_STATUSES = {
-    "upcoming":  (OrderStatus.confirmed,),
+    "upcoming": (OrderStatus.confirmed,),
     "delivered": (OrderStatus.delivered,),
-    "invoiced":  (OrderStatus.invoicing, OrderStatus.invoiced),
-    "paid":      (OrderStatus.paid,),
-    "disputed":  (OrderStatus.disputed,),
+    "invoiced": (OrderStatus.invoicing, OrderStatus.invoiced),
+    "paid": (OrderStatus.paid,),
+    "disputed": (OrderStatus.disputed,),
 }
 
 # Manual transitions the super-admin can apply from the order detail page.
 # Each move requires the order's current status to match the source.
 _ADMIN_ORDER_TRANSITIONS = {
     "invoice": (OrderStatus.delivered, OrderStatus.invoiced),
-    "pay":     (OrderStatus.invoiced,  OrderStatus.paid),
+    "pay": (OrderStatus.invoiced, OrderStatus.paid),
 }
 
 
@@ -486,11 +545,16 @@ def order_transition(order_id):
         )
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
-    previous = OrderStatus(order.status) if isinstance(order.status, str) else order.status
+    previous = (
+        OrderStatus(order.status) if isinstance(order.status, str) else order.status
+    )
     order.status = target
     log_admin_action(
-        db, g.current_user, f"order.{action}",
-        target_type="order", target_id=order_id,
+        db,
+        g.current_user,
+        f"order.{action}",
+        target_type="order",
+        target_id=order_id,
         extra={"from": previous.value, "to": target.value},
     )
     db.commit()
@@ -516,9 +580,7 @@ def messages():
     db = get_db()
     page = max(1, request.args.get("page", 1, type=int) or 1)
 
-    total_threads = db.scalar(
-        select(func.count(func.distinct(Message.thread_id)))
-    ) or 0
+    total_threads = db.scalar(select(func.count(func.distinct(Message.thread_id)))) or 0
     total_pages = (total_threads + _MESSAGES_PAGE_SIZE - 1) // _MESSAGES_PAGE_SIZE
 
     # 1. Per-thread aggregates, paginated by last activity.
@@ -549,12 +611,16 @@ def messages():
 
     # 2. Last message per paginated thread. PostgreSQL-specific DISTINCT ON
     # picks the row with the greatest created_at per thread in one pass.
-    last_messages = db.execute(
-        select(Message)
-        .where(Message.thread_id.in_(thread_ids))
-        .order_by(Message.thread_id, Message.created_at.desc())
-        .distinct(Message.thread_id)
-    ).scalars().all()
+    last_messages = (
+        db.execute(
+            select(Message)
+            .where(Message.thread_id.in_(thread_ids))
+            .order_by(Message.thread_id, Message.created_at.desc())
+            .distinct(Message.thread_id)
+        )
+        .scalars()
+        .all()
+    )
     last_by_thread = {m.thread_id: m for m in last_messages}
 
     # 3. Bulk-fetch every user referenced by the paginated last messages.
@@ -562,11 +628,16 @@ def messages():
     for msg in last_messages:
         user_ids.add(msg.sender_id)
         user_ids.add(msg.recipient_id)
-    users = {
-        u.id: u for u in db.execute(
-            select(User).where(User.id.in_(user_ids))
-        ).scalars().all()
-    } if user_ids else {}
+    users = (
+        {
+            u.id: u
+            for u in db.execute(select(User).where(User.id.in_(user_ids)))
+            .scalars()
+            .all()
+        }
+        if user_ids
+        else {}
+    )
 
     threads = []
     for tid in thread_ids:  # preserves the ORDER BY last_at DESC
@@ -575,14 +646,20 @@ def messages():
             continue
         sender = users.get(msg.sender_id)
         recipient = users.get(msg.recipient_id)
-        threads.append({
-            "thread_id": str(tid),
-            "sender_name": f"{sender.first_name} {sender.last_name}" if sender else "Inconnu",
-            "recipient_name": f"{recipient.first_name} {recipient.last_name}" if recipient else "Inconnu",
-            "last_message": (msg.body or "")[:80],
-            "last_at": msg.created_at,
-            "message_count": count_by_thread.get(tid, 0),
-        })
+        threads.append(
+            {
+                "thread_id": str(tid),
+                "sender_name": f"{sender.first_name} {sender.last_name}"
+                if sender
+                else "Inconnu",
+                "recipient_name": f"{recipient.first_name} {recipient.last_name}"
+                if recipient
+                else "Inconnu",
+                "last_message": (msg.body or "")[:80],
+                "last_at": msg.created_at,
+                "message_count": count_by_thread.get(tid, 0),
+            }
+        )
 
     return render_template(
         "admin/messages.html",

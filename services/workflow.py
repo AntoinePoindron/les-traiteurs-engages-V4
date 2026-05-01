@@ -9,6 +9,7 @@ Conventions :
 But : transitions testables sans contexte HTTP, point d'entrée unique
 par règle métier, démarcation transactionnelle visible côté caller.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -128,10 +129,12 @@ def accept_quote(
     # Order. Order.quote_id UNIQUE is a backstop, but locking earlier avoids
     # IntegrityError noise and double Stripe round-trips downstream.
     qr = db.execute(
-        select(QuoteRequest).where(
+        select(QuoteRequest)
+        .where(
             QuoteRequest.id == request_id,
             QuoteRequest.company_id == user.company_id,
-        ).with_for_update()
+        )
+        .with_for_update()
     ).scalar_one_or_none()
     if not qr:
         raise RequestNotFound
@@ -157,13 +160,17 @@ def accept_quote(
 
     accepted.status = QuoteStatus.accepted
 
-    others = db.execute(
-        select(Quote).where(
-            Quote.quote_request_id == request_id,
-            Quote.id != accepted.id,
-            Quote.status == QuoteStatus.sent,
+    others = (
+        db.execute(
+            select(Quote).where(
+                Quote.quote_request_id == request_id,
+                Quote.id != accepted.id,
+                Quote.status == QuoteStatus.sent,
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     for q in others:
         q.status = QuoteStatus.refused
         q.refusal_reason = "Un autre devis a ete accepte."
@@ -257,9 +264,7 @@ def submit_quote(
     """
     # Verrou exclusif pour sérialiser les répondants concurrents.
     db.execute(
-        select(QuoteRequest.id)
-        .where(QuoteRequest.id == request_id)
-        .with_for_update()
+        select(QuoteRequest.id).where(QuoteRequest.id == request_id).with_for_update()
     )
 
     quote = db.scalar(

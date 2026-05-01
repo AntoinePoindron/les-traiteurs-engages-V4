@@ -10,6 +10,7 @@ Background:
     caterer's draft, refused, or long-expired quote — creating an Order
     the caterer never committed to.
 """
+
 import datetime as _dt
 
 
@@ -112,9 +113,7 @@ def test_accepting_expired_quote_does_not_create_order(client, login):
         data={"quote_id": str(quote_id)},
     )
     assert resp.status_code in (302, 400, 404)
-    assert not _order_exists_for_quote(quote_id), (
-        "expired quote must not be acceptable"
-    )
+    assert not _order_exists_for_quote(quote_id), "expired quote must not be acceptable"
 
 
 def test_accepting_sent_quote_creates_order(client, login):

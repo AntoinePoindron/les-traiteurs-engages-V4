@@ -27,6 +27,7 @@ commission_invoice_seq = Sequence("commission_invoice_number_seq", start=1)
 
 class DietaryMixin:
     """Five boolean dietary flags shared by Caterer and QuoteRequest."""
+
     dietary_vegetarian: Mapped[bool] = mapped_column(Boolean, default=False)
     dietary_vegan: Mapped[bool] = mapped_column(Boolean, default=False)
     dietary_halal: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -120,12 +121,12 @@ MEAL_TYPE_LABELS: dict[MealType, str] = {
 # Stored as a JSON list of slugs on Caterer.service_offerings.
 # Order matters — it defines the order of checkboxes in the search UI.
 SERVICE_OFFERING_LABELS: dict[str, str] = {
-    "petit_dejeuner":         "Petit déjeuner",
-    "pause_gourmande":        "Pause gourmande",
-    "plateaux_repas":         "Plateaux repas",
-    "cocktail_dinatoire":     "Cocktail dinatoire",
-    "cocktail_dejeunatoire":  "Cocktail déjeunatoire",
-    "aperitif":               "Apéritif",
+    "petit_dejeuner": "Petit déjeuner",
+    "pause_gourmande": "Pause gourmande",
+    "plateaux_repas": "Plateaux repas",
+    "cocktail_dinatoire": "Cocktail dinatoire",
+    "cocktail_dejeunatoire": "Cocktail déjeunatoire",
+    "aperitif": "Apéritif",
 }
 
 
@@ -133,10 +134,10 @@ SERVICE_OFFERING_LABELS: dict[str, str] = {
 # numeric bounds (in EUR). A caterer matches a band when its price range
 # overlaps with the band's [min, max].
 PRICE_BAND_BOUNDS: dict[str, tuple[Decimal | None, Decimal | None]] = {
-    "lt15":  (None,           Decimal("15")),
-    "15_30": (Decimal("15"),  Decimal("30")),
-    "30_50": (Decimal("30"),  Decimal("50")),
-    "gt50":  (Decimal("50"),  None),
+    "lt15": (None, Decimal("15")),
+    "15_30": (Decimal("15"), Decimal("30")),
+    "30_50": (Decimal("30"), Decimal("50")),
+    "gt50": (Decimal("50"), None),
 }
 
 
@@ -164,12 +165,16 @@ class Company(Base):
     oeth_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
     budget_annual: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     logo_url: Mapped[str | None] = mapped_column(String(500))
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
 
     users: Mapped[list["User"]] = relationship(back_populates="company")
     services: Mapped[list["CompanyService"]] = relationship(back_populates="company")
     employees: Mapped[list["CompanyEmployee"]] = relationship(back_populates="company")
-    quote_requests: Mapped[list["QuoteRequest"]] = relationship(back_populates="company")
+    quote_requests: Mapped[list["QuoteRequest"]] = relationship(
+        back_populates="company"
+    )
 
 
 class Caterer(DietaryMixin, Base):
@@ -189,7 +194,9 @@ class Caterer(DietaryMixin, Base):
     capacity_min: Mapped[int | None] = mapped_column(Integer)
     capacity_max: Mapped[int | None] = mapped_column(Integer)
     is_validated: Mapped[bool] = mapped_column(Boolean, default=False)
-    commission_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=Decimal("0.05"))
+    commission_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 4), default=Decimal("0.05")
+    )
     logo_url: Mapped[str | None] = mapped_column(String(500))
     delivery_radius_km: Mapped[int | None] = mapped_column(Integer)
     service_config: Mapped[dict | None] = mapped_column(JSON)
@@ -211,11 +218,17 @@ class Caterer(DietaryMixin, Base):
     stripe_charges_enabled: Mapped[bool | None] = mapped_column(Boolean)
     stripe_payouts_enabled: Mapped[bool | None] = mapped_column(Boolean)
     invoice_prefix: Mapped[str | None] = mapped_column(String(10), unique=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     users: Mapped[list["User"]] = relationship(back_populates="caterer")
-    quote_request_caterers: Mapped[list["QuoteRequestCaterer"]] = relationship(back_populates="caterer")
+    quote_request_caterers: Mapped[list["QuoteRequestCaterer"]] = relationship(
+        back_populates="caterer"
+    )
     quotes: Mapped[list["Quote"]] = relationship(back_populates="caterer")
     invoices: Mapped[list["Invoice"]] = relationship(back_populates="caterer")
     payments: Mapped[list["Payment"]] = relationship(back_populates="caterer")
@@ -230,42 +243,62 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(255))
     last_name: Mapped[str] = mapped_column(String(255))
     role: Mapped[UserRole] = mapped_column(String(20))
-    company_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("companies.id"), index=True)
-    caterer_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
+    company_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("companies.id"), index=True
+    )
+    caterer_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("caterers.id"), index=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     membership_status: Mapped[MembershipStatus | None] = mapped_column(String(20))
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255))
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     company: Mapped[Company | None] = relationship(back_populates="users")
     caterer: Mapped[Caterer | None] = relationship(back_populates="users")
     quote_requests: Mapped[list["QuoteRequest"]] = relationship(back_populates="user")
     notifications: Mapped[list["Notification"]] = relationship(back_populates="user")
-    sent_messages: Mapped[list["Message"]] = relationship(foreign_keys="Message.sender_id", back_populates="sender")
-    received_messages: Mapped[list["Message"]] = relationship(foreign_keys="Message.recipient_id", back_populates="recipient")
+    sent_messages: Mapped[list["Message"]] = relationship(
+        foreign_keys="Message.sender_id", back_populates="sender"
+    )
+    received_messages: Mapped[list["Message"]] = relationship(
+        foreign_keys="Message.recipient_id", back_populates="recipient"
+    )
 
 
 class CompanyService(Base):
     __tablename__ = "company_services"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"), index=True)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("companies.id"), index=True
+    )
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
     annual_budget: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
 
     company: Mapped[Company] = relationship(back_populates="services")
     employees: Mapped[list["CompanyEmployee"]] = relationship(back_populates="service")
-    quote_requests: Mapped[list["QuoteRequest"]] = relationship(back_populates="company_service")
+    quote_requests: Mapped[list["QuoteRequest"]] = relationship(
+        back_populates="company_service"
+    )
 
 
 class CompanyEmployee(Base):
     __tablename__ = "company_employees"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"), index=True)
-    service_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("company_services.id"), index=True)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("companies.id"), index=True
+    )
+    service_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("company_services.id"), index=True
+    )
     first_name: Mapped[str] = mapped_column(String(255))
     last_name: Mapped[str] = mapped_column(String(255))
     email: Mapped[str] = mapped_column(String(255))
@@ -282,10 +315,16 @@ class QuoteRequest(DietaryMixin, Base):
     __tablename__ = "quote_requests"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("companies.id"), index=True)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("companies.id"), index=True
+    )
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
-    company_service_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("company_services.id"), index=True)
-    status: Mapped[QuoteRequestStatus] = mapped_column(String(30), default=QuoteRequestStatus.draft)
+    company_service_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("company_services.id"), index=True
+    )
+    status: Mapped[QuoteRequestStatus] = mapped_column(
+        String(30), default=QuoteRequestStatus.draft
+    )
     service_type: Mapped[str | None] = mapped_column(String(100))
     meal_type: Mapped[MealType | None] = mapped_column(String(20))
     event_date: Mapped[datetime.date | None] = mapped_column(Date)
@@ -312,13 +351,21 @@ class QuoteRequest(DietaryMixin, Base):
     wants_cleanup: Mapped[bool] = mapped_column(Boolean, default=False)
     is_compare_mode: Mapped[bool] = mapped_column(Boolean, default=True)
     message_to_caterer: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     company: Mapped[Company] = relationship(back_populates="quote_requests")
     user: Mapped[User] = relationship(back_populates="quote_requests")
-    company_service: Mapped[CompanyService | None] = relationship(back_populates="quote_requests")
-    caterers: Mapped[list["QuoteRequestCaterer"]] = relationship(back_populates="quote_request")
+    company_service: Mapped[CompanyService | None] = relationship(
+        back_populates="quote_requests"
+    )
+    caterers: Mapped[list["QuoteRequestCaterer"]] = relationship(
+        back_populates="quote_request"
+    )
     quotes: Mapped[list["Quote"]] = relationship(back_populates="quote_request")
     messages: Mapped[list["Message"]] = relationship(back_populates="quote_request")
 
@@ -327,8 +374,12 @@ class QuoteRequestCaterer(Base):
     __tablename__ = "quote_request_caterers"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    quote_request_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quote_requests.id"), index=True)
-    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
+    quote_request_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("quote_requests.id"), index=True
+    )
+    caterer_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("caterers.id"), index=True
+    )
     status: Mapped[QRCStatus] = mapped_column(String(30), default=QRCStatus.selected)
     responded_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
     response_rank: Mapped[int | None] = mapped_column(Integer)
@@ -341,8 +392,12 @@ class Quote(Base):
     __tablename__ = "quotes"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    quote_request_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quote_requests.id"), index=True)
-    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
+    quote_request_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("quote_requests.id"), index=True
+    )
+    caterer_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("caterers.id"), index=True
+    )
     reference: Mapped[str] = mapped_column(String(50), unique=True)
     total_amount_ht: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     amount_per_person: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
@@ -351,14 +406,20 @@ class Quote(Base):
     valid_until: Mapped[datetime.date | None] = mapped_column(Date)
     status: Mapped[QuoteStatus] = mapped_column(String(20), default=QuoteStatus.draft)
     refusal_reason: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     quote_request: Mapped[QuoteRequest] = relationship(back_populates="quotes")
     caterer: Mapped[Caterer] = relationship(back_populates="quotes")
     order: Mapped["Order | None"] = relationship(back_populates="quote")
     lines: Mapped[list["QuoteLine"]] = relationship(
-        back_populates="quote", cascade="all, delete-orphan", order_by="QuoteLine.position"
+        back_populates="quote",
+        cascade="all, delete-orphan",
+        order_by="QuoteLine.position",
     )
 
 
@@ -366,7 +427,9 @@ class QuoteLine(Base):
     __tablename__ = "quote_lines"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    quote_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quotes.id", ondelete="CASCADE"), index=True)
+    quote_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("quotes.id", ondelete="CASCADE"), index=True
+    )
     position: Mapped[int] = mapped_column(Integer, default=0)
     section: Mapped[str] = mapped_column(String(50), default="principal")
     description: Mapped[str | None] = mapped_column(Text)
@@ -390,22 +453,32 @@ class Order(Base):
     __tablename__ = "orders"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    quote_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("quotes.id"), unique=True)
+    quote_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("quotes.id"), unique=True
+    )
     client_admin_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
-    status: Mapped[OrderStatus] = mapped_column(String(20), default=OrderStatus.confirmed)
+    status: Mapped[OrderStatus] = mapped_column(
+        String(20), default=OrderStatus.confirmed
+    )
     delivery_date: Mapped[datetime.date | None] = mapped_column(Date)
     delivery_address: Mapped[str | None] = mapped_column(String(500))
     notes: Mapped[str | None] = mapped_column(Text)
     stripe_invoice_id: Mapped[str | None] = mapped_column(String(255))
     stripe_hosted_invoice_url: Mapped[str | None] = mapped_column(String(500))
     invoice_attempt: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     quote: Mapped[Quote] = relationship(back_populates="order")
     client_admin: Mapped[User] = relationship()
     invoices: Mapped[list["Invoice"]] = relationship(back_populates="order")
-    commission_invoices: Mapped[list["CommissionInvoice"]] = relationship(back_populates="order")
+    commission_invoices: Mapped[list["CommissionInvoice"]] = relationship(
+        back_populates="order"
+    )
     payments: Mapped[list["Payment"]] = relationship(back_populates="order")
     messages: Mapped[list["Message"]] = relationship(back_populates="order")
 
@@ -414,15 +487,21 @@ class Invoice(Base):
     __tablename__ = "invoices"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"), index=True)
-    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("orders.id"), index=True
+    )
+    caterer_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("caterers.id"), index=True
+    )
     reference: Mapped[str | None] = mapped_column(String(50))
     amount_ht: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     tva_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
     amount_ttc: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     valorisable_agefiph: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     esat_mention: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
 
     order: Mapped[Order] = relationship(back_populates="invoices")
     caterer: Mapped[Caterer] = relationship(back_populates="invoices")
@@ -435,14 +514,19 @@ class CommissionInvoice(Base):
     # Numbered by Postgres sequence — strictly monotonic, unique, no gaps.
     # French fiscal compliance: callers do NOT pass invoice_number explicitly.
     invoice_number: Mapped[int] = mapped_column(
-        Integer, commission_invoice_seq, server_default=commission_invoice_seq.next_value(), unique=True
+        Integer,
+        commission_invoice_seq,
+        server_default=commission_invoice_seq.next_value(),
+        unique=True,
     )
     order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"))
     party: Mapped[str] = mapped_column(String(20))
     amount_ht: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     tva_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=Decimal("0.20"))
     amount_ttc: Mapped[Decimal] = mapped_column(Numeric(12, 2))
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
 
     order: Mapped[Order] = relationship(back_populates="commission_invoices")
 
@@ -451,8 +535,12 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"), index=True)
-    caterer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("caterers.id"), index=True)
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("orders.id"), index=True
+    )
+    caterer_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("caterers.id"), index=True
+    )
     stripe_checkout_session_id: Mapped[str | None] = mapped_column(String(255))
     stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
     # UNIQUE: a single Stripe invoice maps to exactly one Payment row.
@@ -461,12 +549,18 @@ class Payment(Base):
     # webhook updates only one. Audit finding #6 (2026-04-24).
     stripe_invoice_id: Mapped[str | None] = mapped_column(String(255), unique=True)
     stripe_charge_id: Mapped[str | None] = mapped_column(String(255))
-    status: Mapped[PaymentStatus] = mapped_column(String(20), default=PaymentStatus.pending)
+    status: Mapped[PaymentStatus] = mapped_column(
+        String(20), default=PaymentStatus.pending
+    )
     amount_total_cents: Mapped[int | None] = mapped_column(Integer)
     application_fee_cents: Mapped[int | None] = mapped_column(Integer)
     amount_to_caterer_cents: Mapped[int | None] = mapped_column(Integer)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     order: Mapped[Order] = relationship(back_populates="payments")
     caterer: Mapped[Caterer] = relationship(back_populates="payments")
@@ -483,7 +577,9 @@ class Notification(Base):
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     related_entity_type: Mapped[str | None] = mapped_column(String(50))
     related_entity_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
 
     user: Mapped[User] = relationship(back_populates="notifications")
 
@@ -507,7 +603,9 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    actor_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id"), index=True
+    )
     actor_email: Mapped[str | None] = mapped_column(String(255))
     action: Mapped[str] = mapped_column(String(60), index=True)
     target_type: Mapped[str | None] = mapped_column(String(40))
@@ -515,7 +613,9 @@ class AuditLog(Base):
     extra: Mapped[dict | None] = mapped_column(JSON)
     ip_address: Mapped[str | None] = mapped_column(String(45))
     user_agent: Mapped[str | None] = mapped_column(String(500))
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), index=True
+    )
 
 
 class StripeEvent(Base):
@@ -532,7 +632,9 @@ class StripeEvent(Base):
 
     id: Mapped[str] = mapped_column(String(255), primary_key=True)
     event_type: Mapped[str] = mapped_column(String(100))
-    received_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+    received_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
 
 
 class Message(Base):
@@ -540,15 +642,27 @@ class Message(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     thread_id: Mapped[uuid.UUID] = mapped_column(Uuid)
-    sender_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
-    recipient_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
+    sender_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id"), index=True
+    )
+    recipient_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id"), index=True
+    )
     order_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("orders.id"))
-    quote_request_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("quote_requests.id"))
+    quote_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("quote_requests.id")
+    )
     body: Mapped[str] = mapped_column(Text)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
 
-    sender: Mapped[User] = relationship(foreign_keys=[sender_id], back_populates="sent_messages")
-    recipient: Mapped[User] = relationship(foreign_keys=[recipient_id], back_populates="received_messages")
+    sender: Mapped[User] = relationship(
+        foreign_keys=[sender_id], back_populates="sent_messages"
+    )
+    recipient: Mapped[User] = relationship(
+        foreign_keys=[recipient_id], back_populates="received_messages"
+    )
     order: Mapped[Order | None] = relationship(back_populates="messages")
     quote_request: Mapped[QuoteRequest | None] = relationship(back_populates="messages")

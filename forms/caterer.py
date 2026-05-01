@@ -1,4 +1,5 @@
 """WTForms classes for the `caterer` blueprint."""
+
 from flask_wtf import FlaskForm
 from wtforms import (
     BooleanField,
@@ -18,7 +19,9 @@ class CatererProfileForm(FlaskForm):
     address = StringField(validators=[Optional(), Length(max=500)])
     city = StringField(validators=[Optional(), Length(max=255)])
     zip_code = StringField(validators=[Optional(), Length(max=10)])
-    delivery_radius_km = IntegerField(validators=[Optional(), NumberRange(min=0, max=2000)])
+    delivery_radius_km = IntegerField(
+        validators=[Optional(), NumberRange(min=0, max=2000)]
+    )
     dietary_vegetarian = BooleanField()
     dietary_vegan = BooleanField()
     dietary_halal = BooleanField()

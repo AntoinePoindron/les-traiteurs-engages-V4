@@ -8,7 +8,6 @@ from sqlalchemy.orm import selectinload
 from blueprints.client._helpers import (
     DIETARY_FLAGS,
     ITEMS_PER_PAGE,
-    STATUS_TABS,
     STRUCTURE_GROUPS,
     apply_quote_request_form,
     own_service_id,
@@ -23,7 +22,6 @@ from models import (
     PRICE_BAND_BOUNDS,
     SERVICE_OFFERING_LABELS,
     Caterer,
-    CatererStructureType,
     CompanyService,
     QRCStatus,
     Quote,
@@ -39,11 +37,11 @@ from services.quotes import calculate_quote_totals
 # Filter tabs visible on /client/requests. Each tab maps to one of the
 # values _derive_request_display_status() returns (or "all").
 REQUEST_STATUS_TABS = {
-    "all":              "Toutes",
-    "awaiting_quotes":  "En attente de devis",
-    "quotes_received":  "Devis reçu(s)",
-    "completed":        "Commande créée",
-    "closed":           "Clôturées",
+    "all": "Toutes",
+    "awaiting_quotes": "En attente de devis",
+    "quotes_received": "Devis reçu(s)",
+    "completed": "Commande créée",
+    "closed": "Clôturées",
 }
 
 # Quote statuses that count as "the caterer actually responded" (drafts
@@ -120,21 +118,32 @@ def register(bp):
         # Tab filter: "closed" buckets cancelled + closed for the user
         # but each row keeps its own badge.
         if status_filter == "closed":
-            requests = [r for r in requests if r.display_status in ("closed", "cancelled")]
+            requests = [
+                r for r in requests if r.display_status in ("closed", "cancelled")
+            ]
         elif status_filter != "all":
             requests = [r for r in requests if r.display_status == status_filter]
 
         # Free-text search across the cheap-to-check fields. Stays in
         # Python because the volume per company is small (< 100 demands).
         if search_q:
+
             def _matches(qr):
-                haystack = " ".join(filter(None, [
-                    MEAL_TYPE_LABELS.get(qr.meal_type, "") if qr.meal_type else "",
-                    qr.service_type or "",
-                    qr.event_city or "",
-                    qr.message_to_caterer or "",
-                ])).lower()
+                haystack = " ".join(
+                    filter(
+                        None,
+                        [
+                            MEAL_TYPE_LABELS.get(qr.meal_type, "")
+                            if qr.meal_type
+                            else "",
+                            qr.service_type or "",
+                            qr.event_city or "",
+                            qr.message_to_caterer or "",
+                        ],
+                    )
+                ).lower()
                 return search_q in haystack
+
             requests = [r for r in requests if _matches(r)]
 
         return render_template(
@@ -153,9 +162,15 @@ def register(bp):
     def requests_new():
         user = g.current_user
         db = get_db()
-        services = db.execute(
-            select(CompanyService).where(CompanyService.company_id == user.company_id)
-        ).scalars().all()
+        services = (
+            db.execute(
+                select(CompanyService).where(
+                    CompanyService.company_id == user.company_id
+                )
+            )
+            .scalars()
+            .all()
+        )
         # When the wizard is opened from a specific caterer profile
         # (?caterer_id=...), prefill target_caterer so the form ships the
         # demand straight to that caterer and bypasses admin matching.
@@ -188,9 +203,15 @@ def register(bp):
         if not form.validate_on_submit():
             flash("Veuillez corriger les erreurs du formulaire.", "error")
             db = get_db()
-            services = db.execute(
-                select(CompanyService).where(CompanyService.company_id == user.company_id)
-            ).scalars().all()
+            services = (
+                db.execute(
+                    select(CompanyService).where(
+                        CompanyService.company_id == user.company_id
+                    )
+                )
+                .scalars()
+                .all()
+            )
             return render_template(
                 "client/requests/new.html",
                 user=user,
@@ -249,11 +270,13 @@ def register(bp):
         db.flush()
 
         if target_caterer is not None:
-            db.add(QuoteRequestCaterer(
-                quote_request_id=qr.id,
-                caterer_id=target_caterer.id,
-                status=QRCStatus.selected,
-            ))
+            db.add(
+                QuoteRequestCaterer(
+                    quote_request_id=qr.id,
+                    caterer_id=target_caterer.id,
+                    status=QRCStatus.selected,
+                )
+            )
 
         qr_id = qr.id
         db.commit()
@@ -269,16 +292,25 @@ def register(bp):
         db = get_db()
         qr = get_company_request(request_id, user.company_id)
 
-        qrcs = db.execute(
-            select(QuoteRequestCaterer).where(
-                QuoteRequestCaterer.quote_request_id == request_id
+        qrcs = (
+            db.execute(
+                select(QuoteRequestCaterer).where(
+                    QuoteRequestCaterer.quote_request_id == request_id
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
-        quotes = db.execute(
-            select(Quote).where(Quote.quote_request_id == request_id)
-            .order_by(Quote.created_at.asc())
-        ).scalars().all()
+        quotes = (
+            db.execute(
+                select(Quote)
+                .where(Quote.quote_request_id == request_id)
+                .order_by(Quote.created_at.asc())
+            )
+            .scalars()
+            .all()
+        )
 
         # Same display_status logic as the list page so the header badge
         # uses a French, user-facing label instead of the raw enum value.
@@ -384,13 +416,22 @@ def register(bp):
         user = g.current_user
         db = get_db()
         qr = get_company_request(request_id, user.company_id)
-        if qr.status not in (QuoteRequestStatus.draft, QuoteRequestStatus.pending_review):
+        if qr.status not in (
+            QuoteRequestStatus.draft,
+            QuoteRequestStatus.pending_review,
+        ):
             flash("Cette demande ne peut plus etre modifiee.", "error")
             return redirect(url_for("client.request_detail", request_id=request_id))
 
-        services = db.execute(
-            select(CompanyService).where(CompanyService.company_id == user.company_id)
-        ).scalars().all()
+        services = (
+            db.execute(
+                select(CompanyService).where(
+                    CompanyService.company_id == user.company_id
+                )
+            )
+            .scalars()
+            .all()
+        )
 
         return render_template(
             "client/requests/edit.html",
@@ -407,16 +448,25 @@ def register(bp):
 
         db = get_db()
         qr = get_company_request(request_id, user.company_id)
-        if qr.status not in (QuoteRequestStatus.draft, QuoteRequestStatus.pending_review):
+        if qr.status not in (
+            QuoteRequestStatus.draft,
+            QuoteRequestStatus.pending_review,
+        ):
             flash("Cette demande ne peut plus etre modifiee.", "error")
             return redirect(url_for("client.request_detail", request_id=request_id))
 
         form = QuoteRequestForm()
         if not form.validate_on_submit():
             flash("Veuillez corriger les erreurs du formulaire.", "error")
-            services = db.execute(
-                select(CompanyService).where(CompanyService.company_id == user.company_id)
-            ).scalars().all()
+            services = (
+                db.execute(
+                    select(CompanyService).where(
+                        CompanyService.company_id == user.company_id
+                    )
+                )
+                .scalars()
+                .all()
+            )
             return render_template(
                 "client/requests/edit.html",
                 user=user,
@@ -433,7 +483,8 @@ def register(bp):
             qr.status = QuoteRequestStatus.pending_review
         else:
             qr.status = (
-                QuoteRequestStatus.pending_review if form.is_compare_mode.data
+                QuoteRequestStatus.pending_review
+                if form.is_compare_mode.data
                 else QuoteRequestStatus.sent_to_caterers
             )
 
