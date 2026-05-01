@@ -87,10 +87,9 @@
           <span>&#201;quipe</span>
         </a>
         {% endif %}
-        <a href="{{ url_for('client.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors relative" data-page="messages">
+        <a href="{{ url_for('client.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="messages">
           <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
           <span>Messages</span>
-          <span class="notification-badge absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-coral-red hidden"></span>
         </a>
         <a href="{{ url_for('client.profile') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="profile">
           <i data-lucide="user" class="w-5 h-5 flex-shrink-0"></i>
@@ -124,10 +123,9 @@
           <i data-lucide="credit-card" class="w-5 h-5 flex-shrink-0"></i>
           <span>Stripe</span>
         </a>
-        <a href="{{ url_for('caterer.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors relative" data-page="messages">
+        <a href="{{ url_for('caterer.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="messages">
           <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
           <span>Messages</span>
-          <span class="notification-badge absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-coral-red hidden"></span>
         </a>
 
         {% elif g.current_user.role == UserRole.super_admin %}
@@ -159,10 +157,9 @@
           <i data-lucide="bar-chart-3" class="w-5 h-5 flex-shrink-0"></i>
           <span>Stats</span>
         </a>
-        <a href="{{ url_for('admin.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors relative" data-page="messages">
+        <a href="{{ url_for('admin.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="messages">
           <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
           <span>Messages</span>
-          <span class="notification-badge absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-coral-red hidden"></span>
         </a>
         {% endif %}
       </div>
@@ -177,8 +174,10 @@
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-text truncate">{{ g.current_user.first_name }} {{ g.current_user.last_name }}</p>
         </div>
-        <button class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
+        <button type="button" data-action="dialog-open" data-target="notifications-modal"
+                class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
           <i data-lucide="bell" class="w-4.5 h-4.5 text-mute"></i>
+          <span class="notification-badge absolute top-1 right-1 w-2 h-2 rounded-full bg-coral-red hidden"></span>
         </button>
         <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -207,6 +206,13 @@
 
   {% if dev_demo_mode %}
     {% include "components/dev_account_switcher.html" %}
+  {% endif %}
+
+  {# Notifications dropdown — opened by the bell button in the sidebar
+     footer. Server-rendered with the recent 10 notifications via the
+     `_inject_notifications` context processor. #}
+  {% if g.current_user %}
+    {% include "components/notifications_modal.html" %}
   {% endif %}
 
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>

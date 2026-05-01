@@ -15,6 +15,11 @@ from models import (
     User,
     UserRole,
 )
+from services.notifications import (
+    company_admin_user_ids,
+    notify_users,
+    super_admin_user_ids,
+)
 from services.slugs import generate_invoice_prefix
 
 auth_bp = Blueprint("auth", __name__)
@@ -220,6 +225,18 @@ def signup():
                 )
                 db.add(user)
                 db.flush()
+                # Tell the company's admins that someone is waiting on
+                # their approval — drives the « Demandes en attente »
+                # block on /client/team.
+                notify_users(
+                    db,
+                    company_admin_user_ids(db, existing_company.id),
+                    type="pending_membership",
+                    title="Demande de rattachement",
+                    body=f"{first_name} {last_name} ({email}) souhaite rejoindre votre structure.",
+                    related_entity_type="user",
+                    related_entity_id=user.id,
+                )
                 db.commit()
                 # VULN-28: avoid confirming SIRET presence. Wording stays
                 # informative for the legitimate case (employee joining an
@@ -323,6 +340,18 @@ def signup():
             )
             db.add(user)
             db.flush()
+            # Alert the super_admin queue: every new caterer needs to
+            # be reviewed + validated before they show up in the
+            # client-facing catalog.
+            notify_users(
+                db,
+                super_admin_user_ids(db),
+                type="caterer_pending_validation",
+                title="Nouveau traiteur en attente",
+                body=f"{caterer_name} ({structure_type}) attend votre validation.",
+                related_entity_type="caterer",
+                related_entity_id=caterer.id,
+            )
             db.commit()
             session["user_id"] = str(user.id)
             flash("Votre compte traiteur a ete cree avec succes.", "success")

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - Les Traiteurs Engag&#233;s{% endblock %}
+
+{% block content %}
+<main class="bg-cream min-h-screen">
+
+    {% set fr_months = ['janv.', 'f&#233;vr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'ao&#251;t', 'sept.', 'oct.', 'nov.', 'd&#233;c.'] %}
+
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <div>
+        <h1 class="font-display font-bold text-4xl text-text">Notifications</h1>
+        {% if unread_count > 0 %}
+        <p class="text-sm mt-1 text-mute">
+          {{ unread_count }} non lue{{ 's' if unread_count > 1 else '' }} sur {{ notes|length }}.
+        </p>
+        {% else %}
+        <p class="text-sm mt-1 text-mute">Aucune notification non lue.</p>
+        {% endif %}
+      </div>
+      {% if unread_count > 0 %}
+      <form method="POST" action="{{ url_for(mark_all_endpoint) }}" class="flex-shrink-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="rounded-full text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 btn-ghost-navy">
+          <i data-lucide="check-check" class="w-4 h-4"></i>
+          Tout marquer lu
+        </button>
+      </form>
+      {% endif %}
+    </div>
+
+    {% if notes %}
+    <div class="bg-white rounded-lg p-6">
+      <div>
+        {% set type_icons = {
+          'new_message': 'message-circle',
+          'quote_request_received': 'inbox',
+          'quote_request_to_qualify': 'clipboard-check',
+          'quote_request_approved': 'send',
+          'quote_request_rejected': 'x-circle',
+          'quote_received': 'file-text',
+          'quote_accepted': 'check-circle',
+          'quote_refused': 'x-circle',
+          'order_delivered': 'truck',
+          'order_invoice': 'receipt',
+          'order_pay': 'banknote',
+          'order_paid': 'banknote',
+          'pending_membership': 'user-plus',
+          'membership_approved': 'user-check',
+          'caterer_pending_validation': 'shield-check',
+        } %}
+
+        {% set visit_endpoint = read_one_endpoint.replace('_read_one', '_visit') %}
+        {% for n in notes %}
+        <div class="flex items-stretch gap-2 border-t-soft first:border-t-0">
+          <form method="POST" action="{{ url_for(visit_endpoint, notification_id=n.id) }}" class="flex-1">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="w-full text-left flex items-start gap-3 py-3.5 -mx-2 px-2 rounded-lg hover:bg-cream transition-colors {% if not n.is_read %}bg-cream-page{% endif %}">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 {% if n.is_read %}bg-cream{% else %}bg-navy-soft{% endif %}">
+                <i data-lucide="{{ type_icons.get(n.type, 'bell') }}" class="w-4 h-4 {% if n.is_read %}text-text-soft{% else %}text-navy{% endif %}"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <p class="text-sm font-bold text-text">{{ n.title }}</p>
+                  {% if not n.is_read %}
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-coral-red text-white">Nouvelle</span>
+                  {% endif %}
+                </div>
+                {% if n.body %}
+                <p class="text-sm mt-1 text-text-soft" style="line-height:1.5;">{{ n.body|safe }}</p>
+                {% endif %}
+                <p class="text-xs mt-1 text-mute">
+                  {{ n.created_at.day }} {{ fr_months[n.created_at.month - 1] }} {{ n.created_at.year }} &middot; {{ '%02d'|format(n.created_at.hour) }}:{{ '%02d'|format(n.created_at.minute) }}
+                </p>
+              </div>
+            </button>
+          </form>
+          {% if not n.is_read %}
+          <form method="POST" action="{{ url_for(read_one_endpoint, notification_id=n.id) }}" class="flex-shrink-0 self-center">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="px-2 py-2 hover:opacity-70 transition-opacity text-navy" title="Marquer comme lue sans ouvrir">
+              <i data-lucide="check" class="w-4 h-4"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg p-12 text-center">
+      <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
+        <i data-lucide="bell" class="w-6 h-6 text-navy"></i>
+      </div>
+      <h3 class="font-display font-bold text-xl mb-2 text-text">Pas encore de notification</h3>
+      <p class="text-sm text-mute">Vous serez alert&#233; ici d&#232;s qu'il y aura du nouveau.</p>
+    </div>
+    {% endif %}
+
+</main>
+{% endblock %}

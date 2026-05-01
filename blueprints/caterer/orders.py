@@ -89,7 +89,20 @@ def register(bp):
         try:
             order = workflow.mark_delivered(db, order_id=order_id, caterer=caterer)
         except workflow.OrderNotFound:
-            abort(404)
+            # `mark_delivered` raises OrderNotFound for two cases: the
+            # order genuinely doesn't exist (or doesn't belong to this
+            # caterer) → real 404; or it's already past `confirmed`
+            # (typical replay: 2nd click, browser back+resubmit, stale
+            # tab) → flash + redirect, not an error.
+            existing = db.scalar(
+                select(Order)
+                .join(Quote, Order.quote_id == Quote.id)
+                .where(Order.id == order_id, Quote.caterer_id == caterer.id)
+            )
+            if existing is None:
+                abort(404)
+            flash("Cette commande a deja ete marquee comme livree.", "info")
+            return redirect(url_for("caterer.order_detail", order_id=order_id))
 
         if caterer.stripe_account_id and caterer.stripe_charges_enabled:
             order.status = OrderStatus.invoicing
