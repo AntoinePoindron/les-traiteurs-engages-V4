@@ -154,6 +154,13 @@ def register(bp):
         user = g.current_user
         db = get_db()
         employee = get_company_employee(employee_id, user.company_id)
+        # Defense-in-depth for the disabled trash button on the team page:
+        # an admin must not be able to remove their own effectifs row, even
+        # by replaying the POST manually. The UI already hides the form
+        # when employee.user_id == current user.
+        if employee.user_id == user.id:
+            flash("Vous ne pouvez pas vous retirer vous-même des effectifs.", "error")
+            return redirect(url_for("client.team"))
         db.delete(employee)
         db.commit()
         flash("Employe supprime.", "success")

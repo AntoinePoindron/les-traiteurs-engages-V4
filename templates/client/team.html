@@ -150,6 +150,18 @@
                       class="hover:opacity-70 transition-opacity text-mute">
                 <i data-lucide="pencil" class="w-4 h-4"></i>
               </button>
+              {# Lock deletion of one's own row — an admin can't pull
+                 themselves out of the effectifs (and shouldn't, since
+                 the cell still drives session attribution). #}
+              {% if e.user_id and e.user_id == user.id %}
+              <button type="button" disabled
+                      class="text-mute-soft opacity-60"
+                      style="cursor:not-allowed;"
+                      aria-disabled="true"
+                      title="Vous ne pouvez pas vous retirer vous-même des effectifs.">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+              {% else %}
               <form method="POST" action="{{ url_for('client.team_employee_delete', employee_id=e.id) }}" class="inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="hover:opacity-70 transition-opacity text-danger"
@@ -157,6 +169,7 @@
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </form>
+              {% endif %}
             </div>
           </div>
           <div id="edit-emp-{{ e.id }}" class="hidden p-4 rounded-lg mb-2 bg-cream">
