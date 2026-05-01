@@ -26,6 +26,13 @@ class Settings(BaseSettings):
 
     secret_key: SecretStr = Field(min_length=32)
     database_url: str
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _fix_postgres_scheme(cls, v: str) -> str:
+        if isinstance(v, str) and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
     # Optional in dev (unit tests stub the broker), required wherever the
     # background worker runs — the app side will only enqueue jobs if set.
     redis_url: str | None = None
