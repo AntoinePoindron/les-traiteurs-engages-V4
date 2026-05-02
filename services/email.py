@@ -155,13 +155,14 @@ def send_email_sync(
     api_key = config.BREVO_API_KEY
     if not api_key:
         # Dev / CI fallback — log the payload so flows can be exercised
-        # end-to-end without a real Brevo account.
+        # end-to-end without a real Brevo account. 500 chars is enough
+        # to surface a full reset URL (token ≈ 43 chars URL-safe base64).
         logger.info(
             "BREVO_API_KEY unset; would have sent email "
             "(subject=%r, to=%s, body_excerpt=%r)",
             subject,
             [r["email"] for r in recipients],
-            (text or _html_to_text(html))[:200],
+            (text or _html_to_text(html))[:500],
         )
         return
 
