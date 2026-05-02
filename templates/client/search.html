@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/structure_type_badge.html" import structure_type_badge %}
+{% from "components/rating_stars.html" import rating_stars %}
 
 {% block title %}Trouvez votre traiteur inclusif{% endblock %}
 
@@ -199,6 +200,9 @@
                   {{ c.city or 'Localisation à définir' }}{% if c.zip_code %} ({{ c.zip_code[:2] }}){% endif %}
                   {% if c.delivery_radius_km %} &middot; Livre jusqu'à {{ c.delivery_radius_km }} km{% endif %}
                 </p>
+                <div class="mt-1">
+                  {{ rating_stars(c.review_avg, c.review_count) }}
+                </div>
               </div>
             </div>
 

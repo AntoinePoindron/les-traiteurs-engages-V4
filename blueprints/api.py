@@ -126,6 +126,11 @@ def stripe_webhook():
                     related_entity_type="order",
                     related_entity_id=order.id,
                 )
+                # Invite the original requester to review the caterer.
+                # The helper is idempotent (skips on retry/redelivery).
+                from services.reviews import notify_review_invite
+
+                notify_review_invite(db, order=order)
         db.commit()
 
     elif event_type == "invoice.payment_failed":

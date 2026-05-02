@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/structure_type_badge.html" import structure_type_badge %}
 {% from "components/ui.html" import back_button %}
+{% from "components/rating_stars.html" import rating_stars %}
 
 {% block title %}{{ caterer.name }} - Catalogue{% endblock %}
 
@@ -175,6 +176,35 @@
           </dl>
         </div>
 
+        {# ---- Avis clients ---- #}
+        <div class="bg-white rounded-lg p-6">
+          <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <h2 class="font-display font-bold text-xl text-text">Avis clients</h2>
+            {{ rating_stars(review_aggregate.avg, review_aggregate.count, size='w-5 h-5') }}
+          </div>
+
+          {% if reviews %}
+          <div class="space-y-4">
+            {% for r in reviews %}
+            <div class="border-t border-soft pt-4 first:border-t-0 first:pt-0">
+              <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <p class="text-sm font-bold text-text">{{ review_format_author(r.reviewer) }}</p>
+                  <p class="text-xs text-mute">{{ r.created_at.strftime('%d/%m/%Y') }}</p>
+                </div>
+                {{ rating_stars(r.rating, 1, size='w-4 h-4') }}
+              </div>
+              {% if r.comment %}
+              <p class="text-sm text-text-soft mt-2 whitespace-pre-line">{{ r.comment }}</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-sm text-mute">Aucun avis pour le moment.</p>
+          {% endif %}
+        </div>
+
       </div>{# /.split-main #}
 
       {# === RIGHT (30%) === Identite + CTA #}
@@ -197,6 +227,9 @@
             </div>
             <div style="min-width:0;">
               <h1 class="font-display font-bold text-2xl text-text" style="line-height:1.1;">{{ caterer.name }}</h1>
+              <div class="mt-1">
+                {{ rating_stars(review_aggregate.avg, review_aggregate.count) }}
+              </div>
               <div class="flex items-center gap-1 mt-1">
                 <i data-lucide="map-pin" class="w-3 h-3 text-mute"></i>
                 <span class="text-xs text-mute">{{ caterer.city or 'Non renseigne' }}{% if caterer.zip_code %} ({{ caterer.zip_code }}){% endif %}</span>
