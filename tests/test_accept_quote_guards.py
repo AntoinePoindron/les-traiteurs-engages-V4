@@ -127,3 +127,31 @@ def test_accepting_sent_quote_creates_order(client, login):
     )
     assert resp.status_code in (200, 302), resp.status_code
     assert _order_exists_for_quote(quote_id)
+
+
+def test_client_user_can_accept_quote(client, login):
+    """Both client_admin and client_user can accept a quote on behalf
+    of their company. Bob is a client_user in the same company as alice
+    (ACME Test) — he must NOT get a 403 here."""
+    tomorrow = _dt.date.today() + _dt.timedelta(days=7)
+    qr_id, quote_id = _seed_request_with_quote("sent", valid_until=tomorrow)
+    login("bob@test.local")
+    resp = client.post(
+        f"/client/requests/{qr_id}/accept-quote",
+        data={"quote_id": str(quote_id)},
+    )
+    assert resp.status_code in (200, 302), resp.status_code
+    assert _order_exists_for_quote(quote_id)
+
+
+def test_client_user_can_refuse_quote(client, login):
+    """Symmetric with accept: client_user from the same company can
+    refuse a quote without a 403."""
+    tomorrow = _dt.date.today() + _dt.timedelta(days=7)
+    qr_id, quote_id = _seed_request_with_quote("sent", valid_until=tomorrow)
+    login("bob@test.local")
+    resp = client.post(
+        f"/client/requests/{qr_id}/refuse-quote",
+        data={"quote_id": str(quote_id), "reason": "trop cher"},
+    )
+    assert resp.status_code in (200, 302), resp.status_code

@@ -350,7 +350,11 @@ def register(bp):
     @bp.route("/requests/<uuid:request_id>/accept-quote", methods=["POST"])
     @limiter.limit("10 per minute")
     @login_required
-    @role_required("client_admin")
+    # Both client_admin and client_user can accept on behalf of the
+    # company. Scoping by `qr.company_id == user.company_id` inside
+    # `workflow.accept_quote` is what stops a member of another company
+    # from acting on this QR — the role isn't the right gate.
+    @role_required("client_admin", "client_user")
     def accept_quote(request_id):
         form = QuoteAcceptForm()
         if not form.validate_on_submit():
@@ -383,7 +387,10 @@ def register(bp):
 
     @bp.route("/requests/<uuid:request_id>/refuse-quote", methods=["POST"])
     @login_required
-    @role_required("client_admin")
+    # Symmetric with accept-quote: any company member can refuse a
+    # quote on behalf of the company. Company-scoping lives in
+    # `workflow.refuse_quote`.
+    @role_required("client_admin", "client_user")
     def refuse_quote(request_id):
         form = QuoteRefuseForm()
         if not form.validate_on_submit():
