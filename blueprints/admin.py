@@ -21,7 +21,6 @@ from models import (
     Company,
     CompanyEmployee,
     CompanyService,
-    Message,
     Order,
     OrderStatus,
     Payment,
@@ -30,8 +29,8 @@ from models import (
     QuoteRequest,
     QuoteRequestStatus,
     QuoteStatus,
-    User,
 )
+from services import messagerie as messagerie_service
 from services import workflow
 from services.audit import log_admin_action
 from services.matching import find_matching_caterers
@@ -565,107 +564,78 @@ def order_transition(order_id):
 _MESSAGES_PAGE_SIZE = 25
 
 
+def _admin_messagerie_ctx(*, threads, active_thread_id, active):
+    """Bundle the messagerie_ctx the unified template expects.
+
+    Super_admin always gets show_role_badges + read_only — they observe
+    rather than participate, and their role is the only one that needs
+    to disambiguate Client/Traiteur on the row labels.
+    """
+    return {
+        "threads": threads,
+        "active_thread_id": active_thread_id,
+        "active": active,
+        "list_endpoint": "admin.messages",
+        "thread_endpoint": "admin.message_thread",
+        "show_role_badges": True,
+        "read_only": True,
+        "current_user_id": str(g.current_user.id),
+    }
+
+
 @admin_bp.route("/messages")
 @login_required
 @role_required("super_admin")
 def messages():
-    """Paginated thread overview. VULN-21: replaces a load-all-then-N+1
-    implementation that OOM'd past a few thousand messages.
+    """Paginated thread overview for the admin observer view.
 
-    Three queries total regardless of dataset size:
-      1. Aggregate per thread (count + last_at), paginated.
-      2. Fetch the latest Message per thread via PostgreSQL DISTINCT ON.
-      3. Bulk-fetch the involved Users.
+    VULN-21: paginated (no load-all) so a multi-thousand-message dataset
+    can't OOM. Heavy lifting lives in `services.messagerie.threads_for_admin`.
     """
     db = get_db()
     page = max(1, request.args.get("page", 1, type=int) or 1)
-
-    total_threads = db.scalar(select(func.count(func.distinct(Message.thread_id)))) or 0
-    total_pages = (total_threads + _MESSAGES_PAGE_SIZE - 1) // _MESSAGES_PAGE_SIZE
-
-    # 1. Per-thread aggregates, paginated by last activity.
-    summaries = db.execute(
-        select(
-            Message.thread_id.label("thread_id"),
-            func.count(Message.id).label("message_count"),
-            func.max(Message.created_at).label("last_at"),
-        )
-        .group_by(Message.thread_id)
-        .order_by(func.max(Message.created_at).desc())
-        .limit(_MESSAGES_PAGE_SIZE)
-        .offset((page - 1) * _MESSAGES_PAGE_SIZE)
-    ).all()
-
-    if not summaries:
-        return render_template(
-            "admin/messages.html",
-            user=g.current_user,
-            threads=[],
-            page=page,
-            total_pages=total_pages,
-            total=total_threads,
-        )
-
-    thread_ids = [s.thread_id for s in summaries]
-    count_by_thread = {s.thread_id: s.message_count for s in summaries}
-
-    # 2. Last message per paginated thread. PostgreSQL-specific DISTINCT ON
-    # picks the row with the greatest created_at per thread in one pass.
-    last_messages = (
-        db.execute(
-            select(Message)
-            .where(Message.thread_id.in_(thread_ids))
-            .order_by(Message.thread_id, Message.created_at.desc())
-            .distinct(Message.thread_id)
-        )
-        .scalars()
-        .all()
+    threads, total = messagerie_service.threads_for_admin(
+        db, page=page, page_size=_MESSAGES_PAGE_SIZE
     )
-    last_by_thread = {m.thread_id: m for m in last_messages}
-
-    # 3. Bulk-fetch every user referenced by the paginated last messages.
-    user_ids = set()
-    for msg in last_messages:
-        user_ids.add(msg.sender_id)
-        user_ids.add(msg.recipient_id)
-    users = (
-        {
-            u.id: u
-            for u in db.execute(select(User).where(User.id.in_(user_ids)))
-            .scalars()
-            .all()
-        }
-        if user_ids
-        else {}
-    )
-
-    threads = []
-    for tid in thread_ids:  # preserves the ORDER BY last_at DESC
-        msg = last_by_thread.get(tid)
-        if not msg:
-            continue
-        sender = users.get(msg.sender_id)
-        recipient = users.get(msg.recipient_id)
-        threads.append(
-            {
-                "thread_id": str(tid),
-                "sender_name": f"{sender.first_name} {sender.last_name}"
-                if sender
-                else "Inconnu",
-                "recipient_name": f"{recipient.first_name} {recipient.last_name}"
-                if recipient
-                else "Inconnu",
-                "last_message": (msg.body or "")[:80],
-                "last_at": msg.created_at,
-                "message_count": count_by_thread.get(tid, 0),
-            }
-        )
-
+    total_pages = (total + _MESSAGES_PAGE_SIZE - 1) // _MESSAGES_PAGE_SIZE
     return render_template(
-        "admin/messages.html",
+        "messagerie/page.html",
         user=g.current_user,
-        threads=threads,
-        page=page,
-        total_pages=total_pages,
-        total=total_threads,
+        messagerie_ctx=_admin_messagerie_ctx(
+            threads=threads,
+            active_thread_id=None,
+            active=None,
+        ),
+        admin_page=page,
+        admin_total_pages=total_pages,
+        admin_total=total,
+    )
+
+
+@admin_bp.route("/messages/<uuid:thread_id>")
+@login_required
+@role_required("super_admin")
+def message_thread(thread_id):
+    db = get_db()
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+    active = messagerie_service.active_thread_context(
+        db, thread_id=thread_id, viewer=g.current_user
+    )
+    if active is None:
+        abort(404)
+    threads, total = messagerie_service.threads_for_admin(
+        db, page=page, page_size=_MESSAGES_PAGE_SIZE
+    )
+    total_pages = (total + _MESSAGES_PAGE_SIZE - 1) // _MESSAGES_PAGE_SIZE
+    return render_template(
+        "messagerie/page.html",
+        user=g.current_user,
+        messagerie_ctx=_admin_messagerie_ctx(
+            threads=threads,
+            active_thread_id=str(thread_id),
+            active=active,
+        ),
+        admin_page=page,
+        admin_total_pages=total_pages,
+        admin_total=total,
     )

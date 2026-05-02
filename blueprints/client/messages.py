@@ -1,46 +1,22 @@
 from flask import abort, g, render_template
-from sqlalchemy import func, or_, select
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
-from models import Message, User
+from models import UserRole
+from services.messagerie import active_thread_context, threads_for_viewer
 
 
-def _get_user_threads(db, user_id):
-    """Return thread summaries for a user, grouped by thread_id."""
-    all_messages = db.scalars(
-        select(Message)
-        .where(or_(Message.sender_id == user_id, Message.recipient_id == user_id))
-        .order_by(Message.created_at.desc())
-    ).all()
-
-    threads = {}
-    for msg in all_messages:
-        tid = str(msg.thread_id)
-        if tid not in threads:
-            other_id = msg.recipient_id if msg.sender_id == user_id else msg.sender_id
-            other_user = db.get(User, other_id)
-            unread = db.scalar(
-                select(func.count(Message.id)).where(
-                    Message.thread_id == msg.thread_id,
-                    Message.recipient_id == user_id,
-                    Message.is_read.is_(False),
-                )
-            )
-            other_caterer_logo_url = None
-            if other_user and other_user.caterer:
-                other_caterer_logo_url = other_user.caterer.logo_url
-            threads[tid] = {
-                "thread_id": tid,
-                "other_name": f"{other_user.first_name} {other_user.last_name}"
-                if other_user
-                else "Inconnu",
-                "other_caterer_logo_url": other_caterer_logo_url,
-                "last_message": msg.body[:80],
-                "last_at": msg.created_at,
-                "unread": unread,
-            }
-    return list(threads.values())
+def _build_ctx(*, viewer, threads, active_thread_id, active):
+    return {
+        "threads": threads,
+        "active_thread_id": active_thread_id,
+        "active": active,
+        "list_endpoint": "client.messages",
+        "thread_endpoint": "client.message_thread",
+        "show_role_badges": viewer.role == UserRole.super_admin,
+        "read_only": False,
+        "current_user_id": str(viewer.id),
+    }
 
 
 def register(bp):
@@ -50,8 +26,17 @@ def register(bp):
     def messages():
         user = g.current_user
         db = get_db()
-        threads = _get_user_threads(db, user.id)
-        return render_template("client/messages/list.html", user=user, threads=threads)
+        threads = threads_for_viewer(db, user)
+        return render_template(
+            "messagerie/page.html",
+            user=user,
+            messagerie_ctx=_build_ctx(
+                viewer=user,
+                threads=threads,
+                active_thread_id=None,
+                active=None,
+            ),
+        )
 
     @bp.route("/messages/<uuid:thread_id>")
     @login_required
@@ -59,23 +44,17 @@ def register(bp):
     def message_thread(thread_id):
         user = g.current_user
         db = get_db()
-        first_msg = db.scalar(
-            select(Message).where(
-                Message.thread_id == thread_id,
-                or_(Message.sender_id == user.id, Message.recipient_id == user.id),
-            )
-        )
-        if not first_msg:
+        active = active_thread_context(db, thread_id=thread_id, viewer=user)
+        if active is None:
             abort(404)
-        other_id = (
-            first_msg.recipient_id
-            if first_msg.sender_id == user.id
-            else first_msg.sender_id
-        )
-        other_user = db.get(User, other_id)
+        threads = threads_for_viewer(db, user)
         return render_template(
-            "client/messages/thread.html",
+            "messagerie/page.html",
             user=user,
-            thread_id=thread_id,
-            other_user=other_user,
+            messagerie_ctx=_build_ctx(
+                viewer=user,
+                threads=threads,
+                active_thread_id=str(thread_id),
+                active=active,
+            ),
         )
