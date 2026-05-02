@@ -231,3 +231,31 @@ def send_email_async(
         sender_name=sender_name,
         reply_to=reply_to,
     )
+
+
+# --- Convenience helper ---------------------------------------------------
+
+
+def render_and_send_async(
+    *,
+    to,
+    subject: str,
+    template_name: str,
+    **context,
+) -> None:
+    """Render `templates/emails/{template_name}.{html,txt}` with the
+    given context and queue the email.
+
+    Caller MUST be inside a Flask app/request context (we render
+    synchronously here so the worker doesn't need its own context). The
+    rendered strings travel through the dramatiq message; the worker's
+    `send_email_async` actor only needs to POST to Brevo.
+
+    Keeps the four-line "render html + render txt + send_email_async.send"
+    boilerplate out of every route handler.
+    """
+    from flask import render_template
+
+    html = render_template(f"emails/{template_name}.html", **context)
+    text = render_template(f"emails/{template_name}.txt", **context)
+    send_email_async.send(to=to, subject=subject, html=html, text=text)

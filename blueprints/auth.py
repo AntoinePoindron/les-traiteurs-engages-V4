@@ -105,6 +105,8 @@ ROLE_DASHBOARDS = {
 }
 
 
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit(LOGIN_LIMIT, methods=["POST"])
 def login():
@@ -275,6 +277,11 @@ def signup():
             db.commit()
 
             session["user_id"] = str(user.id)
+            from services import email_triggers
+
+            email_triggers.welcome_signup(
+                user, role_kind="client", cta_path="/client/settings"
+            )
             # First-time signup with a fresh SIRET: the new client_admin lands
             # on /client/settings so they can fill in the company name +
             # billing address. Company.name is currently the SIRET as a
@@ -325,6 +332,11 @@ def signup():
             db.flush()
             db.commit()
             session["user_id"] = str(user.id)
+            from services import email_triggers
+
+            email_triggers.welcome_signup(
+                user, role_kind="caterer", cta_path="/caterer/profile"
+            )
             flash("Votre compte traiteur a ete cree avec succes.", "success")
             return redirect(url_for("caterer.dashboard"))
 

@@ -378,6 +378,10 @@ def register(bp):
             return redirect(url_for("client.request_detail", request_id=request_id))
         db.commit()
 
+        from services import email_triggers
+
+        email_triggers.order_confirmed(db, order=order)
+
         flash("Devis accepte ! La commande a ete creee.", "success")
         return redirect(url_for("client.order_detail", order_id=order.id))
 
