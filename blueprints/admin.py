@@ -68,6 +68,26 @@ def dashboard():
         .all()
     )
 
+    # "Commandes à facturer" : orders that have been delivered but not yet
+    # invoiced. Eager-load the chain Order → Quote → (QuoteRequest, Caterer)
+    # so the template can render company + caterer + amount without N+1.
+    orders_to_invoice = (
+        db.scalars(
+            select(Order)
+            .options(
+                joinedload(Order.quote)
+                .joinedload(Quote.quote_request)
+                .joinedload(QuoteRequest.company),
+                joinedload(Order.quote).joinedload(Quote.caterer),
+            )
+            .where(Order.status == OrderStatus.delivered)
+            .order_by(Order.updated_at.desc())
+            .limit(10)
+        )
+        .unique()
+        .all()
+    )
+
     return render_template(
         "admin/dashboard.html",
         user=g.current_user,
@@ -76,6 +96,7 @@ def dashboard():
         active_companies=active_companies or 0,
         orders_this_month=orders_this_month or 0,
         recent_requests=recent_requests,
+        orders_to_invoice=orders_to_invoice,
     )
 
 
