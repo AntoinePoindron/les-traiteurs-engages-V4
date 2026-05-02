@@ -14,17 +14,10 @@
 
 <div class="bg-white rounded-lg p-6 mb-6">
   <div class="flex flex-wrap gap-2">
-    {% set statuses = [
-      ('', 'Toutes'),
-      ('selected', 'En attente'),
-      ('responded', 'Repondu'),
-      ('transmitted_to_client', 'Transmis'),
-      ('closed', 'Cloture'),
-    ] %}
-    {% for value, label in statuses %}
-    <a href="{{ url_for('caterer.requests_list', status=value) if value else url_for('caterer.requests_list') }}"
-       class="px-4 py-2 rounded-full text-sm font-bold transition-colors
-       {% if status_filter == value or (not status_filter and not value) %}bg-navy text-white{% else %}bg-cream text-navy hover:opacity-80{% endif %}">
+    {% for key, label in status_tabs.items() %}
+    <a href="{{ url_for('caterer.requests_list', status=key) if key != 'all' else url_for('caterer.requests_list') }}"
+       class="px-4 py-2 rounded-full text-sm font-bold transition-colors whitespace-nowrap
+       {% if current_tab == key %}bg-navy text-white{% else %}bg-cream text-navy hover:opacity-80{% endif %}">
       {{ label }}
     </a>
     {% endfor %}
