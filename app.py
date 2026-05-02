@@ -159,14 +159,12 @@ def create_app():
                 "notification_target_url": notification_target_url,
             }
         db = get_db()
-        recent = (
-            db.scalars(
-                select(_Notification)
-                .where(_Notification.user_id == g.current_user.id)
-                .order_by(_Notification.created_at.desc())
-                .limit(10)
-            ).all()
-        )
+        recent = db.scalars(
+            select(_Notification)
+            .where(_Notification.user_id == g.current_user.id)
+            .order_by(_Notification.created_at.desc())
+            .limit(10)
+        ).all()
         return {
             "notifications_recent": recent,
             "notification_target_url": notification_target_url,
