@@ -189,7 +189,7 @@
             {% if order.status == OrderStatus.confirmed %}
             Le traiteur doit d'abord confirmer la livraison.
             {% else %}
-            La facture sera generee automatiquement.
+            La facture ainsi qu'un lien de paiement vont prochainement vous être envoyés par email.
             {% endif %}
           </p>
         </div>
@@ -197,8 +197,74 @@
     </div>
     {% endif %}
 
+    {# ---- Avis du traiteur (statut paid uniquement) ---- #}
+    {% if existing_review %}
+    <div class="bg-white rounded-lg p-6 mb-6">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="star" class="w-4 h-4 text-navy"></i>
+        <h3 class="font-display font-bold text-sm text-text">Votre avis</h3>
+      </div>
+      <div class="flex items-center gap-1 mb-2">
+        {% for i in range(1, 6) %}
+          {% if i <= existing_review.rating %}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="#F5A623" class="w-5 h-5"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.287 3.957c.299.921-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.07 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.287-3.957z"/></svg>
+          {% else %}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#D1D5DB" stroke-width="1.5" class="w-5 h-5"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.287 3.957c.299.921-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.07 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.287-3.957z"/></svg>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% if existing_review.comment %}
+      <p class="text-sm text-text-soft whitespace-pre-line">{{ existing_review.comment }}</p>
+      {% endif %}
+      <p class="text-xs mt-2 text-mute">Publié le {{ existing_review.created_at.strftime('%d/%m/%Y') }}</p>
+    </div>
+    {% elif review_form_visible %}
+    <div class="bg-white rounded-lg p-6 mb-6">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="star" class="w-4 h-4 text-navy"></i>
+        <h3 class="font-display font-bold text-sm text-text">Laisser un avis sur le traiteur</h3>
+      </div>
+      <p class="text-xs mb-4 text-mute">
+        Votre avis sera publié dans le catalogue. Une fois envoyé, il ne peut plus être modifié.
+      </p>
+      <form method="POST" action="{{ url_for('client.order_review', order_id=order.id) }}" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-mute mb-2">Note</label>
+          <div data-rating-input data-target="rating-input" class="inline-flex gap-1">
+            <button type="button" data-rating-value="1" class="cursor-pointer" aria-label="1 étoile"></button>
+            <button type="button" data-rating-value="2" class="cursor-pointer" aria-label="2 étoiles"></button>
+            <button type="button" data-rating-value="3" class="cursor-pointer" aria-label="3 étoiles"></button>
+            <button type="button" data-rating-value="4" class="cursor-pointer" aria-label="4 étoiles"></button>
+            <button type="button" data-rating-value="5" class="cursor-pointer" aria-label="5 étoiles"></button>
+          </div>
+          <input type="hidden" id="rating-input" name="rating" value="" required>
+        </div>
+        <div>
+          <label for="review-comment" class="block text-xs font-bold uppercase tracking-wider text-mute mb-2">
+            Commentaire <span class="font-normal normal-case text-mute">(optionnel)</span>
+          </label>
+          <textarea id="review-comment" name="comment" rows="4" maxlength="2000"
+                    placeholder="Partagez votre experience pour aider d'autres clients."
+                    class="w-full rounded-lg px-3 py-2.5 text-sm text-black input-soft"></textarea>
+        </div>
+        <button type="submit" disabled
+                class="rounded-full text-sm font-bold px-5 py-2.5 inline-flex items-center gap-2 bg-navy text-white disabled:opacity-50 disabled:cursor-not-allowed">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          Publier mon avis
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
       </aside>{# /.split-aside #}
     </div>{# /.split-detail #}
 
 </main>
+{% endblock %}
+
+{% block scripts %}
+{% if review_form_visible %}
+<script src="{{ url_for('static', filename='js/review-stars-input.js') }}" defer></script>
+{% endif %}
 {% endblock %}
