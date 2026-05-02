@@ -579,7 +579,9 @@ def order_transition(order_id):
         client_title = "Paiement reçu"
         client_body = "Le paiement de votre commande a été enregistré. Merci !"
         caterer_title = "Paiement reçu"
-        caterer_body = "Le paiement de la commande a été enregistré et sera viré sous peu."
+        caterer_body = (
+            "Le paiement de la commande a été enregistré et sera viré sous peu."
+        )
     else:
         client_title = caterer_title = f"Commande passée en {target.value}"
         client_body = caterer_body = ""
