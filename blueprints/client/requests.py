@@ -23,6 +23,7 @@ from models import (
     SERVICE_OFFERING_LABELS,
     Caterer,
     CompanyService,
+    Notification,
     QRCStatus,
     Quote,
     QuoteRequest,
@@ -338,6 +339,26 @@ def register(bp):
             else:
                 quote.pdf_preview = None
 
+        # Surface admin → client messages tied to this QR. The
+        # super_admin sends them from /admin/qualification/<id>; the
+        # write path stores one Notification per company_admin. Pulling
+        # them here means the client sees them inline on the request
+        # detail even before the bell-notification UI lands.
+        admin_messages = (
+            db.execute(
+                select(Notification)
+                .where(
+                    Notification.user_id == user.id,
+                    Notification.type == "admin_message",
+                    Notification.related_entity_type == "quote_request",
+                    Notification.related_entity_id == qr.id,
+                )
+                .order_by(Notification.created_at.desc())
+            )
+            .scalars()
+            .all()
+        )
+
         return render_template(
             "client/requests/detail.html",
             user=user,
@@ -345,6 +366,7 @@ def register(bp):
             qrcs=qrcs,
             quotes=quotes,
             meal_type_labels=MEAL_TYPE_LABELS,
+            admin_messages=admin_messages,
         )
 
     @bp.route("/requests/<uuid:request_id>/accept-quote", methods=["POST"])

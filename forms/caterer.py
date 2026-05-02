@@ -8,7 +8,7 @@ from wtforms import (
     StringField,
     TextAreaField,
 )
-from wtforms.validators import Length, NumberRange, Optional
+from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 
 class CatererProfileForm(FlaskForm):
@@ -50,3 +50,11 @@ class RejectionForm(FlaskForm):
     """Generic rejection-with-reason POST (used by admin qualification reject)."""
 
     rejection_reason = TextAreaField(validators=[Optional(), Length(max=5000)])
+
+
+class AdminMessageForm(FlaskForm):
+    """POST /admin/qualification/<id>/message — admin sends a free-form
+    message to the client_admin(s) of the company that owns the QR. The
+    body lands in the recipients' Notification feed."""
+
+    body = TextAreaField(validators=[DataRequired(), Length(min=1, max=5000)])

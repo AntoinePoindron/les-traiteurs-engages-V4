@@ -55,6 +55,11 @@ DEMO_ACCOUNTS = [
         "label": "EI Delices Engages",
         "role": "caterer",
     },
+    {
+        "email": "contact@marmites-du-sud.fr",
+        "label": "EI Marmites du Sud",
+        "role": "caterer",
+    },
 ]
 _DEMO_EMAILS = {a["email"] for a in DEMO_ACCOUNTS}
 
