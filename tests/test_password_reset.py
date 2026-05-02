@@ -63,9 +63,8 @@ def test_issue_token_persists_with_ttl_in_future(session):
     assert row.user_id == alice.id
     assert row.used_at is None
     assert row.expires_at > _dt.datetime.utcnow()
-    assert (
-        row.expires_at
-        <= _dt.datetime.utcnow() + pr.RESET_TOKEN_TTL + _dt.timedelta(seconds=1)
+    assert row.expires_at <= _dt.datetime.utcnow() + pr.RESET_TOKEN_TTL + _dt.timedelta(
+        seconds=1
     )
     persisted = session.scalar(
         select(PasswordResetToken).where(PasswordResetToken.id == row.id)

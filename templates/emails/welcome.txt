@@ -1,0 +1,22 @@
+Bienvenue {{ user.first_name }} !
+
+Votre compte sur Les Traiteurs Engagés est prêt.
+{% if role_kind == 'client' %}
+Vous pouvez dès maintenant lancer une demande de devis et recevoir jusqu'à
+3 propositions de traiteurs solidaires sélectionnés.
+
+{{ cta_url }}
+{% elif role_kind == 'caterer' %}
+Pour commencer à recevoir des demandes de devis, complétez votre profil
+(description, capacités, prestations, photos). Notre équipe validera
+ensuite votre compte sous 48 heures ouvrées.
+
+{{ cta_url }}
+{% else %}
+Accédez à votre espace : {{ cta_url }}
+{% endif %}
+
+Une question ? Répondez directement à cet email.
+
+—
+Les Traiteurs Engagés

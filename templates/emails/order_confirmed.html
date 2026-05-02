@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Commande confirmée</title>
+</head>
+<body style="margin:0;padding:0;background:#FBF8F4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A3A52;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FBF8F4;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;border:1px solid rgba(26,58,82,0.08);">
+          <tr>
+            <td style="padding:32px 32px 24px;">
+              <h1 style="margin:0 0 16px;font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;color:#1A3A52;">
+                Bonne nouvelle, votre devis a été accepté !
+              </h1>
+              <p style="margin:0 0 20px;font-size:15px;line-height:1.5;color:#1A3A52;">
+                <strong>{{ company.name }}</strong> vient d'accepter votre devis
+                {% if quote_reference %}<span style="color:#5A6F80;">({{ quote_reference }})</span>{% endif %}.
+                La commande est confirmée.
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                     style="background:#FBF8F4;border-radius:8px;margin:0 0 24px;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      {% if event_date %}
+                      <tr>
+                        <td style="padding:4px 0;font-size:13px;color:#5A6F80;">Date de l'événement</td>
+                        <td style="padding:4px 0;font-size:14px;font-weight:600;color:#1A3A52;text-align:right;">
+                          {{ event_date.strftime('%d/%m/%Y') }}
+                        </td>
+                      </tr>
+                      {% endif %}
+                      {% if guest_count %}
+                      <tr>
+                        <td style="padding:4px 0;font-size:13px;color:#5A6F80;">Convives</td>
+                        <td style="padding:4px 0;font-size:14px;font-weight:600;color:#1A3A52;text-align:right;">
+                          {{ guest_count }}
+                        </td>
+                      </tr>
+                      {% endif %}
+                      {% if delivery_address %}
+                      <tr>
+                        <td style="padding:4px 0;font-size:13px;color:#5A6F80;">Lieu</td>
+                        <td style="padding:4px 0;font-size:14px;font-weight:600;color:#1A3A52;text-align:right;">
+                          {{ delivery_address }}
+                        </td>
+                      </tr>
+                      {% endif %}
+                      {% if total_amount_ht is not none %}
+                      <tr>
+                        <td style="padding:4px 0;font-size:13px;color:#5A6F80;">Montant HT</td>
+                        <td style="padding:4px 0;font-size:14px;font-weight:600;color:#1A3A52;text-align:right;">
+                          {{ "%.2f"|format(total_amount_ht|float) }} €
+                        </td>
+                      </tr>
+                      {% endif %}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 24px;text-align:center;">
+                <a href="{{ cta_url }}"
+                   style="display:inline-block;padding:14px 28px;background:#B70102;color:#ffffff;text-decoration:none;border-radius:9999px;font-weight:600;font-size:14px;">
+                  Voir la commande
+                </a>
+              </p>
+
+              <p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:#5A6F80;">
+                Une fois la prestation livrée, marquez la commande comme livrée
+                depuis votre espace pour déclencher la facturation automatique.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 32px;border-top:1px solid rgba(26,58,82,0.08);padding-top:16px;">
+              <p style="margin:0;font-size:11px;color:#9AA8B5;line-height:1.5;">
+                Vous recevez cet email parce que votre devis a été retenu par
+                ce client.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
