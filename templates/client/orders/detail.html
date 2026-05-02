@@ -177,7 +177,11 @@
     </div>
     {% endif %}
 
-    {% if order.status in (OrderStatus.confirmed, OrderStatus.delivered, OrderStatus.invoicing) and not order.stripe_hosted_invoice_url %}
+    {# Bloc "En attente de facturation" : on ne l'affiche plus pour les
+       commandes "à venir" (confirmed). Pour les commandes livrées /
+       en cours de facturation, on garde le message qui annonce l'envoi
+       imminent de la facture par email. #}
+    {% if order.status in (OrderStatus.delivered, OrderStatus.invoicing) and not order.stripe_hosted_invoice_url %}
     <div class="bg-white rounded-lg p-6 mb-6">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
@@ -186,11 +190,7 @@
         <div>
           <p class="text-sm font-bold text-text">En attente de facturation</p>
           <p class="text-xs text-mute">
-            {% if order.status == OrderStatus.confirmed %}
-            Le traiteur doit d'abord confirmer la livraison.
-            {% else %}
             La facture ainsi qu'un lien de paiement vont prochainement vous être envoyés par email.
-            {% endif %}
           </p>
         </div>
       </div>
@@ -231,14 +231,29 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-mute mb-2">Note</label>
-          <div data-rating-input data-target="rating-input" class="inline-flex gap-1">
-            <button type="button" data-rating-value="1" class="cursor-pointer" aria-label="1 étoile"></button>
-            <button type="button" data-rating-value="2" class="cursor-pointer" aria-label="2 étoiles"></button>
-            <button type="button" data-rating-value="3" class="cursor-pointer" aria-label="3 étoiles"></button>
-            <button type="button" data-rating-value="4" class="cursor-pointer" aria-label="4 étoiles"></button>
-            <button type="button" data-rating-value="5" class="cursor-pointer" aria-label="5 étoiles"></button>
+          {# Native radios + clickable labels. Works even without JS:
+             clicking a label selects the radio, the form submits the
+             chosen value. JS only adds the filled-star visual feedback
+             on hover / selection. The radio inputs are visually hidden
+             via inline style (the project's static Tailwind doesn't
+             ship `sr-only`). #}
+          {% set OUTLINE_STAR %}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#D1D5DB" stroke-width="1.5" style="width:1.75rem;height:1.75rem;display:block;"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.287 3.957c.299.921-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.07 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.287-3.957z"/></svg>{% endset %}
+          {# Inputs and labels are siblings (not nested) and associated
+             via for=id. The radios are taken out of the layout via
+             position:absolute + offscreen, AND get pointer-events:none
+             so nothing they're sitting under can swallow the label
+             click. The label itself is the visible, clickable surface. #}
+          <div data-rating-input style="display:inline-flex;gap:0.25rem;position:relative;">
+            {% for i in [1, 2, 3, 4, 5] %}
+            <input type="radio" id="rating-radio-{{ i }}" name="rating" value="{{ i }}" required
+                   style="position:absolute;left:-9999px;top:-9999px;pointer-events:none;">
+            <label for="rating-radio-{{ i }}" data-star-label data-star-value="{{ i }}"
+                   style="cursor:pointer;display:inline-block;line-height:0;"
+                   aria-label="{{ i }} étoile{{ 's' if i > 1 }}">
+              <span data-star-glyph style="display:inline-block;pointer-events:none;">{{ OUTLINE_STAR | safe }}</span>
+            </label>
+            {% endfor %}
           </div>
-          <input type="hidden" id="rating-input" name="rating" value="" required>
         </div>
         <div>
           <label for="review-comment" class="block text-xs font-bold uppercase tracking-wider text-mute mb-2">
@@ -248,8 +263,12 @@
                     placeholder="Partagez votre experience pour aider d'autres clients."
                     class="w-full rounded-lg px-3 py-2.5 text-sm text-black input-soft"></textarea>
         </div>
-        <button type="submit" disabled
-                class="rounded-full text-sm font-bold px-5 py-2.5 inline-flex items-center gap-2 bg-navy text-white disabled:opacity-50 disabled:cursor-not-allowed">
+        {# Submit always enabled — `required` on the radios triggers the
+           browser's native validation tooltip if the user clicks Publier
+           without picking a note. Server-side `submit_review` is the
+           authoritative gate against tampering. #}
+        <button type="submit"
+                class="rounded-full text-sm font-bold px-5 py-2.5 inline-flex items-center gap-2 bg-navy text-white">
           <i data-lucide="send" class="w-4 h-4"></i>
           Publier mon avis
         </button>

@@ -178,10 +178,7 @@
 
         {# ---- Avis clients ---- #}
         <div class="bg-white rounded-lg p-6">
-          <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
-            <h2 class="font-display font-bold text-xl text-text">Avis clients</h2>
-            {{ rating_stars(review_aggregate.avg, review_aggregate.count, size='w-5 h-5') }}
-          </div>
+          <h2 class="font-display font-bold text-xl text-text mb-4">Avis clients</h2>
 
           {% if reviews %}
           <div class="space-y-4">
@@ -192,7 +189,7 @@
                   <p class="text-sm font-bold text-text">{{ review_format_author(r.reviewer) }}</p>
                   <p class="text-xs text-mute">{{ r.created_at.strftime('%d/%m/%Y') }}</p>
                 </div>
-                {{ rating_stars(r.rating, 1, size='w-4 h-4') }}
+                {{ rating_stars(r.rating, 1, size='w-4 h-4', show_label=False) }}
               </div>
               {% if r.comment %}
               <p class="text-sm text-text-soft mt-2 whitespace-pre-line">{{ r.comment }}</p>
