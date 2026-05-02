@@ -63,39 +63,34 @@
   </div>
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-lg text-black mb-4">Traiteurs en attente</h2>
-    <div class="flex flex-col gap-2">
-      <a href="{{ url_for('admin.qualification') }}" class="flex items-center gap-3 py-3.5 hover:rounded-lg border-t border-soft">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-          <i data-lucide="clipboard-check" class="w-4\.5 h-4\.5 text-navy"></i>
+    <h2 class="font-display font-bold text-lg text-black mb-4">Commandes a facturer</h2>
+    {% if orders_to_invoice %}
+    <div>
+      {% for order in orders_to_invoice %}
+      {% set quote = order.quote %}
+      {% set qr = quote.quote_request %}
+      <a href="{{ url_for('admin.order_detail', order_id=order.id) }}"
+         class="flex items-center gap-3 py-3.5 hover:bg-cream rounded-lg px-2 -mx-2 transition-colors {% if not loop.first %}border-t border-soft{% endif %}">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft flex-shrink-0">
+          <i data-lucide="receipt" class="w-4 h-4 text-navy"></i>
         </div>
-        <div class="flex-1">
-          <p class="text-sm font-medium text-black">Qualification</p>
-          <p class="text-xs text-mute">Qualifier les demandes en attente</p>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-black truncate">{{ qr.company.name }}</p>
+          <p class="text-xs text-mute truncate">
+            {{ quote.caterer.name }}
+            {% if order.delivery_date %} &middot; livree le {{ order.delivery_date.strftime('%d/%m/%Y') }}{% endif %}
+          </p>
         </div>
-        <i data-lucide="chevron-right" class="w-4 h-4 text-mute"></i>
+        <div class="text-right flex-shrink-0">
+          <p class="text-sm font-bold text-black">{{ "%.0f"|format(quote.total_amount_ht or 0) }} &euro;</p>
+          <p class="text-xs text-mute">HT</p>
+        </div>
       </a>
-      <a href="{{ url_for('admin.caterers_list') }}" class="flex items-center gap-3 py-3.5 hover:rounded-lg border-t border-soft">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-          <i data-lucide="chef-hat" class="w-4\.5 h-4\.5 text-navy"></i>
-        </div>
-        <div class="flex-1">
-          <p class="text-sm font-medium text-black">Traiteurs</p>
-          <p class="text-xs text-mute">Gerer les traiteurs</p>
-        </div>
-        <i data-lucide="chevron-right" class="w-4 h-4 text-mute"></i>
-      </a>
-      <a href="{{ url_for('admin.companies_list') }}" class="flex items-center gap-3 py-3.5 hover:rounded-lg border-t border-soft">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-          <i data-lucide="building-2" class="w-4\.5 h-4\.5 text-navy"></i>
-        </div>
-        <div class="flex-1">
-          <p class="text-sm font-medium text-black">Entreprises</p>
-          <p class="text-xs text-mute">Voir les entreprises clientes</p>
-        </div>
-        <i data-lucide="chevron-right" class="w-4 h-4 text-mute"></i>
-      </a>
+      {% endfor %}
     </div>
+    {% else %}
+    <p class="text-sm text-mute">Aucune commande livree en attente de facturation.</p>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
