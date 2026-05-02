@@ -108,7 +108,10 @@ def kick_off_reset(db: Session, *, email: str) -> None:
         return
 
     token = issue_token(db, user=user)
-    reset_url = f"{config.BASE_URL}/auth/reset-password/{token.token}"
+    # The auth blueprint is mounted at /, not /auth/, so the route is
+    # /reset-password/<token>. Hardcoding the path beats a `url_for`
+    # that would need a server-name config to produce an absolute URL.
+    reset_url = f"{config.BASE_URL}/reset-password/{token.token}"
 
     from flask import render_template
 

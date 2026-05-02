@@ -95,12 +95,17 @@ class Settings(BaseSettings):
 
     @field_validator("mail_from_email", "mail_from_name", "base_url", mode="before")
     @classmethod
-    def _mail_empty_to_default(cls, v):
-        # Empty strings from docker-compose interpolation should fall back
-        # to the field's declared default, not become empty strings the
-        # rest of the app would have to defensively check.
+    def _mail_empty_to_default(cls, v, info):
+        # Empty strings from docker-compose interpolation (`${VAR:-}`)
+        # land here as "" before Pydantic applies the field default.
+        # Substitute the default explicitly so the field stays non-Optional.
+        defaults = {
+            "mail_from_email": "noreply@les-traiteurs-engages.fr",
+            "mail_from_name": "Les Traiteurs Engagés",
+            "base_url": "http://localhost:8000",
+        }
         if isinstance(v, str) and v == "":
-            return None  # triggers Pydantic's default
+            return defaults[info.field_name]
         return v
 
     @field_validator("admin_email", mode="before")

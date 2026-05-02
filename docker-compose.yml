@@ -21,6 +21,10 @@ services:
       - TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS:-}
       - SECURE_COOKIES=${SECURE_COOKIES:-}
       - REDIS_URL=redis://redis:6379/0
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - MAIL_FROM_EMAIL=${MAIL_FROM_EMAIL:-}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME:-}
+      - BASE_URL=${BASE_URL:-}
     depends_on:
       db:
         condition: service_healthy
@@ -88,7 +92,7 @@ services:
     # doesn't serve, leaving the container forever in `health: starting`.
     healthcheck:
       disable: true
-    command: ["dramatiq", "services.billing_tasks", "--processes", "1", "--threads", "4"]
+    command: ["dramatiq", "services.billing_tasks", "services.email", "--processes", "1", "--threads", "4"]
     environment:
       - DATABASE_URL=postgresql://traiteurs:traiteurs@db:5432/traiteurs
       - SECRET_KEY=${SECRET_KEY:-}
@@ -97,6 +101,10 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
       - STRIPE_CONNECT_CLIENT_ID=${STRIPE_CONNECT_CLIENT_ID:-}
       - REDIS_URL=redis://redis:6379/0
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - MAIL_FROM_EMAIL=${MAIL_FROM_EMAIL:-}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME:-}
+      - BASE_URL=${BASE_URL:-}
     depends_on:
       db:
         condition: service_healthy
