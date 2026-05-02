@@ -74,9 +74,14 @@ def switch_account():
         flash(f"Compte demo introuvable : {email}.", "error")
         return redirect(url_for("auth.login"))
 
-    # Same session rotation as the real /login (audit VULN-11) — fresh
-    # session id, no inherited state.
-    session.clear()
+    # Unlike the real /login, we DON'T `session.clear()` here:
+    # rotating the session also rotates the CSRF token, and any page
+    # left open in another tab (typical dev workflow) would then fail
+    # with "CSRF session token is missing" on the next switch click.
+    # The dev switcher is gated behind ENABLE_DEMO_SEED so it never
+    # runs in prod — the audit-VULN-11 security rationale (don't carry
+    # an attacker-seeded session into an authenticated state) doesn't
+    # apply here.
     session["user_id"] = str(user.id)
     session.permanent = True
     flash(f"[DEV] Connecte en tant que {user.email}.", "info")

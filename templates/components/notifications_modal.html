@@ -1,0 +1,117 @@
+{# Sticky modal listing the 10 most recent notifications. Triggered by
+   the bell button in the sidebar footer (data-action="dialog-open"
+   data-target="notifications-modal"). The full history lives at the
+   per-blueprint /notifications page. #}
+
+{% set role = g.current_user.role|string %}
+{% set role_endpoint_prefix = (
+  'admin' if role == 'super_admin'
+  else 'caterer' if role == 'caterer'
+  else 'client'
+) %}
+{% set notifications_index_endpoint = role_endpoint_prefix ~ '.notifications' %}
+{% set notifications_visit_endpoint = role_endpoint_prefix ~ '.notifications_visit' %}
+{% set mark_all_endpoint = role_endpoint_prefix ~ '.notifications_mark_all_read' %}
+
+{% set fr_months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'] %}
+
+{% set type_icons = {
+  'new_message': 'message-circle',
+  'quote_request_received': 'inbox',
+  'quote_request_to_qualify': 'clipboard-check',
+  'quote_request_approved': 'send',
+  'quote_request_rejected': 'x-circle',
+  'quote_received': 'file-text',
+  'quote_accepted': 'check-circle',
+  'quote_refused': 'x-circle',
+  'order_delivered': 'truck',
+  'order_invoice': 'receipt',
+  'order_pay': 'banknote',
+  'order_paid': 'banknote',
+  'pending_membership': 'user-plus',
+  'membership_approved': 'user-check',
+  'caterer_pending_validation': 'shield-check',
+} %}
+
+{% set unread_count = notifications_recent | rejectattr('is_read') | list | length %}
+
+<div id="notifications-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+     style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
+  <div class="bg-white rounded-xl shadow-2xl w-full flex flex-col" style="max-width:520px;max-height:85vh;">
+
+    <div class="flex items-center justify-between gap-3 p-6 border-b" style="border-color:var(--c-border-soft);flex-shrink:0;">
+      <div class="flex items-center gap-3" style="min-width:0;">
+        <div class="rounded-lg flex items-center justify-center bg-navy-soft" style="width:2.5rem;height:2.5rem;flex-shrink:0;">
+          <i data-lucide="bell" class="w-5 h-5 text-navy"></i>
+        </div>
+        <div>
+          <h3 class="font-display font-bold text-lg text-black">Notifications</h3>
+          {% if unread_count > 0 %}
+          <p class="text-xs text-mute">{{ unread_count }} non lue{{ 's' if unread_count > 1 else '' }}</p>
+          {% endif %}
+        </div>
+      </div>
+      <button type="button" data-action="dialog-close" data-target="notifications-modal"
+              class="text-mute-soft hover:text-black transition-colors" aria-label="Fermer" style="flex-shrink:0;">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto">
+      {% if notifications_recent %}
+      <div class="p-2">
+        {% for n in notifications_recent %}
+        <form method="POST" action="{{ url_for(notifications_visit_endpoint, notification_id=n.id) }}"
+              class="block">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="w-full text-left flex items-start gap-3 p-3 rounded-lg hover:bg-cream transition-colors {% if not n.is_read %}bg-cream-page{% endif %}">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 {% if n.is_read %}bg-cream{% else %}bg-navy-soft{% endif %}">
+              <i data-lucide="{{ type_icons.get(n.type, 'bell') }}" class="w-4 h-4 {% if n.is_read %}text-text-soft{% else %}text-navy{% endif %}"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="text-sm font-bold text-text">{{ n.title }}</p>
+                {% if not n.is_read %}
+                <span class="text-xs font-bold px-1.5 py-0.5 rounded-full bg-coral-red text-white">Nouvelle</span>
+                {% endif %}
+              </div>
+              {% if n.body %}
+              <p class="text-xs mt-1 text-text-soft" style="line-height:1.5;">{{ n.body|safe }}</p>
+              {% endif %}
+              <p class="text-xs mt-1 text-mute">
+                {{ n.created_at.day }} {{ fr_months[n.created_at.month - 1] }} · {{ '%02d'|format(n.created_at.hour) }}:{{ '%02d'|format(n.created_at.minute) }}
+              </p>
+            </div>
+          </button>
+        </form>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-8 text-center">
+        <div class="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-3 bg-navy-soft">
+          <i data-lucide="bell" class="w-5 h-5 text-navy"></i>
+        </div>
+        <p class="text-sm text-mute">Pas encore de notification.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if notifications_recent %}
+    <div class="flex items-center justify-between gap-2 p-6 border-t" style="border-color:var(--c-border-soft);flex-shrink:0;">
+      {% if unread_count > 0 %}
+      <form method="POST" action="{{ url_for(mark_all_endpoint) }}" class="flex-1">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="w-full px-3 py-2 rounded-full text-xs font-bold btn-ghost-navy">
+          Tout marquer lu
+        </button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for(notifications_index_endpoint) }}"
+         class="flex-1 text-center px-3 py-2 rounded-full text-xs font-bold btn-navy no-underline">
+        Voir l'historique
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>

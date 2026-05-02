@@ -31,6 +31,11 @@ from models import (
     QuoteStatus,
 )
 from services import workflow
+from services.notifications import (
+    caterer_user_ids,
+    notify_users,
+    super_admin_user_ids,
+)
 from services.quotes import calculate_quote_totals
 
 
@@ -276,6 +281,32 @@ def register(bp):
                     caterer_id=target_caterer.id,
                     status=QRCStatus.selected,
                 )
+            )
+            # Single-caterer demand bypasses admin curation, so notify
+            # the caterer directly. The « 3 devis » flow goes through
+            # workflow.approve_quote_request which already notifies.
+            notify_users(
+                db,
+                caterer_user_ids(db, target_caterer.id),
+                type="quote_request_received",
+                title="Nouvelle demande de devis",
+                body=f"Une demande pour {qr.guest_count or '?'} convives "
+                f"({qr.event_city or 'lieu non renseigné'}) vous a été transmise.",
+                related_entity_type="quote_request",
+                related_entity_id=qr.id,
+            )
+        elif qr.status == QuoteRequestStatus.pending_review:
+            # « Recevoir 3 devis » : la demande arrive en file de
+            # qualification — alerter les super_admins.
+            notify_users(
+                db,
+                super_admin_user_ids(db),
+                type="quote_request_to_qualify",
+                title="Nouvelle demande à qualifier",
+                body=f"Une demande de {qr.guest_count or '?'} convives à "
+                f"{qr.event_city or 'lieu non renseigné'} attend qualification.",
+                related_entity_type="quote_request",
+                related_entity_id=qr.id,
             )
 
         qr_id = qr.id

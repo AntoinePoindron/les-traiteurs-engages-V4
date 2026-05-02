@@ -10,7 +10,7 @@ from flask import (
     request,
     url_for,
 )
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import joinedload
 
 from blueprints.middleware import login_required, role_required
@@ -22,6 +22,7 @@ from models import (
     CompanyEmployee,
     CompanyService,
     Message,
+    Notification,
     Order,
     OrderStatus,
     Payment,
@@ -34,6 +35,12 @@ from models import (
 )
 from services import workflow
 from services.audit import log_admin_action
+from services.notifications import (
+    caterer_user_ids,
+    company_admin_user_ids,
+    notification_target_url,
+    notify_users,
+)
 from services.matching import find_matching_caterers
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -557,6 +564,47 @@ def order_transition(order_id):
         target_id=order_id,
         extra={"from": previous.value, "to": target.value},
     )
+
+    # Both sides of the order want to know about the transition. The
+    # body wording is per-action so the notification reads sensibly
+    # without exposing the raw status enum.
+    qr = order.quote.quote_request
+    caterer_id = order.quote.caterer_id
+    if action == "invoice":
+        client_title = "Facture disponible"
+        client_body = "Votre facture est prête. Vous pouvez la consulter depuis le détail de la commande."
+        caterer_title = "Commande facturée"
+        caterer_body = "La commande a été facturée par notre équipe."
+    elif action == "pay":
+        client_title = "Paiement reçu"
+        client_body = "Le paiement de votre commande a été enregistré. Merci !"
+        caterer_title = "Paiement reçu"
+        caterer_body = (
+            "Le paiement de la commande a été enregistré et sera viré sous peu."
+        )
+    else:
+        client_title = caterer_title = f"Commande passée en {target.value}"
+        client_body = caterer_body = ""
+
+    notify_users(
+        db,
+        company_admin_user_ids(db, qr.company_id),
+        type=f"order_{action}",
+        title=client_title,
+        body=client_body,
+        related_entity_type="order",
+        related_entity_id=order_id,
+    )
+    notify_users(
+        db,
+        caterer_user_ids(db, caterer_id),
+        type=f"order_{action}",
+        title=caterer_title,
+        body=caterer_body,
+        related_entity_type="order",
+        related_entity_id=order_id,
+    )
+
     db.commit()
     flash(f"Commande passée en {target.value}.", "success")
     return redirect(url_for("admin.order_detail", order_id=order_id))
@@ -669,3 +717,72 @@ def messages():
         total_pages=total_pages,
         total=total_threads,
     )
+
+
+@admin_bp.route("/notifications")
+@login_required
+@role_required("super_admin")
+def notifications():
+    user = g.current_user
+    db = get_db()
+    notes = db.scalars(
+        select(Notification)
+        .where(Notification.user_id == user.id)
+        .order_by(Notification.created_at.desc())
+        .limit(100)
+    ).all()
+    unread_count = sum(1 for n in notes if not n.is_read)
+    return render_template(
+        "notifications/list.html",
+        user=user,
+        notes=notes,
+        unread_count=unread_count,
+        mark_all_endpoint="admin.notifications_mark_all_read",
+        read_one_endpoint="admin.notifications_read_one",
+    )
+
+
+@admin_bp.route("/notifications/<uuid:notification_id>/read", methods=["POST"])
+@login_required
+@role_required("super_admin")
+def notifications_read_one(notification_id):
+    user = g.current_user
+    db = get_db()
+    note = db.get(Notification, notification_id)
+    if note and note.user_id == user.id:
+        note.is_read = True
+        db.commit()
+    return redirect(url_for("admin.notifications"))
+
+
+@admin_bp.route("/notifications/<uuid:notification_id>/visit", methods=["POST"])
+@login_required
+@role_required("super_admin")
+def notifications_visit(notification_id):
+    user = g.current_user
+    db = get_db()
+    note = db.get(Notification, notification_id)
+    target = url_for("admin.notifications")
+    if note and note.user_id == user.id:
+        resolved = notification_target_url(note, user.role)
+        if resolved:
+            target = resolved
+        note.is_read = True
+        db.commit()
+    return redirect(target)
+
+
+@admin_bp.route("/notifications/mark-all-read", methods=["POST"])
+@login_required
+@role_required("super_admin")
+def notifications_mark_all_read():
+    user = g.current_user
+    db = get_db()
+    db.execute(
+        update(Notification)
+        .where(Notification.user_id == user.id, Notification.is_read.is_(False))
+        .values(is_read=True)
+    )
+    db.commit()
+    flash("Toutes les notifications sont marquées comme lues.", "info")
+    return redirect(url_for("admin.notifications"))

@@ -144,6 +144,32 @@ def create_app():
             "dev_demo_accounts": DEMO_ACCOUNTS,
         }
 
+    @app.context_processor
+    def _inject_notifications():
+        # Surface the recent notifications + the role-aware URL resolver
+        # to base.html so the topbar bell can show a dropdown without an
+        # extra round-trip per page. Cap at 10 — the dedicated
+        # /notifications page handles the longer history.
+        from models import Notification as _Notification
+        from services.notifications import notification_target_url
+
+        if not g.get("current_user"):
+            return {
+                "notifications_recent": [],
+                "notification_target_url": notification_target_url,
+            }
+        db = get_db()
+        recent = db.scalars(
+            select(_Notification)
+            .where(_Notification.user_id == g.current_user.id)
+            .order_by(_Notification.created_at.desc())
+            .limit(10)
+        ).all()
+        return {
+            "notifications_recent": recent,
+            "notification_target_url": notification_target_url,
+        }
+
     # CLI for ops tasks: `flask admin create / reset-password / list / disable`.
     # Avoids relying on ADMIN_INITIAL_PASSWORD env var for day-to-day admin
     # lifecycle (P3.2).
