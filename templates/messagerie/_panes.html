@@ -1,0 +1,203 @@
+{# Shared two-pane "Messagerie" layout used by client, caterer and
+   super_admin. Driven by a `messagerie_ctx` dict assembled in the route:
+
+     {
+       "threads": [
+         {"thread_id", "other_name", "other_role", "other_avatar_url",
+          "other_avatar_kind" ('caterer'|'client'|'unknown'),
+          "last_message", "last_at", "unread"}, ...
+       ],
+       "active_thread_id": str|None,
+       "active": {  # only when active_thread_id is set
+         "other_user_id": str,
+         "other_name": str,
+         "other_role": str,
+         "other_avatar_url": str|None,
+         "other_avatar_kind": str,
+         "contact_full_name": str,
+         "detail_url": str|None,
+       },
+       "list_endpoint": str (e.g. "client.messages"),
+       "thread_endpoint": str (e.g. "client.message_thread"),
+       "show_role_badges": bool,         # super_admin only
+       "read_only": bool,                # super_admin only — disables form
+       "current_user_id": str,
+     }
+
+   Avatar rendering is left tile-style (LEGO-square in the mockup)
+   rather than circular: it works just as well for a caterer logo,
+   a company logo, or the building/utensils fallback icons.
+#}
+{% set ctx = messagerie_ctx %}
+
+{% macro avatar(kind, url, size_class='w-12 h-12') %}
+<div class="{{ size_class }} rounded-lg flex items-center justify-center bg-cream flex-shrink-0" style="overflow:hidden;">
+  {% if url %}
+    <img src="{{ url }}" alt="" style="width:100%;height:100%;object-fit:contain;padding:0.125rem;">
+  {% elif kind == 'caterer' %}
+    <i data-lucide="store" class="w-5 h-5 text-text-soft"></i>
+  {% else %}
+    <i data-lucide="building-2" class="w-5 h-5 text-text-soft"></i>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro role_badge(role) %}
+{% if role in ('client_admin', 'client_user') %}
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-navy-soft text-navy">
+  <i data-lucide="building-2" class="w-3 h-3"></i> Client
+</span>
+{% elif role == 'caterer' %}
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold" style="background-color:rgba(214,131,77,0.15);color:#A24B0E;">
+  <i data-lucide="store" class="w-3 h-3"></i> Traiteur
+</span>
+{% elif role == 'super_admin' %}
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-cream text-text-soft">
+  <i data-lucide="shield" class="w-3 h-3"></i> Admin
+</span>
+{% endif %}
+{% endmacro %}
+
+<h1 class="font-display font-bold text-4xl mb-6 text-text">Messagerie</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+  {# ---- Left pane : threads ---- #}
+  <div class="bg-white rounded-lg lg:col-span-1">
+    <div class="px-5 py-4 border-b border-soft">
+      <p class="text-xs font-bold uppercase tracking-wider text-mute">
+        {{ ctx.threads|length }} conversation{{ 's' if ctx.threads|length != 1 }}
+      </p>
+    </div>
+
+    {% if ctx.threads %}
+    <div class="divide-y divide-soft" style="max-height:70vh;overflow-y:auto;">
+      {% for t in ctx.threads %}
+      {% set is_active = ctx.active_thread_id == t.thread_id %}
+      <a href="{{ url_for(ctx.thread_endpoint, thread_id=t.thread_id) }}"
+         class="block px-4 py-4 transition-colors {% if is_active %}bg-navy-soft{% else %}hover:bg-cream{% endif %}">
+        <div class="flex items-start gap-3">
+          {{ avatar(t.other_avatar_kind, t.other_avatar_url) }}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <p class="text-sm font-bold truncate text-text">{{ t.other_name }}</p>
+              {% if ctx.show_role_badges %}
+                {{ role_badge(t.other_role) }}
+              {% endif %}
+            </div>
+            <p class="text-xs text-mute mb-1">{{ t.last_at.strftime('%d/%m/%Y') }}</p>
+            <div class="flex items-center gap-2">
+              <p class="text-sm truncate {% if t.unread %}font-bold text-text{% else %}text-mute{% endif %}">
+                {{ t.last_message }}
+              </p>
+              {% if t.unread %}
+              <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color:#3B82F6;"></span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-12 text-center">
+      <i data-lucide="inbox" class="w-10 h-10 text-disabled mx-auto mb-3"></i>
+      <p class="text-sm text-mute">Aucune conversation pour le moment.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ---- Right pane : active thread or empty state ---- #}
+  <div class="bg-white rounded-lg lg:col-span-2 flex flex-col" style="min-height:70vh;">
+    {% if ctx.active %}
+      {# Header #}
+      <div class="px-6 py-4 border-b border-soft flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          {{ avatar(ctx.active.other_avatar_kind, ctx.active.other_avatar_url, size_class='w-12 h-12') }}
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <p class="text-base font-bold truncate text-text">{{ ctx.active.other_name }}</p>
+              {% if ctx.show_role_badges %}
+                {{ role_badge(ctx.active.other_role) }}
+              {% endif %}
+            </div>
+            {% if ctx.active.contact_full_name %}
+            <p class="text-sm text-mute truncate">{{ ctx.active.contact_full_name }}</p>
+            {% endif %}
+          </div>
+        </div>
+        {% if ctx.active.detail_url %}
+        <a href="{{ ctx.active.detail_url }}"
+           class="inline-flex items-center gap-2 rounded-full text-xs font-bold px-4 py-2.5 border-2 border-navy text-navy hover:bg-navy-soft transition-colors flex-shrink-0">
+          <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+          Voir le détail
+        </a>
+        {% endif %}
+      </div>
+
+      {# Tabs : Conversation / Pieces jointes #}
+      <div class="px-6 border-b border-soft">
+        <div class="flex gap-6">
+          <button type="button" data-action="messagerie-tab" data-target="messagerie-conversation"
+                  class="messagerie-tab-btn py-3 text-sm font-bold border-b-2 border-navy text-navy">
+            Conversation
+          </button>
+          <button type="button" data-action="messagerie-tab" data-target="messagerie-attachments"
+                  class="messagerie-tab-btn py-3 text-sm font-bold border-b-2 border-transparent text-mute hover:text-text transition-colors">
+            Pièces jointes
+          </button>
+        </div>
+      </div>
+
+      {# Conversation pane #}
+      <div id="messagerie-conversation" class="messagerie-tab-pane flex-1 flex flex-col">
+        <div id="messages-container"
+             class="flex-1 overflow-y-auto p-6"
+             data-thread-id="{{ ctx.active_thread_id }}"
+             data-current-user-id="{{ ctx.current_user_id }}"
+             data-other-avatar-url="{{ ctx.active.other_avatar_url or '' }}"
+             data-other-avatar-kind="{{ ctx.active.other_avatar_kind }}">
+        </div>
+
+        {% if ctx.read_only %}
+        <div class="border-t border-soft p-4 text-xs text-center text-mute">
+          Vue administrateur — l'envoi de messages est désactivé.
+        </div>
+        {% else %}
+        <form id="message-form" class="border-t border-soft p-4 flex items-center gap-2">
+          <input type="hidden" name="recipient_id" value="{{ ctx.active.other_user_id }}">
+          <button type="button"
+                  class="w-10 h-10 rounded-lg flex items-center justify-center hover:bg-cream transition-colors text-mute flex-shrink-0"
+                  title="Joindre un fichier (bientôt)" disabled>
+            <i data-lucide="paperclip" class="w-4 h-4"></i>
+          </button>
+          <input type="text" name="body"
+                 placeholder="Votre message... (Entrée pour envoyer)"
+                 class="flex-1 border rounded-full px-4 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default"
+                 autocomplete="off">
+          <button type="submit" id="message-send-btn"
+                  class="rounded-full text-sm font-bold px-5 py-2.5 inline-flex items-center gap-2 bg-disabled text-white opacity-60"
+                  disabled>
+            <i data-lucide="send" class="w-4 h-4"></i> Envoyer
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      {# Attachments pane #}
+      <div id="messagerie-attachments" class="messagerie-tab-pane flex-1 hidden p-12 text-center">
+        <i data-lucide="paperclip" class="w-10 h-10 text-disabled mx-auto mb-3"></i>
+        <p class="text-sm text-mute">Aucune pièce jointe dans cette conversation.</p>
+      </div>
+
+    {% else %}
+      {# Empty state when no thread is selected #}
+      <div class="flex-1 flex items-center justify-center p-12 text-center">
+        <div>
+          <i data-lucide="message-circle" class="w-12 h-12 text-disabled mx-auto mb-3"></i>
+          <p class="text-sm text-mute">Sélectionnez une conversation à gauche pour la lire.</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
