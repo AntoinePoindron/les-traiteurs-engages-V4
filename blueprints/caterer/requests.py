@@ -279,6 +279,9 @@ def register(bp):
                 db.commit()
             except workflow.QuoteNotFound:
                 abort(404)
+            from services import email_triggers
+
+            email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis enregistre et envoye au client.", "success")
         else:
             flash("Devis enregistre en brouillon.", "success")
@@ -370,6 +373,9 @@ def register(bp):
                 db.commit()
             except workflow.QuoteNotFound:
                 abort(404)
+            from services import email_triggers
+
+            email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis mis a jour et envoye au client.", "success")
         else:
             flash("Devis mis a jour.", "success")
@@ -379,17 +385,24 @@ def register(bp):
     @login_required
     @role_required("caterer")
     def quote_send(qr_id, q_id):
+        caterer = g.current_user.caterer
         db = get_db()
         try:
             workflow.submit_quote(
                 db,
                 request_id=qr_id,
                 quote_id=q_id,
-                caterer=g.current_user.caterer,
+                caterer=caterer,
             )
         except workflow.QuoteNotFound:
             abort(404)
         db.commit()
+
+        from services import email_triggers
+
+        quote = db.scalar(select(Quote).where(Quote.id == q_id))
+        if quote:
+            email_triggers.quote_received(db, quote=quote, caterer=caterer)
 
         flash("Devis envoye au client.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))

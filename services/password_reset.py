@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 
 import config
 from models import PasswordResetToken, User
-from services.email import send_email_async
+from services.email import render_and_send_async
 
 
 # 1 hour is the industry-standard window for password reset links —
@@ -113,24 +113,11 @@ def kick_off_reset(db: Session, *, email: str) -> None:
     # that would need a server-name config to produce an absolute URL.
     reset_url = f"{config.BASE_URL}/reset-password/{token.token}"
 
-    from flask import render_template
-
-    html = render_template(
-        "emails/password_reset.html",
-        user=user,
-        reset_url=reset_url,
-        ttl_minutes=int(RESET_TOKEN_TTL.total_seconds() // 60),
-    )
-    text = render_template(
-        "emails/password_reset.txt",
-        user=user,
-        reset_url=reset_url,
-        ttl_minutes=int(RESET_TOKEN_TTL.total_seconds() // 60),
-    )
-
-    send_email_async.send(
+    render_and_send_async(
         to=user.email,
         subject="Réinitialisation de votre mot de passe",
-        html=html,
-        text=text,
+        template_name="password_reset",
+        user=user,
+        reset_url=reset_url,
+        ttl_minutes=int(RESET_TOKEN_TTL.total_seconds() // 60),
     )
