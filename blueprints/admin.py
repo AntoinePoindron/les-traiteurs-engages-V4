@@ -15,13 +15,14 @@ from sqlalchemy.orm import joinedload
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
-from forms.caterer import RejectionForm
+from forms.caterer import AdminMessageForm, RejectionForm
 from models import (
     Caterer,
     Company,
     CompanyEmployee,
     CompanyService,
     Message,
+    Notification,
     Order,
     OrderStatus,
     Payment,
@@ -31,6 +32,7 @@ from models import (
     QuoteRequestStatus,
     QuoteStatus,
     User,
+    UserRole,
 )
 from services import workflow
 from services.audit import log_admin_action
@@ -108,6 +110,7 @@ def qualification_detail(request_id):
         user=g.current_user,
         qr=qr,
         matches=matches,
+        message_form=AdminMessageForm(),
     )
 
 
@@ -120,9 +123,6 @@ def qualification_approve(request_id):
         qrcs = workflow.approve_quote_request(db, request_id=request_id)
     except workflow.RequestNotFound:
         abort(404)
-    except workflow.NoMatchingCaterers:
-        flash("Aucun traiteur compatible trouve. Impossible d'approuver.", "error")
-        return redirect(url_for("admin.qualification_detail", request_id=request_id))
     log_admin_action(
         db,
         g.current_user,
@@ -132,7 +132,18 @@ def qualification_approve(request_id):
         extra={"matched_caterers": len(qrcs)},
     )
     db.commit()
-    flash(f"Demande approuvee et envoyee a {len(qrcs)} traiteur(s).", "success")
+    if qrcs:
+        flash(f"Demande approuvee et envoyee a {len(qrcs)} traiteur(s).", "success")
+    else:
+        # `approve_quote_request` falls back to every validated caterer
+        # when matching is empty, so reaching this branch means the
+        # catalogue itself is empty. Tell the admin so they can follow
+        # up with the client.
+        flash(
+            "Demande approuvee, mais aucun traiteur valide n'est present "
+            "dans le catalogue. Pensez a contacter le client.",
+            "info",
+        )
     return redirect(url_for("admin.qualification"))
 
 
@@ -164,6 +175,68 @@ def qualification_reject(request_id):
     db.commit()
     flash("Demande rejetee.", "info")
     return redirect(url_for("admin.qualification"))
+
+
+@admin_bp.route("/qualification/<uuid:request_id>/message", methods=["POST"])
+@login_required
+@role_required("super_admin")
+def qualification_message(request_id):
+    """Super-admin sends a free-form message to the client_admin(s) of
+    the company that owns the quote request. Lands in their notification
+    feed (one Notification row per recipient), linked to the QR so a
+    click on the bell takes them straight to it."""
+    form = AdminMessageForm()
+    if not form.validate_on_submit():
+        flash("Le message ne peut pas etre vide.", "error")
+        return redirect(url_for("admin.qualification_detail", request_id=request_id))
+
+    db = get_db()
+    qr = db.get(QuoteRequest, request_id)
+    if not qr:
+        abort(404)
+
+    body = form.body.data.strip()
+    recipients = db.scalars(
+        select(User).where(
+            User.company_id == qr.company_id,
+            User.role == UserRole.client_admin,
+            User.is_active.is_(True),
+        )
+    ).all()
+
+    if not recipients:
+        flash(
+            "Aucun administrateur client actif sur cette entreprise — "
+            "le message n'a pas pu etre delivre.",
+            "error",
+        )
+        return redirect(url_for("admin.qualification_detail", request_id=request_id))
+
+    for recipient in recipients:
+        db.add(
+            Notification(
+                user_id=recipient.id,
+                type="admin_message",
+                title="Message de l'administrateur",
+                body=body,
+                related_entity_type="quote_request",
+                related_entity_id=qr.id,
+            )
+        )
+    log_admin_action(
+        db,
+        g.current_user,
+        "quote_request.message_client",
+        target_type="quote_request",
+        target_id=request_id,
+        extra={"recipients": len(recipients), "body_length": len(body)},
+    )
+    db.commit()
+    flash(
+        f"Message envoye a {len(recipients)} destinataire(s).",
+        "success",
+    )
+    return redirect(url_for("admin.qualification_detail", request_id=request_id))
 
 
 @admin_bp.route("/caterers")
