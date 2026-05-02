@@ -33,7 +33,12 @@
             placeholder="vous@entreprise.fr">
         </div>
         <div>
-          <label for="password" class="block text-sm font-medium text-text mb-1.5">Mot de passe</label>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="password" class="block text-sm font-medium text-text">Mot de passe</label>
+            <a href="{{ url_for('auth.forgot_password') }}" class="text-xs font-medium text-coral hover:underline">
+              Mot de passe oubli&#233; ?
+            </a>
+          </div>
           <div class="relative">
             <input type="password" id="password" name="password" required autocomplete="current-password"
               class="w-full px-4 py-2.5 rounded-xl text-text text-sm pr-10 input-coral"

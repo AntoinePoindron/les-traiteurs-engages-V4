@@ -666,3 +666,32 @@ class Message(Base):
     )
     order: Mapped[Order | None] = relationship(back_populates="messages")
     quote_request: Mapped[QuoteRequest | None] = relationship(back_populates="messages")
+
+
+class PasswordResetToken(Base):
+    """One-shot reset token issued by `/auth/forgot-password`.
+
+    Constraints :
+      * `token` is a URL-safe random string (32 bytes), unique;
+      * `expires_at` is enforced in code, not at the DB level (Postgres
+        has no `CHECK` for "in the future" — caller compares to now);
+      * `used_at` flips on first redemption; the verifier refuses any
+        token that has either `used_at` set or `expires_at < now`.
+
+    Tokens are NEVER reused, edited, or extended. A new request creates
+    a new row; old rows are kept for audit (and for telling a user with
+    bookmark-saved old links that the link is dead).
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    used_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    user: Mapped[User] = relationship()
