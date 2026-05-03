@@ -4,6 +4,8 @@
 {% block title %}Tableau de bord - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
+{# Same French short months as the requests list, so card formatting matches. #}
+{% set fr_months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'] %}
 <main class="bg-cream min-h-screen">
 
     <!-- Greeting -->
@@ -69,29 +71,88 @@
           {% if recent_requests %}
           <div>
             {% for qr in recent_requests %}
+            {# Single-caterer demand → chef-hat icon, compare-mode → grid-2x2.
+               Same row format as templates/client/requests/list.html so the
+               two pages stay visually consistent. #}
+            {% set row_icon = 'chef-hat' if not qr.is_compare_mode else 'grid-2x2' %}
             <a href="{{ url_for('client.request_detail', request_id=qr.id) }}"
-               class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft first:border-t-0">
-              <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream">
-                <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
+               class="flex items-center gap-4 py-4 -mx-2 px-2 rounded-lg transition-colors hover:bg-cream border-t border-soft first:border-t-0">
+
+              {# Icon tile #}
+              <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+                <i data-lucide="{{ row_icon }}" class="w-5 h-5 text-text-soft"></i>
               </div>
+
+              {# Two-line text block #}
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold truncate text-text">
-                  {{ meal_type_labels.get(qr.meal_type, qr.meal_type or 'Demande de devis') }}
-                </p>
-                <div class="flex items-center gap-3 mt-0.5">
-                  <span class="text-xs text-mute">
-                    {% if qr.event_date %}{{ qr.event_date.strftime('%d/%m/%Y') }}{% else %}Date a definir{% endif %}
+                {# Line 1 : meal type (bold) + creation timestamp (mute) #}
+                <div class="flex items-center gap-3 flex-wrap">
+                  <p class="text-sm font-bold text-text">
+                    {{ meal_type_labels.get(qr.meal_type, qr.meal_type.value if qr.meal_type else 'Demande') }}
+                  </p>
+                  <p class="text-xs text-mute">
+                    Créée le {{ qr.created_at.strftime('%d/%m/%Y') }} à {{ qr.created_at.strftime('%H:%M') }}
+                  </p>
+                </div>
+
+                {# Line 2 : meal type · event date · guests · budget · location · quote count #}
+                <div class="flex items-center gap-3 mt-1 flex-wrap text-xs text-mute">
+                  <span>
+                    {{ meal_type_labels.get(qr.meal_type, qr.meal_type.value if qr.meal_type else '') }}
+                    {% if qr.event_date %}
+                      &middot; {{ qr.event_date.day }} {{ fr_months[qr.event_date.month - 1] }} {{ qr.event_date.year }}
+                    {% endif %}
                   </span>
                   {% if qr.guest_count %}
-                  <span class="text-xs text-mute">{{ qr.guest_count }} convives</span>
+                  <span class="inline-flex items-center gap-1">
+                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                    {{ qr.guest_count }}
+                  </span>
                   {% endif %}
                   {% if qr.budget_global %}
-                  <span class="text-xs text-mute">{{ "%.0f" | format(qr.budget_global | float) }} EUR</span>
+                  <span class="inline-flex items-center gap-1">
+                    <i data-lucide="euro" class="w-3.5 h-3.5"></i>
+                    {{ "%.0f"|format(qr.budget_global) }}
+                  </span>
+                  {% elif qr.budget_per_person %}
+                  <span class="inline-flex items-center gap-1">
+                    <i data-lucide="euro" class="w-3.5 h-3.5"></i>
+                    {{ "%.0f"|format(qr.budget_per_person) }}/pers
+                  </span>
+                  {% endif %}
+                  {% if qr.event_address or qr.event_city %}
+                  <span class="inline-flex items-center gap-1">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                    {% if qr.event_address %}{{ qr.event_address|truncate(40, True, '…') }}{% else %}{{ qr.event_city }}{% endif %}
+                  </span>
+                  {% endif %}
+
+                  {# Quote count chip — only meaningful while the demand is
+                     still in flight (awaiting / received). #}
+                  {% if qr.display_status in ('awaiting_quotes', 'quotes_received') %}
+                    {% if qr.is_compare_mode %}
+                      <span class="inline-flex items-center gap-1 font-bold {% if qr.received_quotes == 0 %}text-pending{% else %}text-sky{% endif %}">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                        {{ qr.received_quotes }}/{{ qr.expected_quotes }} devis
+                      </span>
+                    {% else %}
+                      {% if qr.received_quotes > 0 %}
+                      <span class="inline-flex items-center gap-1 font-bold text-sky">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                        {{ qr.received_quotes }} devis
+                      </span>
+                      {% endif %}
+                    {% endif %}
                   {% endif %}
                 </div>
               </div>
-              {{ status_badge(qr.status) }}
-              <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+
+              {# Status badge + chevron — uses the derived display_status,
+                 same as the full list. #}
+              <div class="flex items-center gap-2 flex-shrink-0">
+                {{ status_badge(qr.display_status) }}
+                <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+              </div>
             </a>
             {% endfor %}
           </div>

@@ -97,6 +97,11 @@ def stripe_webhook():
             order = db.scalar(select(Order).where(Order.id == payment.order_id))
             if order:
                 order.status = OrderStatus.paid
+                # Invite the original requester to review the caterer.
+                # The helper is idempotent (skips on retry/redelivery).
+                from services.reviews import notify_review_invite
+
+                notify_review_invite(db, order=order)
         db.commit()
 
     elif event_type == "invoice.payment_failed":
@@ -271,24 +276,11 @@ def send_message():
         except (ValueError, TypeError):
             quote_request_id = None
 
-    # VULN-04: gate the message on a real business relationship. super_admin
-    # bypasses the check (operational support over moderation tooling).
-    db = get_db()
-    is_admin = user.role == "super_admin"
-    if not is_admin:
-        if not order_id and not quote_request_id:
-            return jsonify(
-                {
-                    "error": "Le message doit etre lie a une commande ou une demande de devis."
-                }
-            ), 400
-        allowed = _allowed_recipients_for(
-            db, user, order_id=order_id, quote_request_id=quote_request_id
-        )
-        if recipient_id not in allowed:
-            return jsonify({"error": "Destinataire non autorise."}), 403
-
     # Thread per user-pair: look up existing thread or create a random one.
+    # The lookup runs *before* the relationship gate because an existing
+    # thread is itself proof of a previously vetted relationship — see
+    # below.
+    db = get_db()
     existing = db.scalar(
         select(Message.thread_id)
         .where(
@@ -304,6 +296,27 @@ def send_message():
         .limit(1)
     )
     thread_id = existing if existing else uuid.uuid4()
+
+    # VULN-04: gate the FIRST message of a relationship on a real business
+    # link (order or quote request). super_admin bypasses outright.
+    # Follow-up messages on an existing thread skip the gate: the original
+    # message already carried the order/QR proof, and forcing it on every
+    # reply breaks the standalone Messagerie UI (no QR/order context to
+    # thread through). Recipient is still implicitly the same pair, since
+    # we matched on (sender, recipient) in the existing-thread lookup.
+    is_admin = user.role == "super_admin"
+    if not is_admin and existing is None:
+        if not order_id and not quote_request_id:
+            return jsonify(
+                {
+                    "error": "Le message doit etre lie a une commande ou une demande de devis."
+                }
+            ), 400
+        allowed = _allowed_recipients_for(
+            db, user, order_id=order_id, quote_request_id=quote_request_id
+        )
+        if recipient_id not in allowed:
+            return jsonify({"error": "Destinataire non autorise."}), 403
 
     msg = Message(
         thread_id=thread_id,

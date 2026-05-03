@@ -82,6 +82,16 @@
           <dt class="text-sm text-mute">Date</dt>
           <dd class="text-sm font-bold text-text">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</dd>
         </div>
+        {% if qr.event_start_time or qr.event_end_time %}
+        <div class="flex justify-between">
+          <dt class="text-sm text-mute">Horaires</dt>
+          <dd class="text-sm font-bold text-text">
+            {{ qr.event_start_time.strftime('%H:%M') if qr.event_start_time else '?' }}
+            –
+            {{ qr.event_end_time.strftime('%H:%M') if qr.event_end_time else '?' }}
+          </dd>
+        </div>
+        {% endif %}
         <div class="flex justify-between">
           <dt class="text-sm text-mute">Adresse</dt>
           <dd class="text-sm font-bold text-right text-text">{{ order.delivery_address or '-' }}</dd>

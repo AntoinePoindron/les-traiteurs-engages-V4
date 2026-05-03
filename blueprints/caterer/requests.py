@@ -48,20 +48,34 @@ def _parse_line_dicts(raw: str) -> list[dict]:
 
 
 def _derive_qrc_display_status(qr, caterer_id):
-    """Map the caterer's own Quote state to a single user-facing badge code.
+    """Map the caterer's own QRC + Quote state to a single user-facing
+    badge code.
 
-    Returns one of: 'new', 'sent', 'quotes_refused', 'quote_accepted'.
-    These map to the four labels visible in the caterer UI:
-    Nouvelle / Devis envoyé / Devis refusé / Commande créée.
+    Returns one of: 'new', 'sent', 'quotes_refused', 'quote_accepted',
+    'closed'. These map to the five labels visible in the caterer UI:
+    Nouvelle / Devis envoyé / Devis refusé / Commande créée / Clôturée.
 
-    The truth lives on the caterer's Quote, not on QRC.status — the
-    latter only tracks the admin-side workflow (selected, transmitted, …).
+    The truth lives mostly on the caterer's Quote — `closed` is the
+    exception, driven by the QRC because it's the admin-side workflow
+    that shuts a caterer out (the "3 first responders" rule in
+    `services/workflow.submit_quote`). A caterer who never sent their
+    quote in time gets `closed`; one who DID send a quote keeps the
+    `sent` / `quote_accepted` / `quotes_refused` label even if the QRC
+    later became `closed` (defensive — shouldn't happen given the lock,
+    but the display fallback makes the most informative choice).
     """
+    qrc = next(
+        (link for link in qr.caterers if link.caterer_id == caterer_id),
+        None,
+    )
     caterer_quote = next(
         (q for q in qr.quotes if q.caterer_id == caterer_id),
         None,
     )
-    if caterer_quote is None or caterer_quote.status == QuoteStatus.draft:
+    no_active_quote = caterer_quote is None or caterer_quote.status == QuoteStatus.draft
+    if qrc and qrc.status == QRCStatus.closed and no_active_quote:
+        return "closed"
+    if no_active_quote:
         return "new"
     if caterer_quote.status == QuoteStatus.refused:
         return "quotes_refused"
@@ -72,34 +86,53 @@ def _derive_qrc_display_status(qr, caterer_id):
     return "sent"
 
 
+# Filter tabs visible on /caterer/requests. Keys map to ?status= URL params,
+# values are the labels rendered in the tab pill. Keys mirror the codes
+# `_derive_qrc_display_status` returns so the route handler can filter by
+# equality, plus "all" for no filter.
+REQUEST_STATUS_TABS = {
+    "all": "Toutes",
+    "new": "Nouvelles",
+    "sent": "Devis envoye",
+    "quote_accepted": "Commande creee",
+    "quotes_refused": "Devis refuse",
+    "closed": "Cloturees",
+}
+
+
 def register(bp):
     @bp.route("/requests")
     @login_required
     @role_required("caterer")
     def requests_list():
         caterer = g.current_user.caterer
-        status_filter = flask_request.args.get("status")
+        status_filter = flask_request.args.get("status") or "all"
+        if status_filter not in REQUEST_STATUS_TABS:
+            status_filter = "all"
         db = get_db()
-        stmt = select(QuoteRequestCaterer).where(
-            QuoteRequestCaterer.caterer_id == caterer.id
+        stmt = (
+            select(QuoteRequestCaterer)
+            .where(QuoteRequestCaterer.caterer_id == caterer.id)
+            .order_by(QuoteRequestCaterer.id.desc())
         )
-        if status_filter:
-            try:
-                status_enum = QRCStatus(status_filter)
-            except ValueError:
-                status_filter = None
-            else:
-                stmt = stmt.where(QuoteRequestCaterer.status == status_enum)
-        qrcs = db.scalars(stmt.order_by(QuoteRequestCaterer.id.desc())).all()
+        qrcs = db.scalars(stmt).all()
         for qrc in qrcs:
             qr = qrc.quote_request
             _ = qr.company  # eager load for template
             qrc.display_status = _derive_qrc_display_status(qr, caterer.id)
+        # Filter on the *derived* status rather than QRCStatus directly:
+        # the user-visible tabs map to the five labels the badge shows
+        # (Nouvelle / Devis envoyé / Commande créée / Devis refusé /
+        # Clôturée), not to the raw admin-side QRC enum. Filtering in
+        # Python is fine because a single caterer's QRC list is small.
+        if status_filter != "all":
+            qrcs = [q for q in qrcs if q.display_status == status_filter]
         return render_template(
             "caterer/requests/list.html",
             user=g.current_user,
             qrcs=qrcs,
-            status_filter=status_filter,
+            status_tabs=REQUEST_STATUS_TABS,
+            current_tab=status_filter,
             meal_type_labels=MEAL_TYPE_LABELS,
         )
 
@@ -196,6 +229,16 @@ def register(bp):
         qrc = get_caterer_qrc(qr_id, caterer.id)
         qr = qrc.quote_request
         _ = qr.company
+        # Closed = the 3-first-responders rule shut this caterer out before
+        # they could submit. Block the editor entry point so they don't
+        # waste effort drafting a quote that the workflow will refuse.
+        if qrc.status == QRCStatus.closed:
+            flash(
+                "Cette demande est cloturee : trois autres traiteurs ont "
+                "deja envoye leur devis au client.",
+                "info",
+            )
+            return redirect(url_for("caterer.request_detail", qr_id=qr_id))
         # Pre-compute a reference to display read-only in the editor.
         # The server re-generates the real reference at POST time so this
         # is informational only and cannot be tampered with by the client.
@@ -279,6 +322,16 @@ def register(bp):
                 db.commit()
             except workflow.QuoteNotFound:
                 abort(404)
+            except workflow.QuoteRequestClosed:
+                flash(
+                    "Devis enregistre en brouillon. La demande a ete cloturee "
+                    "avant l'envoi : trois autres traiteurs ont deja repondu.",
+                    "info",
+                )
+                return redirect(url_for("caterer.request_detail", qr_id=qr_id))
+            from services import email_triggers
+
+            email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis enregistre et envoye au client.", "success")
         else:
             flash("Devis enregistre en brouillon.", "success")
@@ -370,6 +423,16 @@ def register(bp):
                 db.commit()
             except workflow.QuoteNotFound:
                 abort(404)
+            except workflow.QuoteRequestClosed:
+                flash(
+                    "Devis mis a jour en brouillon. La demande a ete cloturee "
+                    "avant l'envoi : trois autres traiteurs ont deja repondu.",
+                    "info",
+                )
+                return redirect(url_for("caterer.request_detail", qr_id=qr_id))
+            from services import email_triggers
+
+            email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis mis a jour et envoye au client.", "success")
         else:
             flash("Devis mis a jour.", "success")
@@ -379,17 +442,31 @@ def register(bp):
     @login_required
     @role_required("caterer")
     def quote_send(qr_id, q_id):
+        caterer = g.current_user.caterer
         db = get_db()
         try:
             workflow.submit_quote(
                 db,
                 request_id=qr_id,
                 quote_id=q_id,
-                caterer=g.current_user.caterer,
+                caterer=caterer,
             )
         except workflow.QuoteNotFound:
             abort(404)
+        except workflow.QuoteRequestClosed:
+            flash(
+                "La demande a ete cloturee : trois autres traiteurs ont deja "
+                "envoye leur devis. Votre devis reste enregistre en brouillon.",
+                "info",
+            )
+            return redirect(url_for("caterer.request_detail", qr_id=qr_id))
         db.commit()
+
+        from services import email_triggers
+
+        quote = db.scalar(select(Quote).where(Quote.id == q_id))
+        if quote:
+            email_triggers.quote_received(db, quote=quote, caterer=caterer)
 
         flash("Devis envoye au client.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))

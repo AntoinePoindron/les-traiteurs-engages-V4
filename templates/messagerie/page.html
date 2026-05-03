@@ -1,0 +1,22 @@
+{# Generic Messagerie page — extends base.html and renders the shared
+   two-pane layout from _panes.html. The route handler builds
+   `messagerie_ctx` (see _panes.html for the shape).
+
+   Used by:
+     - blueprints/client/messages.py     (client_admin / client_user)
+     - blueprints/caterer/messages.py    (caterer)
+     - blueprints/admin.py               (super_admin, read-only)
+#}
+{% extends "base.html" %}
+{% block title %}Messagerie - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+{% include "messagerie/_panes.html" %}
+{% endblock %}
+
+{% block scripts %}
+{# Active-thread chat is driven by /static/js/messages.js. The script
+   no-ops gracefully when the thread pane isn't on the page (empty
+   state), so it's safe to load unconditionally. #}
+<script src="{{ url_for('static', filename='js/messages.js') }}" defer></script>
+{% endblock %}

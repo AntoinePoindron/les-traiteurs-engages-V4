@@ -1,0 +1,15 @@
+Bonjour {{ user.first_name }},
+
+{{ caterer.name }} vient de vous transmettre un devis pour votre demande
+{% if event_date %}du {{ event_date.strftime('%d/%m/%Y') }}{% endif %}.
+
+{% if total_amount_ht is not none %}Montant HT : {{ "%.2f"|format(total_amount_ht|float) }} €
+{% endif %}{% if amount_per_person is not none %}Par personne : {{ "%.2f"|format(amount_per_person|float) }} €
+{% endif %}{% if valid_until %}Valable jusqu'au : {{ valid_until.strftime('%d/%m/%Y') }}
+{% endif %}
+Connectez-vous pour consulter le détail et accepter ou refuser :
+
+{{ cta_url }}
+
+—
+Les Traiteurs Engagés

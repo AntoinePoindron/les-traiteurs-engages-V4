@@ -1,6 +1,6 @@
 from flask import g, render_template
 from sqlalchemy import func, select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.client._helpers import ORDER_STATUS_LABELS
 from blueprints.middleware import login_required, role_required
@@ -51,16 +51,30 @@ def register(bp):
             .all()
         )
 
+        # Same row format as /client/requests — hydrate display_status +
+        # received/expected quote counts via the helpers in requests.py
+        # so the dashboard and the full list render identical cards.
+        # selectinload(QuoteRequest.quotes) avoids the N+1 the helpers
+        # would otherwise trigger.
+        from blueprints.client.requests import (
+            _derive_request_display_status,
+            _request_quote_counts,
+        )
+
         recent_requests = (
             db.execute(
                 select(QuoteRequest)
                 .where(QuoteRequest.company_id == user.company_id)
+                .options(selectinload(QuoteRequest.quotes))
                 .order_by(QuoteRequest.created_at.desc())
-                .limit(10)
+                .limit(5)
             )
             .scalars()
             .all()
         )
+        for qr in recent_requests:
+            qr.display_status = _derive_request_display_status(qr)
+            qr.received_quotes, qr.expected_quotes = _request_quote_counts(qr)
 
         services = (
             db.execute(

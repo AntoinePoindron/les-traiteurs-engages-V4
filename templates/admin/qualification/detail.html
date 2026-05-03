@@ -37,6 +37,14 @@
           <i data-lucide="calendar" class="w-3 h-3"></i>
           {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}
         </span>
+        {% if qr.event_start_time or qr.event_end_time %}
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="clock" class="w-3 h-3"></i>
+          {{ qr.event_start_time.strftime('%H:%M') if qr.event_start_time else '?' }}
+          –
+          {{ qr.event_end_time.strftime('%H:%M') if qr.event_end_time else '?' }}
+        </span>
+        {% endif %}
         <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
           <i data-lucide="users" class="w-3 h-3"></i>
           {{ qr.guest_count or '-' }} convives
@@ -131,9 +139,11 @@
 
   <div class="space-y-6">
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4">Traiteurs compatibles</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Traiteurs notifies</h2>
       <p class="font-display font-bold text-3xl text-black">{{ matches|length }}</p>
-      <p class="text-xs mt-1 text-mute">resultat{{ 's' if matches|length != 1 }}</p>
+      <p class="text-xs mt-1 text-mute">
+        traiteur{{ 's' if matches|length != 1 }} cible{{ 's' if matches|length != 1 }} par le matching automatique
+      </p>
 
       {% if matches %}
       <div class="mt-4">
@@ -148,11 +158,11 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="mt-4 rounded-lg p-4 flex items-start gap-3 bg-danger-soft">
-        <i data-lucide="alert-triangle" class="w-5 h-5 text-danger mt-0.5"></i>
+      <div class="mt-4 rounded-lg p-4 flex items-start gap-3 bg-cream">
+        <i data-lucide="info" class="w-5 h-5 text-text-soft mt-0.5"></i>
         <div>
-          <p class="text-sm font-medium text-danger">Aucun traiteur compatible</p>
-          <p class="text-xs mt-1 text-danger">Aucun traiteur valide ne correspond aux criteres.</p>
+          <p class="text-sm font-medium text-text">Aucun matching specifique.</p>
+          <p class="text-xs mt-1 text-mute">A la validation, la demande sera envoyee a l'ensemble des traiteurs valides du catalogue.</p>
         </div>
       </div>
       {% endif %}
@@ -162,15 +172,18 @@
     <div class="bg-white rounded-lg p-6">
       <h2 class="font-display font-bold text-lg text-black mb-4">Actions</h2>
       <div class="flex flex-col gap-3">
-        {% if matches %}
         <form method="POST" action="{{ url_for('admin.qualification_approve', request_id=qr.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-bold bg-navy">
             <i data-lucide="check" class="w-4 h-4"></i>
-            Approuver et envoyer a {{ matches|length }} traiteur{{ 's' if matches|length != 1 }}
+            Valider la demande
           </button>
         </form>
-        {% endif %}
+        <button type="button" data-action="dialog-open" data-target="message-dialog"
+          class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold btn-ghost-navy">
+          <i data-lucide="message-square" class="w-4 h-4"></i>
+          Envoyer un message au client
+        </button>
         <button type="button" data-action="dialog-open" data-target="reject-dialog"
           class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-bold bg-danger">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -178,6 +191,28 @@
         </button>
       </div>
     </div>
+
+    <dialog id="message-dialog" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
+      <div class="p-6">
+        <h3 class="font-display font-bold text-lg text-black mb-2">Envoyer un message au client</h3>
+        <p class="text-sm mb-4 text-mute">Le message sera delivre dans les notifications de tous les administrateurs de {{ qr.company.name }}.</p>
+        <form method="POST" action="{{ url_for('admin.qualification_message', request_id=qr.id) }}">
+          {{ message_form.csrf_token }}
+          <textarea name="body" rows="5" required minlength="1" maxlength="5000"
+            class="w-full rounded-lg px-3 py-2.5 text-sm text-black mb-4 input-soft"
+            placeholder="Votre message..."></textarea>
+          <div class="flex items-center justify-end gap-3">
+            <button type="button" data-action="dialog-close" data-target="message-dialog"
+              class="px-4 py-2 text-sm font-bold rounded-full btn-ghost-navy">
+              Annuler
+            </button>
+            <button type="submit" class="px-4 py-2 text-sm font-bold text-white rounded-full bg-navy">
+              Envoyer
+            </button>
+          </div>
+        </form>
+      </div>
+    </dialog>
 
     <dialog id="reject-dialog" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
       <div class="p-6">
@@ -195,6 +230,37 @@
             </button>
             <button type="submit" class="px-4 py-2 text-sm font-bold text-white rounded-full bg-danger">
               Confirmer le rejet
+            </button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+    {% else %}
+    <div class="bg-white rounded-lg p-6">
+      <h2 class="font-display font-bold text-lg text-black mb-4">Actions</h2>
+      <button type="button" data-action="dialog-open" data-target="message-dialog"
+        class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold btn-ghost-navy">
+        <i data-lucide="message-square" class="w-4 h-4"></i>
+        Envoyer un message au client
+      </button>
+    </div>
+
+    <dialog id="message-dialog" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
+      <div class="p-6">
+        <h3 class="font-display font-bold text-lg text-black mb-2">Envoyer un message au client</h3>
+        <p class="text-sm mb-4 text-mute">Le message sera delivre dans les notifications de tous les administrateurs de {{ qr.company.name }}.</p>
+        <form method="POST" action="{{ url_for('admin.qualification_message', request_id=qr.id) }}">
+          {{ message_form.csrf_token }}
+          <textarea name="body" rows="5" required minlength="1" maxlength="5000"
+            class="w-full rounded-lg px-3 py-2.5 text-sm text-black mb-4 input-soft"
+            placeholder="Votre message..."></textarea>
+          <div class="flex items-center justify-end gap-3">
+            <button type="button" data-action="dialog-close" data-target="message-dialog"
+              class="px-4 py-2 text-sm font-bold rounded-full btn-ghost-navy">
+              Annuler
+            </button>
+            <button type="submit" class="px-4 py-2 text-sm font-bold text-white rounded-full bg-navy">
+              Envoyer
             </button>
           </div>
         </form>

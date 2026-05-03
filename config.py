@@ -64,6 +64,16 @@ class Settings(BaseSettings):
     # can otherwise spoof X-Forwarded-For to bypass rate limits.
     trust_proxy_headers: bool = False
 
+    # Brevo (formerly Sendinblue) transactional email API. When the key
+    # is unset, services.email logs the would-be email instead of sending
+    # — keeps local dev / unit tests workable without a real account.
+    brevo_api_key: SecretStr | None = None
+    mail_from_email: str = "noreply@les-traiteurs-engages.fr"
+    mail_from_name: str = "Les Traiteurs Engagés"
+    # Public origin used to build absolute URLs in emails (password reset
+    # links, order links). Falls back to localhost in dev.
+    base_url: str = "http://localhost:8000"
+
     @field_validator(
         "stripe_secret_key",
         "stripe_publishable_key",
@@ -76,11 +86,27 @@ class Settings(BaseSettings):
         "s3_secret_key",
         "s3_endpoint_url",
         "s3_public_url",
+        "brevo_api_key",
         mode="before",
     )
     @classmethod
     def _opt_empty_to_none(cls, v):
         return _empty_to_none(v)
+
+    @field_validator("mail_from_email", "mail_from_name", "base_url", mode="before")
+    @classmethod
+    def _mail_empty_to_default(cls, v, info):
+        # Empty strings from docker-compose interpolation (`${VAR:-}`)
+        # land here as "" before Pydantic applies the field default.
+        # Substitute the default explicitly so the field stays non-Optional.
+        defaults = {
+            "mail_from_email": "noreply@les-traiteurs-engages.fr",
+            "mail_from_name": "Les Traiteurs Engagés",
+            "base_url": "http://localhost:8000",
+        }
+        if isinstance(v, str) and v == "":
+            return defaults[info.field_name]
+        return v
 
     @field_validator("admin_email", mode="before")
     @classmethod
@@ -112,3 +138,10 @@ STRIPE_WEBHOOK_SECRET = (
     else ""
 )
 STRIPE_CONNECT_CLIENT_ID = settings.stripe_connect_client_id or ""
+
+BREVO_API_KEY = (
+    settings.brevo_api_key.get_secret_value() if settings.brevo_api_key else ""
+)
+MAIL_FROM_EMAIL = settings.mail_from_email
+MAIL_FROM_NAME = settings.mail_from_name
+BASE_URL = settings.base_url.rstrip("/")

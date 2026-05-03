@@ -5,6 +5,7 @@ from enum import Enum
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -15,6 +16,8 @@ from sqlalchemy import (
     Sequence,
     String,
     Text,
+    Time,
+    UniqueConstraint,
     Uuid,
     func,
 )
@@ -328,6 +331,10 @@ class QuoteRequest(DietaryMixin, Base):
     service_type: Mapped[str | None] = mapped_column(String(100))
     meal_type: Mapped[MealType | None] = mapped_column(String(20))
     event_date: Mapped[datetime.date | None] = mapped_column(Date)
+    # Optional start/end of the event itself (not the delivery slot).
+    # Caterer uses these to plan staff and equipment delivery windows.
+    event_start_time: Mapped[datetime.time | None] = mapped_column(Time)
+    event_end_time: Mapped[datetime.time | None] = mapped_column(Time)
     guest_count: Mapped[int | None] = mapped_column(Integer)
     event_address: Mapped[str | None] = mapped_column(String(500))
     event_city: Mapped[str | None] = mapped_column(String(255))
@@ -666,3 +673,76 @@ class Message(Base):
     )
     order: Mapped[Order | None] = relationship(back_populates="messages")
     quote_request: Mapped[QuoteRequest | None] = relationship(back_populates="messages")
+
+
+class CatererReview(Base):
+    """One review left by the *original requester* of a paid order.
+
+    Constraints :
+      * exactly one review per Order (UNIQUE on order_id) — the reviewer
+        only gets one chance per transaction;
+      * rating ∈ [1, 5] enforced at the DB level (CheckConstraint);
+      * order.status MUST be `paid` and reviewer MUST equal
+        `order.quote.quote_request.user_id` — enforced in the route
+        handler (`services.reviews`).
+
+    Comments are public — they're shown alongside the caterer in the
+    catalogue. Identity displayed publicly is reduced to first name +
+    last-name initial + company name (cf. `services.reviews.format_author`).
+    """
+
+    __tablename__ = "caterer_reviews"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    caterer_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("caterers.id"), index=True
+    )
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("orders.id"), unique=True
+    )
+    reviewer_user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id"), index=True
+    )
+    rating: Mapped[int] = mapped_column(Integer)
+    comment: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    caterer: Mapped["Caterer"] = relationship()
+    order: Mapped["Order"] = relationship()
+    reviewer: Mapped["User"] = relationship()
+
+    __table_args__ = (
+        CheckConstraint("rating BETWEEN 1 AND 5", name="caterer_reviews_rating_range"),
+        UniqueConstraint("order_id", name="caterer_reviews_order_unique"),
+    )
+
+
+class PasswordResetToken(Base):
+    """One-shot reset token issued by `/auth/forgot-password`.
+
+    Constraints :
+      * `token` is a URL-safe random string (32 bytes), unique;
+      * `expires_at` is enforced in code, not at the DB level (Postgres
+        has no `CHECK` for "in the future" — caller compares to now);
+      * `used_at` flips on first redemption; the verifier refuses any
+        token that has either `used_at` set or `expires_at < now`.
+
+    Tokens are NEVER reused, edited, or extended. A new request creates
+    a new row; old rows are kept for audit (and for telling a user with
+    bookmark-saved old links that the link is dead).
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    used_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    user: Mapped[User] = relationship()

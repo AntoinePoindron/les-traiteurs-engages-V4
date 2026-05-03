@@ -23,6 +23,7 @@ from models import (
     SERVICE_OFFERING_LABELS,
     Caterer,
     CompanyService,
+    Notification,
     QRCStatus,
     Quote,
     QuoteRequest,
@@ -338,6 +339,26 @@ def register(bp):
             else:
                 quote.pdf_preview = None
 
+        # Surface admin → client messages tied to this QR. The
+        # super_admin sends them from /admin/qualification/<id>; the
+        # write path stores one Notification per company_admin. Pulling
+        # them here means the client sees them inline on the request
+        # detail even before the bell-notification UI lands.
+        admin_messages = (
+            db.execute(
+                select(Notification)
+                .where(
+                    Notification.user_id == user.id,
+                    Notification.type == "admin_message",
+                    Notification.related_entity_type == "quote_request",
+                    Notification.related_entity_id == qr.id,
+                )
+                .order_by(Notification.created_at.desc())
+            )
+            .scalars()
+            .all()
+        )
+
         return render_template(
             "client/requests/detail.html",
             user=user,
@@ -345,6 +366,7 @@ def register(bp):
             qrcs=qrcs,
             quotes=quotes,
             meal_type_labels=MEAL_TYPE_LABELS,
+            admin_messages=admin_messages,
         )
 
     @bp.route("/requests/<uuid:request_id>/accept-quote", methods=["POST"])
@@ -381,6 +403,10 @@ def register(bp):
             flash("Ce devis a expire.", "error")
             return redirect(url_for("client.request_detail", request_id=request_id))
         db.commit()
+
+        from services import email_triggers
+
+        email_triggers.order_confirmed(db, order=order)
 
         flash("Devis accepte ! La commande a ete creee.", "success")
         return redirect(url_for("client.order_detail", order_id=order.id))
@@ -623,6 +649,19 @@ def register(bp):
             .limit(ITEMS_PER_PAGE)
         ).all()
 
+        # Hydrate review aggregates for the current page in a single
+        # query — the catalogue card displays "★ 4.3 · 12 avis" per row.
+        from services.reviews import (
+            ReviewAggregate,
+            aggregates_for_caterers,
+        )
+
+        review_aggregates = aggregates_for_caterers(db, [c.id for c in caterers])
+        for c in caterers:
+            agg = review_aggregates.get(c.id, ReviewAggregate(avg=None, count=0))
+            c.review_avg = agg.avg
+            c.review_count = agg.count
+
         return render_template(
             "client/search.html",
             user=g.current_user,
@@ -652,6 +691,14 @@ def register(bp):
         caterer = db.get(Caterer, caterer_id)
         if not caterer or not caterer.is_validated:
             abort(404)
+        from services.reviews import (
+            aggregate_for_caterer,
+            format_author,
+            list_for_caterer,
+        )
+
+        review_aggregate = aggregate_for_caterer(db, caterer.id)
+        reviews = list_for_caterer(db, caterer.id, limit=50)
         return render_template(
             "client/caterer_detail.html",
             user=g.current_user,
@@ -659,4 +706,7 @@ def register(bp):
             dietary_flags=DIETARY_FLAGS,
             meal_type_labels=MEAL_TYPE_LABELS,
             service_offering_labels=SERVICE_OFFERING_LABELS,
+            review_aggregate=review_aggregate,
+            reviews=reviews,
+            review_format_author=format_author,
         )

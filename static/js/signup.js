@@ -136,10 +136,10 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
-    var tabClient = document.getElementById('tab-client');
-    var tabCaterer = document.getElementById('tab-caterer');
-    if (tabClient) tabClient.style.color = '#6B7280';
-    if (tabCaterer) tabCaterer.style.color = '#6B7280';
+    // Pré-sélectionne "Entreprise" — c'est le parcours par défaut sur
+    // la landing (CTA "S'inscrire" pointe vers ce formulaire). L'autre
+    // onglet ("Traiteur") reste un clic simple pour les structures.
+    selectRole('client');
     revalidate();
   });
 })();

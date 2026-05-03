@@ -58,6 +58,16 @@
             <i data-lucide="calendar" class="w-4 h-4 text-text-soft"></i>
             <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</span>
           </div>
+          {% if qr.event_start_time or qr.event_end_time %}
+          <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+            <i data-lucide="clock" class="w-4 h-4 text-text-soft"></i>
+            <span class="text-xs font-bold whitespace-nowrap text-text-soft">
+              {{ qr.event_start_time.strftime('%H:%M') if qr.event_start_time else '?' }}
+              &ndash;
+              {{ qr.event_end_time.strftime('%H:%M') if qr.event_end_time else '?' }}
+            </span>
+          </div>
+          {% endif %}
           <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
             <i data-lucide="users" class="w-4 h-4 text-text-soft"></i>
             <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ qr.guest_count or '-' }} convives</span>
@@ -175,6 +185,26 @@
           <h3 class="font-display font-bold text-sm text-text">Message aux traiteurs</h3>
         </div>
         <p class="text-sm whitespace-pre-line text-text-soft">{{ qr.message_to_caterer }}</p>
+      </div>
+      {% endif %}
+
+      <!-- Messages de l'administrateur -->
+      {% if admin_messages %}
+      <div class="bg-white rounded-lg p-6">
+        <div class="flex items-center gap-2 mb-3">
+          <i data-lucide="shield" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">
+            Messages de l'administrateur
+          </h3>
+        </div>
+        <div class="space-y-3">
+          {% for note in admin_messages %}
+          <div class="rounded-lg p-3 bg-cream">
+            <p class="text-sm whitespace-pre-line text-text">{{ note.body }}</p>
+            <p class="text-xs mt-2 text-mute">{{ note.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+          </div>
+          {% endfor %}
+        </div>
       </div>
       {% endif %}
     </div>
