@@ -152,11 +152,14 @@
           </div>
         </div>
 
+        {# Budget : au moins un des deux champs requis (validation
+           custom dans wizard.js via data-required-group). #}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label for="budget_global" class="block text-sm font-bold mb-2 text-text">Budget global</label>
             <div class="relative">
               <input type="number" id="budget_global" name="budget_global" value="{{ qr.budget_global or '' }}" min="0" step="0.01" placeholder="1500.00"
+                data-required-group="budget"
                 class="w-full border rounded-lg px-3 py-2.5 pr-12 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-mute">EUR</span>
             </div>
@@ -165,6 +168,7 @@
             <label for="budget_per_person" class="block text-sm font-bold mb-2 text-text">Budget par personne</label>
             <div class="relative">
               <input type="number" id="budget_per_person" name="budget_per_person" value="{{ qr.budget_per_person or '' }}" min="0" step="0.01" placeholder="30.00"
+                data-required-group="budget"
                 class="w-full border rounded-lg px-3 py-2.5 pr-20 text-sm text-black outline-none focus:border-navy transition-colors border-default">
               <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-mute">EUR/pers.</span>
             </div>
@@ -223,19 +227,11 @@
           </div>
         </div>
 
-        <div class="mb-6">
-          <label class="block text-sm font-bold mb-3 text-text">Alcool ?</label>
-          <div class="flex gap-4">
-            <label class="flex items-center gap-2 px-3 py-2 rounded-full cursor-pointer transition-colors has-[:checked]:bg-navy has-[:checked]:text-white bg-cream text-navy">
-              <input type="radio" name="drinks_alcohol" value="1" {% if qr.drinks_alcohol %}checked{% endif %} class="hidden">
-              <span class="text-xs font-bold">Oui, avec alcool</span>
-            </label>
-            <label class="flex items-center gap-2 px-3 py-2 rounded-full cursor-pointer transition-colors has-[:checked]:bg-navy has-[:checked]:text-white bg-cream text-navy">
-              <input type="radio" name="drinks_alcohol" value="0" {% if not qr.drinks_alcohol %}checked{% endif %} class="hidden">
-              <span class="text-xs font-bold">Non, sans alcool</span>
-            </label>
-          </div>
-        </div>
+        {# Bloc "Alcool ?" retiré (cf. new.html) — redondant avec les
+           checkboxes Bières / Vins / Champagne. On préserve la valeur
+           existante de drinks_alcohol via un input caché pour ne pas
+           écraser un ancien choix au save. #}
+        <input type="hidden" name="drinks_alcohol" value="{{ '1' if qr.drinks_alcohol else '0' }}">
 
         <div>
           <label for="drinks_details" class="block text-sm font-bold mb-2 text-text">Precisions sur les boissons <span class="text-mute">(optionnel)</span></label>
@@ -256,27 +252,82 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {% set service_edit_items = [
-            ('wants_equipment', 'Vaisselle / materiel', 'utensils-crossed', qr.wants_equipment),
-            ('wants_decoration', 'Decoration', 'palette', qr.wants_decoration),
-            ('wants_waitstaff', 'Service en salle', 'user-check', qr.wants_waitstaff),
-            ('wants_setup', 'Installation / mise en place', 'hammer', qr.wants_setup),
-            ('wants_cleanup', 'Nettoyage / debarrassage', 'sparkles', qr.wants_cleanup),
-          ] %}
-          {% for field_id, label, icon, checked in service_edit_items %}
-          <label class="flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-navy-soft border-2 border-default">
-            <input type="checkbox" id="{{ field_id }}" name="{{ field_id }}" value="1" {% if checked %}checked{% endif %} class="service-checkbox w-5 h-5 rounded accent-navy">
-            <i data-lucide="{{ icon }}" class="w-4\.5 h-4\.5 text-mute"></i>
-            <span class="font-bold text-sm text-text">{{ label }}</span>
-          </label>
-          {% endfor %}
-        </div>
+        {# Catégorisé Personnel / Matériel / Installation et mise en
+           place. Cf. new.html — même structure, mais avec pré-fills
+           qr.wants_* / qr.service_setup_*. Les blocs précisions/horaire
+           vivent au sein de leur catégorie d'origine, et les sous-titres
+           portent .font-body pour rester en Marianne. #}
+        <div class="space-y-6">
 
-        <div id="waitstaff-details-wrapper" class="mt-4{% if not qr.wants_waitstaff %} hidden{% endif %}">
-          <label for="service_waitstaff_details" class="block text-sm font-bold mb-2 text-text">Details du service en salle</label>
-          <textarea id="service_waitstaff_details" name="service_waitstaff_details" rows="3" placeholder="Ex: 3 serveurs pour un service a l'assiette..."
-            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors resize-none border-default">{{ qr.service_waitstaff_details or '' }}</textarea>
+          <div>
+            <h3 class="font-body text-xs uppercase font-bold tracking-wider mb-3 text-mute">Personnel</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-navy-soft border-2 border-default">
+                <input type="checkbox" id="wants_waitstaff" name="wants_waitstaff" value="1" {% if qr.wants_waitstaff %}checked{% endif %} class="service-checkbox w-5 h-5 rounded accent-navy">
+                <i data-lucide="user-check" class="w-4\.5 h-4\.5 text-mute"></i>
+                <span class="font-bold text-sm text-text">Service en salle</span>
+              </label>
+            </div>
+            <div id="waitstaff-details-wrapper" class="mt-4{% if not qr.wants_waitstaff %} hidden{% endif %}">
+              <label for="service_waitstaff_details" class="block text-sm font-bold mb-2 text-text">Details du service en salle</label>
+              <textarea id="service_waitstaff_details" name="service_waitstaff_details" rows="3" placeholder="Ex: 3 serveurs pour un service a l'assiette..."
+                class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors resize-none border-default">{{ qr.service_waitstaff_details or '' }}</textarea>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-body text-xs uppercase font-bold tracking-wider mb-3 text-mute">Matériel</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {% for field_id, label, icon, checked in [
+                ('wants_equipment', 'Vaisselle / materiel', 'utensils-crossed', qr.wants_equipment),
+                ('wants_nappes', 'Nappes / linge de table', 'shirt', qr.wants_nappes),
+                ('wants_decoration', 'Decoration', 'palette', qr.wants_decoration),
+              ] %}
+              <label class="flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-navy-soft border-2 border-default">
+                <input type="checkbox" id="{{ field_id }}" name="{{ field_id }}" value="1" {% if checked %}checked{% endif %} class="service-checkbox w-5 h-5 rounded accent-navy">
+                <i data-lucide="{{ icon }}" class="w-4\.5 h-4\.5 text-mute"></i>
+                <span class="font-bold text-sm text-text">{{ label }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div>
+            <h3 class="font-body text-xs uppercase font-bold tracking-wider mb-3 text-mute">Installation et mise en place</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {% for field_id, label, icon, checked in [
+                ('wants_livraison', 'Livraison', 'truck', qr.wants_livraison),
+                ('wants_setup', 'Installation / mise en place', 'hammer', qr.wants_setup),
+                ('wants_cleanup', 'Nettoyage / debarrassage', 'sparkles', qr.wants_cleanup),
+              ] %}
+              <label class="flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-navy-soft border-2 border-default">
+                <input type="checkbox" id="{{ field_id }}" name="{{ field_id }}" value="1" {% if checked %}checked{% endif %} class="service-checkbox w-5 h-5 rounded accent-navy">
+                <i data-lucide="{{ icon }}" class="w-4\.5 h-4\.5 text-mute"></i>
+                <span class="font-bold text-sm text-text">{{ label }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            <div id="setup-details-wrapper" class="mt-4{% if not qr.wants_setup %} hidden{% endif %}">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="service_setup_time" class="block text-sm font-bold mb-2 text-text">
+                    Horaire d'installation <span class="text-danger">*</span>
+                  </label>
+                  <input type="time" id="service_setup_time" name="service_setup_time"
+                    value="{{ qr.service_setup_time.strftime('%H:%M') if qr.service_setup_time else '' }}"
+                    class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+                </div>
+              </div>
+              <div class="mt-4">
+                <label for="service_setup_details" class="block text-sm font-bold mb-2 text-text">
+                  Précisions <span class="text-mute">(optionnel)</span>
+                </label>
+                <textarea id="service_setup_details" name="service_setup_details" rows="3" placeholder="Ex: accès par la cour, monte-charge a partir de 8h, contacter Marie au 06..."
+                  class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors resize-none border-default">{{ qr.service_setup_details or '' }}</textarea>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
