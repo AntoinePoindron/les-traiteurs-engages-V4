@@ -83,7 +83,15 @@ class QuoteRequestForm(FlaskForm):
     service_waitstaff_details = TextAreaField(validators=[Optional(), Length(max=5000)])
     wants_equipment = BooleanField()
     wants_decoration = BooleanField()
+    wants_nappes = BooleanField()
+    wants_livraison = BooleanField()
     wants_setup = BooleanField()
+    # Horaire + précisions liés à l'installation. UI rend `setup_time`
+    # obligatoire quand `wants_setup` est coché, mais on garde Optional
+    # côté serveur pour que les anciennes demandes (sans ces colonnes
+    # remplies) restent valides à la ré-édition.
+    service_setup_time = TimeField(format="%H:%M", validators=[Optional()])
+    service_setup_details = TextAreaField(validators=[Optional(), Length(max=5000)])
     wants_cleanup = BooleanField()
 
     is_compare_mode = BooleanField()

@@ -399,6 +399,68 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .badge-xs { padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4; }
 
 /* ============================================================
+   Wizard validation error styles — appliquées par static/js/wizard.js
+   au clic "Suivant" si des champs requis sont vides. Les classes
+   utilisées avant (border-coral-red-400 / ring-coral-red-400)
+   n'existaient pas dans le tailwind curated du projet, donc le JS
+   tournait à vide. Ces règles donnent enfin un signal visible.
+   ============================================================ */
+
+/* Inputs / selects / textareas vides marqués comme invalides */
+.wizard-field-error,
+input.wizard-field-error,
+select.wizard-field-error,
+textarea.wizard-field-error {
+  border-color: var(--c-coral-red, #B70102) !important;
+  box-shadow: 0 0 0 3px rgba(183, 1, 2, 0.15);
+  background-color: rgba(183, 1, 2, 0.03);
+}
+
+/* Labels de radio sans choix — encadré rouge tout entour */
+.wizard-radio-error {
+  outline: 2px solid var(--c-coral-red, #B70102);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Champs désactivés dans le wizard quand on cible un traiteur qui
+   ne supporte pas l'option (cf. blueprints/client/requests.py — la
+   handler `requests_new` calcule `caterer_capabilities` quand
+   `?caterer_id=...` est présent). Visuel : grisé + curseur "no", le
+   tooltip natif (attribut `title`) s'affiche au survol et explique
+   pourquoi. */
+.wizard-disabled-option {
+  opacity: 0.55;
+  cursor: not-allowed !important;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+.wizard-disabled-option label,
+.wizard-disabled-option input,
+.wizard-disabled-option [data-lucide] {
+  cursor: not-allowed !important;
+}
+.wizard-disabled-option:hover {
+  /* Pas de hover effect — l'option est verrouillée. */
+  opacity: 0.55;
+}
+
+/* Banner "champs manquants" en haut de l'étape, inséré dynamiquement */
+.wizard-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: 0.5rem;
+  background-color: rgba(183, 1, 2, 0.08);
+  border: 1px solid rgba(183, 1, 2, 0.25);
+  color: var(--c-coral-red, #B70102);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.wizard-error-banner i { flex-shrink: 0; }
+
+/* ============================================================
    LANDING PAGE — styles isoles sous .landing-root pour ne pas
    contaminer les pages connectees. Portes du Next.js de reference
    (src/app/globals.css). Tous les selecteurs commencent par
@@ -464,6 +526,20 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
     background: url('/static/img/landing/deco-brush-strokes.png') no-repeat center;
     background-size: contain;
   }
+}
+
+/* Hero + section titles : bumped up on tablet/desktop. Mobile sizes
+   live inline on the elements (cf. templates/landing.html) so the
+   first paint already feels generous; these media queries layer
+   bigger sizes on top once we have the room. */
+@media (min-width: 768px) {
+  .landing-root .landing-h1     { font-size: 3.25rem !important; }
+  .landing-root .landing-h2     { font-size: 2.5rem !important; }
+  .landing-root .landing-stat-num { font-size: 2.75rem !important; }
+}
+@media (min-width: 1024px) {
+  .landing-root .landing-h1     { font-size: 4rem !important; }
+  .landing-root .landing-hero-subtitle { font-size: 1.25rem !important; }
 }
 
 /* Bouton avec animation "swap" hover (label slide-out, second label slide-in) */

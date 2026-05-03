@@ -61,7 +61,10 @@ _QR_DIRECT_FIELDS = (
     "wants_waitstaff",
     "wants_equipment",
     "wants_decoration",
+    "wants_nappes",
+    "wants_livraison",
     "wants_setup",
+    "service_setup_time",
     "wants_cleanup",
     "is_compare_mode",
 )
@@ -75,6 +78,7 @@ _QR_OPTIONAL_FIELDS = (
     "event_zip_code",
     "drinks_details",
     "service_waitstaff_details",
+    "service_setup_details",
     "message_to_caterer",
 )
 
