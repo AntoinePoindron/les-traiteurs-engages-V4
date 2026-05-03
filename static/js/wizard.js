@@ -202,6 +202,16 @@ document.addEventListener('DOMContentLoaded', function () {
     setHtml('summary-meal-type', mealTypeLabels[mealType] || mealType);
     setHtml('summary-service-type', val('service_type') || '-');
     setHtml('summary-event-date', val('event_date') || '-');
+    // Horaires : "HH:MM – HH:MM" if at least one is set, with "?" for the
+    // missing side; else "-". Mirrors the chip on the QR/order detail
+    // pages so the wizard recap and the persisted display stay aligned.
+    var startT = val('event_start_time');
+    var endT = val('event_end_time');
+    var timesText = '-';
+    if (startT || endT) {
+      timesText = (startT || '?') + ' – ' + (endT || '?');
+    }
+    setHtml('summary-event-times', timesText);
     setHtml('summary-guest-count', val('guest_count') ? val('guest_count') + ' convives' : '-');
     setHtml('summary-event-address', [val('event_address'), val('event_zip_code'), val('event_city')].filter(Boolean).join(', ') || '-');
 

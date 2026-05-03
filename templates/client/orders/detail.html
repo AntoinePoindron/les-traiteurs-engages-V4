@@ -93,11 +93,22 @@
         <i data-lucide="truck" class="w-4 h-4 text-navy"></i>
         <h3 class="font-display font-bold text-sm text-text">Livraison</h3>
       </div>
+      {% set qr = order.quote.quote_request %}
       <div class="flex flex-wrap gap-3">
         <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
           <i data-lucide="calendar" class="w-4 h-4 text-text-soft"></i>
           <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
         </div>
+        {% if qr.event_start_time or qr.event_end_time %}
+        <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+          <i data-lucide="clock" class="w-4 h-4 text-text-soft"></i>
+          <span class="text-xs font-bold whitespace-nowrap text-text-soft">
+            {{ qr.event_start_time.strftime('%H:%M') if qr.event_start_time else '?' }}
+            –
+            {{ qr.event_end_time.strftime('%H:%M') if qr.event_end_time else '?' }}
+          </span>
+        </div>
+        {% endif %}
         <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
           <i data-lucide="map-pin" class="w-4 h-4 text-text-soft"></i>
           <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ order.delivery_address or '-' }}</span>

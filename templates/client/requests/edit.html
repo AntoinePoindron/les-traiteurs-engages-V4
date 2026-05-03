@@ -97,10 +97,30 @@
           </div>
         </div>
 
-        <div class="mt-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label for="event_start_time" class="block text-sm font-bold mb-2 text-text">Heure de début</label>
+            <input type="time" id="event_start_time" name="event_start_time" value="{{ qr.event_start_time.strftime('%H:%M') if qr.event_start_time else '' }}"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          </div>
+          <div>
+            <label for="event_end_time" class="block text-sm font-bold mb-2 text-text">Heure de fin</label>
+            <input type="time" id="event_end_time" name="event_end_time" value="{{ qr.event_end_time.strftime('%H:%M') if qr.event_end_time else '' }}"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          </div>
+        </div>
+
+        {# Same BAN autocomplete pattern as the new-request wizard. #}
+        <div class="mt-4 relative" data-address-autocomplete>
           <label for="event_address" class="block text-sm font-bold mb-2 text-text">Adresse <span class="text-danger">*</span></label>
-          <input type="text" id="event_address" name="event_address" value="{{ qr.event_address or '' }}" required placeholder="Numero et rue"
+          <input type="text" id="event_address" name="event_address" value="{{ qr.event_address or '' }}" required
+            placeholder="Commencez à taper l'adresse..."
+            autocomplete="off"
+            data-address-input
             class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          <ul data-address-suggestions
+              class="hidden absolute left-0 right-0 z-20 mt-1 bg-white rounded-lg overflow-hidden"
+              style="border:1px solid rgba(26,58,82,0.12);box-shadow:0 6px 18px rgba(26,58,82,0.08);max-height:18rem;overflow-y:auto;"></ul>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -400,4 +420,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/wizard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}" defer></script>
 {% endblock %}

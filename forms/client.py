@@ -19,6 +19,7 @@ from wtforms import (
     SelectField,
     StringField,
     TextAreaField,
+    TimeField,
 )
 from wtforms.validators import (
     Email,
@@ -40,6 +41,10 @@ class QuoteRequestForm(FlaskForm):
     service_type = StringField(validators=[Optional(), Length(max=100)])
     meal_type = SelectField(choices=[("", "—")] + MEAL_TYPES, validators=[Optional()])
     event_date = DateField(format="%Y-%m-%d", validators=[Optional()])
+    # `<input type="time">` posts as "HH:MM" (24h, no seconds). WTForms
+    # TimeField auto-handles that.
+    event_start_time = TimeField(format="%H:%M", validators=[Optional()])
+    event_end_time = TimeField(format="%H:%M", validators=[Optional()])
     guest_count = IntegerField(validators=[Optional(), NumberRange(min=1, max=10000)])
     event_address = StringField(validators=[Optional(), Length(max=500)])
     event_city = StringField(validators=[Optional(), Length(max=255)])

@@ -117,16 +117,36 @@
           </div>
         </div>
 
-        <div class="mt-4">
-          <label for="event_address" class="block text-sm font-bold mb-2 text-text">Adresse <span class="text-danger">*</span></label>
-          <div class="flex gap-2">
-            <input type="text" id="event_address" name="event_address" required placeholder="Numero et rue"
-              class="flex-1 border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-            <button type="button" id="btn-geocode" class="rounded-full text-xs font-bold px-4 py-2.5 flex items-center gap-2 bg-cream text-navy" title="Geolocaliser l'adresse">
-              <i data-lucide="map-pin" class="w-4 h-4"></i>
-              <span class="hidden sm:inline">Geolocaliser</span>
-            </button>
+        {# Start / end times. Optional but most clients fill them — they
+           drive the caterer's delivery window planning. #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label for="event_start_time" class="block text-sm font-bold mb-2 text-text">Heure de début</label>
+            <input type="time" id="event_start_time" name="event_start_time"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
           </div>
+          <div>
+            <label for="event_end_time" class="block text-sm font-bold mb-2 text-text">Heure de fin</label>
+            <input type="time" id="event_end_time" name="event_end_time"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          </div>
+        </div>
+
+        {# Address with autocomplete. The autocomplete-address.js script
+           hits the BAN (Base Adresse Nationale) free API and renders a
+           dropdown — selecting a result fills street / zip / city / lat /
+           long automatically. The geocode button has been removed; the
+           autocomplete result already carries lat/long. #}
+        <div class="mt-4 relative" data-address-autocomplete>
+          <label for="event_address" class="block text-sm font-bold mb-2 text-text">Adresse <span class="text-danger">*</span></label>
+          <input type="text" id="event_address" name="event_address" required
+            placeholder="Commencez à taper l'adresse..."
+            autocomplete="off"
+            data-address-input
+            class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
+          <ul data-address-suggestions
+              class="hidden absolute left-0 right-0 z-20 mt-1 bg-white rounded-lg overflow-hidden"
+              style="border:1px solid rgba(26,58,82,0.12);box-shadow:0 6px 18px rgba(26,58,82,0.08);max-height:18rem;overflow-y:auto;"></ul>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -142,6 +162,9 @@
           </div>
         </div>
 
+        {# Lat/lng filled by the BAN autocomplete (or left empty if the
+           user typed an unmatched address — admin matching tolerates
+           that case via the all-validated-caterers fallback). #}
         <input type="hidden" id="event_latitude" name="event_latitude">
         <input type="hidden" id="event_longitude" name="event_longitude">
       </div>
@@ -354,10 +377,14 @@
               <i data-lucide="calendar" class="w-4 h-4 text-navy"></i>
               <span class="text-sm font-bold text-text">Evenement</span>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div>
                 <span class="text-mute">Date :</span>
                 <span class="font-bold text-text-soft" id="summary-event-date">-</span>
+              </div>
+              <div>
+                <span class="text-mute">Horaires :</span>
+                <span class="font-bold text-text-soft" id="summary-event-times">-</span>
               </div>
               <div>
                 <span class="text-mute">Convives :</span>
@@ -454,4 +481,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/wizard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}" defer></script>
 {% endblock %}
