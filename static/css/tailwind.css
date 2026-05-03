@@ -205,7 +205,11 @@ img, video {
 }
 
 .font-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Aligné sur --font-body (cf. app.css :root) — Marianne en premier
+     pour que la classe .font-body utilisée sur un <h1>/<h2>/<h3>
+     bascule réellement sur la police body et n'hérite plus de Fraunces
+     (la règle h1..h6 globale impose --font-display sinon). */
+  font-family: 'Marianne', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .font-mono {
