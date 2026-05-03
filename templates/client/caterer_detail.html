@@ -5,8 +5,13 @@
 
 {% block title %}{{ caterer.name }} - Catalogue{% endblock %}
 
-{% block content %}
-<main class="bg-cream min-h-screen">
+{# Fiche traiteur publique — même mécanique que /client/search.html :
+   on capture le body dans un {% set %} et on le rend dans `content`
+   (utilisateur connecté → wrapping sidebar + p-6 max-w-7xl) ET dans
+   `public_content` (visiteur déconnecté → main full-width). #}
+{% set _detail_body %}
+<div class="bg-cream min-h-screen"
+     {% if not user %}style="padding:1.5rem;max-width:80rem;margin:0 auto;"{% endif %}>
 
     <!-- Back button -->
     <div class="mb-6">{{ back_button() }}</div>
@@ -125,21 +130,24 @@
                 <span class="text-xs font-bold px-2 py-1 rounded-full bg-cream text-text-soft">à partir de {{ "%.2f"|format(price_min) }} €/pers.</span>
                 {% endif %}
               </div>
-              <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-mute">
+              {# Bump gap-x from 4 → 6 et gap-y de 1 → 2 pour aérer la ligne
+                 d'infos (couverts / commande mini / jours d'avance) — les
+                 chips se collaient trop en mode flex-wrap. #}
+              <div class="flex flex-wrap gap-x-6 gap-y-2 text-xs text-mute">
                 {% if cap_min is not none or cap_max is not none %}
-                <span class="inline-flex items-center gap-1">
+                <span class="inline-flex items-center gap-1.5">
                   <i data-lucide="users" class="w-3.5 h-3.5"></i>
                   {{ cap_min if cap_min is not none else '?' }} - {{ cap_max if cap_max is not none else '?' }} couverts
                 </span>
                 {% endif %}
                 {% if total_min is not none %}
-                <span class="inline-flex items-center gap-1">
+                <span class="inline-flex items-center gap-1.5">
                   <i data-lucide="euro" class="w-3.5 h-3.5"></i>
                   Commande mini {{ "%.0f"|format(total_min) }} €
                 </span>
                 {% endif %}
                 {% if advance is not none %}
-                <span class="inline-flex items-center gap-1">
+                <span class="inline-flex items-center gap-1.5">
                   <i data-lucide="clock" class="w-3.5 h-3.5"></i>
                   {{ advance }} jour{{ 's' if advance > 1 else '' }} d'avance
                 </span>
@@ -239,17 +247,31 @@
           <p class="text-sm leading-relaxed text-text-soft">{{ caterer.description }}</p>
           {% endif %}
 
-          {# CTA en bas du bloc. caterer_id pre-fills the wizard's
-             target_caterer_id so the demand is sent only to this caterer. #}
+          {# CTA en bas du bloc.
+             - Connecté : pre-fill du wizard avec ce traiteur en cible.
+             - Déconnecté : redirige vers /signup, le visiteur reviendra
+               sur cette fiche après inscription (à brancher via ?next=
+               quand on retravaillera ce flux). #}
+          {% if user %}
           <a href="{{ url_for('client.requests_new', caterer_id=caterer.id) }}"
              class="block text-center rounded-full text-sm font-bold px-4 py-2.5 btn-navy" style="margin-top:auto;">
             <i data-lucide="send" class="w-4 h-4 inline mr-1"></i>
             Demander un devis
           </a>
+          {% else %}
+          <a href="{{ url_for('auth.signup') }}"
+             class="block text-center rounded-full text-sm font-bold px-4 py-2.5 btn-navy" style="margin-top:auto;">
+            <i data-lucide="user-plus" class="w-4 h-4 inline mr-1"></i>
+            S'inscrire pour demander un devis
+          </a>
+          {% endif %}
         </div>
       </aside>
 
     </div>{# /.split-detail #}
 
-</main>
-{% endblock %}
+</div>
+{% endset %}
+
+{% block content %}{{ _detail_body }}{% endblock %}
+{% block public_content %}{{ _detail_body }}{% endblock %}
