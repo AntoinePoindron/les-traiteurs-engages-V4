@@ -53,7 +53,19 @@ class QuoteExpired(WorkflowError):
 
 
 class NoMatchingCaterers(WorkflowError):
-    """Aucun traiteur compatible trouvé pour la demande (admin)."""
+    """Aucun traiteur compatible trouvé pour la demande (admin).
+
+    Plus levée par `approve_quote_request` (cf. son docstring sur le repli
+    "tous les traiteurs validés"). Conservée pour ne pas casser un
+    consommateur externe éventuel — à supprimer dès qu'on a la certitude
+    que rien n'en dépend en dehors du repo.
+    """
+
+
+class QuoteRequestClosed(WorkflowError):
+    """Cette demande est clôturée pour ce traiteur : trois autres ont déjà
+    transmis leur devis au client. Levée par `submit_quote` quand la QRC
+    du traiteur courant est passée en `QRCStatus.closed`."""
 
 
 class OrderNotFound(WorkflowError):
@@ -199,18 +211,36 @@ def approve_quote_request(
 
     Le contrôle d'autorisation reste côté handler (`@role_required("super_admin")`).
 
-    Lève RequestNotFound, NoMatchingCaterers.
+    Le super_admin peut toujours valider une demande, même si aucun
+    traiteur ne sort du moteur de matching. (Audit V1 — l'ancien gating
+    `NoMatchingCaterers` empêchait l'admin de débloquer la file ; on
+    retire l'idée de bloquer sur la compatibilité.)
+
+    Stratégie de fan-out :
+      - si le matcher renvoie ≥1 traiteur, on cible cette liste curée ;
+      - sinon (critères trop restrictifs ou demande sans coordonnées
+        géocodées), on tombe en repli sur l'ensemble des traiteurs
+        `is_validated`. Cela garantit qu'une demande validée par l'admin
+        atterrit toujours dans la file de quelqu'un — sinon le traiteur
+        ne la voit jamais (la liste `caterer/requests` filtre sur
+        `QuoteRequestCaterer.caterer_id == caterer.id`).
+
+    Lève RequestNotFound.
     """
     qr = db.get(QuoteRequest, request_id)
     if not qr:
         raise RequestNotFound
 
     matches = find_matching_caterers(db, qr)
-    if not matches:
-        raise NoMatchingCaterers
+    if matches:
+        targets = [caterer for caterer, _distance in matches]
+    else:
+        targets = list(
+            db.scalars(select(Caterer).where(Caterer.is_validated.is_(True))).all()
+        )
 
     qrcs: list[QuoteRequestCaterer] = []
-    for caterer, _distance in matches:
+    for caterer in targets:
         qrc = QuoteRequestCaterer(
             quote_request_id=qr.id,
             caterer_id=caterer.id,
@@ -248,19 +278,24 @@ def submit_quote(
     quote_id: uuid.UUID,
     caterer: Caterer,
 ) -> Quote:
-    """Le traiteur soumet un devis : flip Quote→sent, QRC→responded.
+    """Le traiteur soumet un devis. Flip Quote→sent, QRC→transmitted_to_client.
 
     Règle des 3 premiers répondants :
-    - tant que <3 QRC sont en `transmitted_to_client`, le devis est transmis
-      au client et `response_rank` enregistré (1, 2 ou 3) ;
-    - le 3e répondant déclenche la fermeture des QRC `selected` restants.
-    Au-delà : le QRC reste en `responded` mais n'est pas transmis.
+    - les 3 premiers à soumettre voient leur devis transmis au client
+      (rang 1, 2 ou 3) ;
+    - le 3e déclenche la fermeture (`QRCStatus.closed`) des QRC encore
+      en `selected` ;
+    - une 4e soumission lève `QuoteRequestClosed`. C'est plus strict
+      qu'avant (où le 4e atterrissait silencieusement en `responded`
+      sans être transmis), pour faire correspondre l'état persisté à
+      ce que le traiteur voit dans l'UI ("Demande clôturée").
 
     Sérialisation : `SELECT ... FOR UPDATE` sur la QR pose un verrou
     exclusif jusqu'au commit, ce qui empêche deux répondants simultanés
-    d'atteindre tous les deux le rang 3.
+    d'atteindre tous les deux le rang 3 (ou de glisser à 4).
 
-    Lève QuoteNotFound (devis introuvable, mauvais caterer, ou pas en `draft`).
+    Lève QuoteNotFound (devis introuvable, mauvais caterer, ou pas en
+    `draft`) et QuoteRequestClosed (QRC `closed` ou ≥3 transmitted déjà).
     """
     # Verrou exclusif pour sérialiser les répondants concurrents.
     db.execute(
@@ -287,28 +322,34 @@ def submit_quote(
     if not qrc:
         raise QuoteNotFound
 
-    quote.status = QuoteStatus.sent
-    qrc.status = QRCStatus.responded
-    qrc.responded_at = datetime.datetime.utcnow()
+    # The "3 first responders" rule may already have closed this caterer
+    # out — either via the explicit close step from a prior 3rd submit,
+    # or by an inconsistent state where 3 are already transmitted but
+    # this QRC was not yet closed (defensive). Either way: refuse.
+    if qrc.status == QRCStatus.closed:
+        raise QuoteRequestClosed
 
     transmitted = db.scalar(
         select(func.count(QuoteRequestCaterer.id))
         .where(QuoteRequestCaterer.quote_request_id == request_id)
         .where(QuoteRequestCaterer.status == QRCStatus.transmitted_to_client)
     )
+    if transmitted >= 3:
+        raise QuoteRequestClosed
 
-    if transmitted < 3:
-        qrc.status = QRCStatus.transmitted_to_client
-        qrc.response_rank = transmitted + 1
-        if transmitted + 1 == 3:
-            remaining = db.scalars(
-                select(QuoteRequestCaterer)
-                .where(QuoteRequestCaterer.quote_request_id == request_id)
-                .where(QuoteRequestCaterer.status == QRCStatus.selected)
-                .where(QuoteRequestCaterer.caterer_id != caterer.id)
-            ).all()
-            for r in remaining:
-                r.status = QRCStatus.closed
+    quote.status = QuoteStatus.sent
+    qrc.responded_at = datetime.datetime.utcnow()
+    qrc.status = QRCStatus.transmitted_to_client
+    qrc.response_rank = transmitted + 1
+    if transmitted + 1 == 3:
+        remaining = db.scalars(
+            select(QuoteRequestCaterer)
+            .where(QuoteRequestCaterer.quote_request_id == request_id)
+            .where(QuoteRequestCaterer.status == QRCStatus.selected)
+            .where(QuoteRequestCaterer.caterer_id != caterer.id)
+        ).all()
+        for r in remaining:
+            r.status = QRCStatus.closed
 
     db.flush()
     return quote
