@@ -1,0 +1,20 @@
+{#
+  list_header — barre "X demande(s) / X commande(s)" affichée en haut des
+  listes /client/requests, /client/orders, /caterer/requests et
+  /caterer/orders. Plus de picker de tri : la consigne produit a évolué.
+  La macro reste centralisée pour garder le rendu identique entre les
+  quatre pages (taille, couleur, pluralisation FR).
+
+  Usage minimal :
+
+    {% from "components/list_header.html" import list_header %}
+    {{ list_header(count=requests|length, noun='demande') }}
+#}
+
+{% macro list_header(count, noun) %}
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="font-display font-bold text-sm text-text">
+      {{ count }} {{ noun }}{{ 's' if count > 1 else '' }}
+    </h2>
+  </div>
+{% endmacro %}

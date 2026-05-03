@@ -4,6 +4,9 @@
 {% block title %}Tableau de bord Traiteur - Les Traiteurs Engages{% endblock %}
 
 {% block content %}
+{# French short month names — used for event date formatting like "1 sept. 2026",
+   shared with /caterer/requests so both pages render dates identically. #}
+{% set fr_months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'] %}
 
   <!-- Greeting -->
   <div class="mb-8 flex items-center gap-4">
@@ -83,31 +86,67 @@
         </div>
         {% if new_requests %}
         <div>
+          {# Same markup as /caterer/requests/list.html — building-2 tile,
+             two-line text block (meal type / company / created_at, then
+             meal type · event date · guests · budget · city), display
+             status badge + chevron. #}
           {% for qrc in new_requests %}
-          <a href="{{ url_for('caterer.request_detail', qr_id=qrc.quote_request_id) }}"
-             class="flex items-center gap-3 py-3.5 hover:bg-cream -mx-2 px-2 rounded-lg transition-colors border-t border-soft first:border-t-0">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-cream" style="flex-shrink:0;">
-              <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
+          {% set qr = qrc.quote_request %}
+          <a href="{{ url_for('caterer.request_detail', qr_id=qr.id) }}"
+             class="flex items-center gap-4 py-4 -mx-2 px-2 rounded-lg transition-colors hover:bg-cream border-t border-soft first:border-t-0">
+
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+              <i data-lucide="building-2" class="w-5 h-5 text-text-soft"></i>
             </div>
+
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-bold truncate text-text">
-                {{ qrc.quote_request.company.name if qrc.quote_request and qrc.quote_request.company else 'Client' }}
-              </p>
-              <div class="flex items-center gap-3 mt-0.5">
-                <span class="text-xs text-mute">
-                  {% if qrc.quote_request and qrc.quote_request.event_date %}
-                  {{ qrc.quote_request.event_date.strftime('%d/%m/%Y') }}
-                  {% else %}Date a definir{% endif %}
+              <div class="flex items-center gap-3 flex-wrap">
+                <p class="text-sm font-bold text-text">
+                  {{ meal_type_labels.get(qr.meal_type, qr.meal_type.value if qr.meal_type else 'Demande') }}
+                </p>
+                <p class="text-sm text-mute">{{ qr.company.name }}</p>
+                <p class="text-xs text-mute">
+                  Creee le {{ qr.created_at.strftime('%d/%m/%Y') }} a {{ qr.created_at.strftime('%H:%M') }}
+                </p>
+              </div>
+
+              <div class="flex items-center gap-3 mt-1 flex-wrap text-xs text-mute">
+                <span>
+                  {{ meal_type_labels.get(qr.meal_type, qr.meal_type.value if qr.meal_type else '') }}
+                  {% if qr.event_date %}
+                    &middot; {{ qr.event_date.day }} {{ fr_months[qr.event_date.month - 1] }} {{ qr.event_date.year }}
+                  {% endif %}
                 </span>
-                {% if qrc.quote_request and qrc.quote_request.guest_count %}
-                <span class="text-xs text-mute">{{ qrc.quote_request.guest_count }} convives</span>
+                {% if qr.guest_count %}
+                <span class="inline-flex items-center gap-1">
+                  <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                  {{ qr.guest_count }}
+                </span>
                 {% endif %}
-                {% if qrc.quote_request and qrc.quote_request.event_city %}
-                <span class="text-xs text-mute">{{ qrc.quote_request.event_city }}</span>
+                {% if qr.budget_global %}
+                <span class="inline-flex items-center gap-1">
+                  <i data-lucide="euro" class="w-3.5 h-3.5"></i>
+                  {{ "%.0f"|format(qr.budget_global) }}
+                </span>
+                {% elif qr.budget_per_person %}
+                <span class="inline-flex items-center gap-1">
+                  <i data-lucide="euro" class="w-3.5 h-3.5"></i>
+                  {{ "%.0f"|format(qr.budget_per_person) }}/pers
+                </span>
+                {% endif %}
+                {% if qr.event_city %}
+                <span class="inline-flex items-center gap-1">
+                  <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                  {{ qr.event_city }}
+                </span>
                 {% endif %}
               </div>
             </div>
-            <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+
+            <div class="flex items-center gap-2 flex-shrink-0">
+              {{ status_badge(qrc.display_status) }}
+              <i data-lucide="chevron-right" class="w-4 h-4 text-disabled"></i>
+            </div>
           </a>
           {% endfor %}
         </div>

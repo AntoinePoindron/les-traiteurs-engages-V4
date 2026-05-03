@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
+{% from "components/list_header.html" import list_header %}
 
 {% block title %}Mes commandes - Les Traiteurs Engages{% endblock %}
 
@@ -26,9 +27,7 @@
 
     {% if orders %}
     <div class="bg-white rounded-lg p-6">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="font-display font-bold text-sm text-text">{{ orders|length }} commande{{ 's' if orders|length > 1 else '' }}</h2>
-      </div>
+      {{ list_header(count=orders|length, noun='commande') }}
 
       <div>
         {% for order in orders %}
