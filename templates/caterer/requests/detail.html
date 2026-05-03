@@ -55,6 +55,20 @@
           </span>
         </div>
 
+        {# Horaires #}
+        {% if qr.event_start_time or qr.event_end_time %}
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
+            <i data-lucide="clock" class="w-5 h-5 text-text-soft"></i>
+          </div>
+          <span class="text-sm font-bold text-text">
+            {{ qr.event_start_time.strftime('%H:%M') if qr.event_start_time else '?' }}
+            &ndash;
+            {{ qr.event_end_time.strftime('%H:%M') if qr.event_end_time else '?' }}
+          </span>
+        </div>
+        {% endif %}
+
         {# Location #}
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cream flex-shrink-0">
