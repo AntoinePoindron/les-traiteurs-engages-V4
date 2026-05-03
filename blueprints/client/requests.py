@@ -645,6 +645,19 @@ def register(bp):
             .limit(ITEMS_PER_PAGE)
         ).all()
 
+        # Hydrate review aggregates for the current page in a single
+        # query — the catalogue card displays "★ 4.3 · 12 avis" per row.
+        from services.reviews import (
+            ReviewAggregate,
+            aggregates_for_caterers,
+        )
+
+        review_aggregates = aggregates_for_caterers(db, [c.id for c in caterers])
+        for c in caterers:
+            agg = review_aggregates.get(c.id, ReviewAggregate(avg=None, count=0))
+            c.review_avg = agg.avg
+            c.review_count = agg.count
+
         return render_template(
             "client/search.html",
             user=g.current_user,
@@ -674,6 +687,14 @@ def register(bp):
         caterer = db.get(Caterer, caterer_id)
         if not caterer or not caterer.is_validated:
             abort(404)
+        from services.reviews import (
+            aggregate_for_caterer,
+            format_author,
+            list_for_caterer,
+        )
+
+        review_aggregate = aggregate_for_caterer(db, caterer.id)
+        reviews = list_for_caterer(db, caterer.id, limit=50)
         return render_template(
             "client/caterer_detail.html",
             user=g.current_user,
@@ -681,4 +702,7 @@ def register(bp):
             dietary_flags=DIETARY_FLAGS,
             meal_type_labels=MEAL_TYPE_LABELS,
             service_offering_labels=SERVICE_OFFERING_LABELS,
+            review_aggregate=review_aggregate,
+            reviews=reviews,
+            review_format_author=format_author,
         )

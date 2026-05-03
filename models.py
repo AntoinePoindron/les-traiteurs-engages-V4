@@ -5,6 +5,7 @@ from enum import Enum
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -15,6 +16,7 @@ from sqlalchemy import (
     Sequence,
     String,
     Text,
+    UniqueConstraint,
     Uuid,
     func,
 )
@@ -666,3 +668,47 @@ class Message(Base):
     )
     order: Mapped[Order | None] = relationship(back_populates="messages")
     quote_request: Mapped[QuoteRequest | None] = relationship(back_populates="messages")
+
+
+class CatererReview(Base):
+    """One review left by the *original requester* of a paid order.
+
+    Constraints :
+      * exactly one review per Order (UNIQUE on order_id) — the reviewer
+        only gets one chance per transaction;
+      * rating ∈ [1, 5] enforced at the DB level (CheckConstraint);
+      * order.status MUST be `paid` and reviewer MUST equal
+        `order.quote.quote_request.user_id` — enforced in the route
+        handler (`services.reviews`).
+
+    Comments are public — they're shown alongside the caterer in the
+    catalogue. Identity displayed publicly is reduced to first name +
+    last-name initial + company name (cf. `services.reviews.format_author`).
+    """
+
+    __tablename__ = "caterer_reviews"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    caterer_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("caterers.id"), index=True
+    )
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("orders.id"), unique=True
+    )
+    reviewer_user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id"), index=True
+    )
+    rating: Mapped[int] = mapped_column(Integer)
+    comment: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    caterer: Mapped["Caterer"] = relationship()
+    order: Mapped["Order"] = relationship()
+    reviewer: Mapped["User"] = relationship()
+
+    __table_args__ = (
+        CheckConstraint("rating BETWEEN 1 AND 5", name="caterer_reviews_rating_range"),
+        UniqueConstraint("order_id", name="caterer_reviews_order_unique"),
+    )
