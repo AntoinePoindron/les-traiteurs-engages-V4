@@ -2,11 +2,12 @@ from datetime import date
 
 from flask import g, render_template
 from sqlalchemy import func, select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
 from models import (
+    MEAL_TYPE_LABELS,
     Order,
     OrderStatus,
     Payment,
@@ -75,22 +76,38 @@ def register(bp):
             or 0
         )
 
+        # Mirror the /caterer/requests list: hydrate every QRC with the
+        # same `display_status` derivation + eager-load the caterer's
+        # own Quote so the row badge can show "Nouvelle" / "Devis envoyé"
+        # / "Commande créée" exactly like the list page.
+        from blueprints.caterer.requests import _derive_qrc_display_status
+
         new_requests = (
             db.scalars(
                 select(QuoteRequestCaterer)
                 .options(
                     joinedload(QuoteRequestCaterer.quote_request).joinedload(
                         QuoteRequest.company
-                    )
+                    ),
+                    joinedload(QuoteRequestCaterer.quote_request).selectinload(
+                        QuoteRequest.caterers
+                    ),
+                    joinedload(QuoteRequestCaterer.quote_request).selectinload(
+                        QuoteRequest.quotes
+                    ),
                 )
                 .where(QuoteRequestCaterer.caterer_id == caterer.id)
                 .where(QuoteRequestCaterer.status == QRCStatus.selected)
                 .order_by(QuoteRequestCaterer.id.desc())
-                .limit(10)
+                .limit(5)
             )
             .unique()
             .all()
         )
+        for qrc in new_requests:
+            qrc.display_status = _derive_qrc_display_status(
+                qrc.quote_request, caterer.id
+            )
 
         upcoming_deliveries = (
             db.scalars(
@@ -120,4 +137,5 @@ def register(bp):
             total_revenue=total_revenue / 100,
             new_requests=new_requests,
             upcoming_deliveries=upcoming_deliveries,
+            meal_type_labels=MEAL_TYPE_LABELS,
         )

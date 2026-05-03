@@ -59,10 +59,17 @@ def dashboard():
     orders_this_month = db.scalar(
         select(func.count(Order.id)).where(Order.created_at >= month_start)
     )
+    # Le bloc "File de qualification" du dashboard ne doit lister QUE les
+    # demandes effectivement à qualifier (status pending_review). Les
+    # demandes déjà approuvées / envoyées aux traiteurs / clôturées
+    # n'attendent plus rien de l'admin et ne doivent plus polluer la
+    # file. Cohérent avec /admin/qualification qui filtre sur le même
+    # statut.
     recent_requests = (
         db.scalars(
             select(QuoteRequest)
             .options(joinedload(QuoteRequest.company))
+            .where(QuoteRequest.status == QuoteRequestStatus.pending_review)
             .order_by(QuoteRequest.created_at.desc())
             .limit(5)
         )

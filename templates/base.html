@@ -119,10 +119,10 @@
           <i data-lucide="user" class="w-5 h-5 flex-shrink-0"></i>
           <span>Mon profil</span>
         </a>
-        <a href="{{ url_for('caterer.stripe_status') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="stripe">
-          <i data-lucide="credit-card" class="w-5 h-5 flex-shrink-0"></i>
-          <span>Stripe</span>
-        </a>
+        {# Pas de lien Stripe dans la sidebar : retiré côté V1 (commit 2c386b9
+           "drop Stripe sidebar entry — pending V2 work"). La route
+           caterer.stripe_status existe toujours côté backend, on ne la
+           ré-expose qu'après la V2 du flux paiement. #}
         <a href="{{ url_for('caterer.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="messages">
           <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
           <span>Messagerie</span>
