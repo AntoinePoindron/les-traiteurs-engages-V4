@@ -105,6 +105,8 @@ ROLE_DASHBOARDS = {
 }
 
 
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit(LOGIN_LIMIT, methods=["POST"])
 def login():
@@ -275,6 +277,11 @@ def signup():
             db.commit()
 
             session["user_id"] = str(user.id)
+            from services import email_triggers
+
+            email_triggers.welcome_signup(
+                user, role_kind="client", cta_path="/client/settings"
+            )
             # First-time signup with a fresh SIRET: the new client_admin lands
             # on /client/settings so they can fill in the company name +
             # billing address. Company.name is currently the SIRET as a
@@ -325,6 +332,11 @@ def signup():
             db.flush()
             db.commit()
             session["user_id"] = str(user.id)
+            from services import email_triggers
+
+            email_triggers.welcome_signup(
+                user, role_kind="caterer", cta_path="/caterer/profile"
+            )
             flash("Votre compte traiteur a ete cree avec succes.", "success")
             return redirect(url_for("caterer.dashboard"))
 
@@ -341,4 +353,66 @@ def logout():
     # silently log the user out via <img src=".../logout"> or a fetch.
     # CSRFProtect (extensions.csrf) validates the form's csrf_token field.
     session.clear()
+    return redirect(url_for("auth.login"))
+
+
+# --- Password reset -------------------------------------------------------
+#
+# Two screens : forgot-password (asks for an email, queues the email +
+# token) and reset-password (the link target). Both rate-limited; the
+# forgot path runs constant-time-ish to avoid leaking account existence.
+
+# 5/hour matches the signup default — gives legitimate users multiple
+# tries while making brute-force enumeration unattractive.
+FORGOT_LIMIT = "5 per hour"
+RESET_LIMIT = "5 per hour"
+
+
+@auth_bp.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit(FORGOT_LIMIT, methods=["POST"])
+def forgot_password():
+    if request.method == "GET":
+        return render_template("auth/forgot_password.html")
+
+    from services.password_reset import kick_off_reset
+
+    email = (request.form.get("email") or "").strip()
+    db = get_db()
+    kick_off_reset(db, email=email)
+    db.commit()
+    # Same response either way — see kick_off_reset's docstring.
+    return render_template("auth/forgot_password_sent.html", email=email)
+
+
+@auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit(RESET_LIMIT, methods=["POST"])
+def reset_password(token):
+    from services.password_reset import ResetTokenInvalid, consume_token
+
+    if request.method == "GET":
+        return render_template("auth/reset_password.html", token=token)
+
+    new_password = request.form.get("password") or ""
+    confirm = request.form.get("password_confirm") or ""
+    if new_password != confirm:
+        flash("Les deux mots de passe ne correspondent pas.", "error")
+        return render_template("auth/reset_password.html", token=token), 400
+
+    err = validate_password(new_password)
+    if err:
+        flash(err, "error")
+        return render_template("auth/reset_password.html", token=token), 400
+
+    db = get_db()
+    try:
+        consume_token(db, raw_token=token, new_password=new_password)
+    except ResetTokenInvalid:
+        flash(
+            "Ce lien de réinitialisation est invalide ou a expiré. "
+            "Demandez-en un nouveau.",
+            "error",
+        )
+        return redirect(url_for("auth.forgot_password"))
+    db.commit()
+    flash("Votre mot de passe a été mis à jour. Vous pouvez vous connecter.", "success")
     return redirect(url_for("auth.login"))
