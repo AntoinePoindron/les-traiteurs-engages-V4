@@ -17,21 +17,21 @@
   {# ========== HEADER ========== #}
   <header class="fixed top-0 left-0 right-0 z-50" style="backdrop-filter: blur(8px); background-color: rgba(255,255,255,0.95);">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between" style="height:3.5rem;">
+      <div class="flex items-center justify-between" style="height:4.25rem;">
         <div class="flex items-center gap-3">
           <img src="{{ url_for('static', filename='img/landing/logo-republique.png') }}"
-               alt="R&#233;publique Fran&#231;aise" style="height:2rem;width:auto;">
-          <div style="width:1px;height:1.75rem;background-color:rgba(26,58,82,0.2);"></div>
+               alt="R&#233;publique Fran&#231;aise" style="height:2.5rem;width:auto;">
+          <div style="width:1px;height:2.25rem;background-color:rgba(26,58,82,0.2);"></div>
           <img src="{{ url_for('static', filename='img/landing/logo-traiteurs-engages.svg') }}"
-               alt="Les traiteurs engag&#233;s" style="height:1.75rem;width:auto;">
+               alt="Les traiteurs engag&#233;s" style="height:2.25rem;width:auto;">
         </div>
-        <nav class="flex items-center gap-3">
+        <nav class="flex items-center gap-4">
           <a href="{{ url_for('auth.login') }}"
-             class="hidden sm:inline text-sm font-bold transition-opacity hover:opacity-70"
-             style="color:#1A3A52;">Se connecter</a>
+             class="hidden sm:inline font-bold transition-opacity hover:opacity-70"
+             style="color:#1A3A52;font-size:0.9375rem;">Se connecter</a>
           <a href="{{ url_for('auth.signup') }}"
              class="swap-btn relative inline-block text-white"
-             style="width:10rem;height:2.25rem;border-radius:9999px;background-color:#1A3A52;font-size:0.75rem;">
+             style="width:11rem;height:2.75rem;border-radius:9999px;background-color:#1A3A52;font-size:0.9375rem;">
             <span class="swap-front">S'inscrire</span>
             <span class="swap-back">C'est parti&#160;!</span>
           </a>
@@ -41,39 +41,69 @@
   </header>
 
   {# ========== HERO ========== #}
-  <section id="hero" style="background-color:#FAF7F2;padding-top:5rem;padding-bottom:2.5rem;">
+  <section id="hero" class="landing-hero" style="background-color:#FAF7F2;padding-top:6rem;padding-bottom:4rem;">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col lg:flex-row items-center" style="gap:2rem;">
+      <div class="flex flex-col lg:flex-row items-center" style="gap:2.5rem;">
         <div class="flex-1 text-center lg:text-left">
-          <h1 class="font-fraunces font-bold" style="font-size:1.875rem;line-height:1.2;margin-bottom:1rem;">
+          <h1 class="landing-h1 font-fraunces font-bold" style="font-size:2.5rem;line-height:1.15;margin-bottom:1.25rem;">
             Des traiteurs<br>
             <span class="font-fraunces-italic" style="color:#B70102;">engag&#233;s</span> pour<br>
             vos &#233;v&#233;nements
           </h1>
-          <p style="font-size:0.875rem;margin-bottom:1.5rem;max-width:28rem;color:rgba(0,0,0,0.7);">
+          <p class="landing-hero-subtitle" style="font-size:1.125rem;line-height:1.55;margin-bottom:2rem;max-width:32rem;color:rgba(0,0,0,0.7);">
             Facilitez vos prestations traiteurs, renforcez vos achats inclusifs.
           </p>
-          <a href="{{ TALLY_QUOTE }}" target="_blank" rel="noopener noreferrer"
-             class="swap-btn relative inline-block text-white"
-             style="width:16rem;height:3rem;border-radius:9999px;background-color:#1A3A52;font-size:0.875rem;">
-            <span class="swap-front">Faire une demande de devis</span>
-            <span class="swap-back">C'est parti&#160;!</span>
-          </a>
 
-          <div class="flex justify-center lg:justify-start" style="gap:1.5rem;margin-top:2rem;">
+          {# Bloc de recherche du catalogue traiteur — porte les deux champs
+             du header de /client/search (Localisation + Nombre de personnes)
+             + un bouton "Rechercher" qui submit vers /client/search.
+             Comportement post-clic à définir : la route est actuellement
+             gatée par @login_required, donc un visiteur déconnecté est
+             redirigé vers /login avec ?next= prérempli. À retravailler
+             quand on aura tranché le parcours public ↔ connecté. #}
+          <form method="GET" action="{{ url_for('client.search') }}"
+                class="landing-search bg-white rounded-2xl p-4 mx-auto lg:mx-0"
+                style="max-width:32rem;box-shadow:0 4px 12px -2px rgba(0,0,0,0.08);">
+            <div class="flex flex-col sm:flex-row gap-3" style="margin-bottom:0.875rem;">
+              <div class="flex-1 text-left">
+                <label for="hero-location" class="block font-bold mb-1.5"
+                       style="font-size:0.8125rem;color:#1A3A52;">Localisation</label>
+                <input type="text" id="hero-location" name="location"
+                       placeholder="Ville, code postal..."
+                       class="w-full rounded-lg outline-none transition-colors"
+                       style="border:1px solid rgba(26,58,82,0.2);padding:0.625rem 0.875rem;font-size:0.9375rem;color:#1A3A52;">
+              </div>
+              <div class="flex-1 text-left">
+                <label for="hero-capacity" class="block font-bold mb-1.5"
+                       style="font-size:0.8125rem;color:#1A3A52;">Nombre de personnes</label>
+                <input type="number" id="hero-capacity" name="capacity" min="1"
+                       placeholder="Ex : 50"
+                       class="w-full rounded-lg outline-none transition-colors"
+                       style="border:1px solid rgba(26,58,82,0.2);padding:0.625rem 0.875rem;font-size:0.9375rem;color:#1A3A52;">
+              </div>
+            </div>
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 text-white font-bold transition-opacity hover:opacity-90"
+                    style="background-color:#1A3A52;border-radius:9999px;height:2.75rem;padding:0 1.5rem;font-size:0.9375rem;">
+              <i data-lucide="search" class="w-4 h-4"></i>
+              Rechercher
+            </button>
+          </form>
+
+          <div class="flex justify-center lg:justify-start" style="gap:2rem;margin-top:2.5rem;">
             <div class="text-center lg:text-left">
-              <p class="font-fraunces font-bold" style="font-size:1.5rem;color:#1A3A52;">{{ caterer_count or 61 }}</p>
-              <p style="font-size:0.6875rem;margin-top:0.25rem;max-width:120px;color:#1A3A52;">
+              <p class="landing-stat-num font-fraunces font-bold" style="font-size:2.25rem;line-height:1.1;color:#1A3A52;">{{ caterer_count or 61 }}</p>
+              <p style="font-size:0.8125rem;line-height:1.4;margin-top:0.375rem;max-width:140px;color:#1A3A52;">
                 Traiteurs inclusifs r&#233;f&#233;renc&#233;s en &#206;le-de-France
               </p>
             </div>
             <div class="text-center lg:text-left">
-              <p class="font-fraunces font-bold" style="font-size:1.5rem;color:#1A3A52;">{{ order_count or '350+' }}</p>
-              <p style="font-size:0.6875rem;margin-top:0.25rem;color:#1A3A52;">&#201;v&#233;nements r&#233;alis&#233;s</p>
+              <p class="landing-stat-num font-fraunces font-bold" style="font-size:2.25rem;line-height:1.1;color:#1A3A52;">{{ order_count or '350+' }}</p>
+              <p style="font-size:0.8125rem;line-height:1.4;margin-top:0.375rem;color:#1A3A52;">&#201;v&#233;nements r&#233;alis&#233;s</p>
             </div>
             <div class="text-center lg:text-left">
-              <p class="font-fraunces font-bold" style="font-size:1.5rem;color:#1A3A52;">89%</p>
-              <p style="font-size:0.6875rem;margin-top:0.25rem;color:#1A3A52;">D'utilisateurs satisfaits</p>
+              <p class="landing-stat-num font-fraunces font-bold" style="font-size:2.25rem;line-height:1.1;color:#1A3A52;">89%</p>
+              <p style="font-size:0.8125rem;line-height:1.4;margin-top:0.375rem;color:#1A3A52;">D'utilisateurs satisfaits</p>
             </div>
           </div>
         </div>
@@ -81,20 +111,23 @@
         <div class="flex-1 flex justify-center lg:justify-end">
           <img src="{{ url_for('static', filename='img/landing/Hero_image.png') }}"
                alt="Traiteurs engag&#233;s - prestations &#233;v&#233;nementielles"
-               style="width:100%;max-width:24rem;height:auto;">
+               style="width:100%;max-width:30rem;height:auto;">
         </div>
       </div>
     </div>
   </section>
 
   {# ========== COMMENT CA FONCTIONNE ========== #}
-  <section id="how-it-works" style="background-color:#FAF7F2;padding-top:2rem;padding-bottom:3rem;">
+  {# padding-bottom généreux (7rem) parce que le Step 4 est positionné
+     en absolute à top:94% du conteneur 600x600 — il faut laisser
+     respirer la dernière étape avant la section suivante. #}
+  <section id="how-it-works" style="background-color:#FAF7F2;padding-top:3rem;padding-bottom:7rem;">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center" style="margin-bottom:2.5rem;">
-        <h2 class="font-fraunces font-bold" style="font-size:1.5rem;margin-bottom:0.75rem;">
+      <div class="text-center" style="margin-bottom:3rem;">
+        <h2 class="landing-h2 font-fraunces font-bold" style="font-size:2rem;line-height:1.2;margin-bottom:1rem;">
           <span class="title-deco">Comment &#231;a fonctionne&#160;?</span>
         </h2>
-        <p style="font-size:0.875rem;max-width:36rem;margin:0 auto;color:rgba(0,0,0,0.6);">
+        <p style="font-size:1rem;line-height:1.55;max-width:38rem;margin:0 auto;color:rgba(0,0,0,0.6);">
           Un processus simple et efficace pour trouver le traiteur id&#233;al pour votre &#233;v&#233;nement
         </p>
       </div>
@@ -112,10 +145,10 @@
           {# Step 1 - top right #}
           <div class="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left sm:absolute step-pos-1">
             <img src="{{ url_for('static', filename='img/landing/shape-mushroom.png') }}"
-                 alt="" aria-hidden="true" style="width:90px;height:90px;object-fit:contain;flex-shrink:0;">
-            <div style="max-width:200px;">
-              <h3 class="font-fraunces font-bold" style="font-size:1rem;margin-bottom:0.25rem;">1. Inscrivez-vous</h3>
-              <p style="font-size:0.75rem;color:rgba(0,0,0,0.6);">
+                 alt="" aria-hidden="true" style="width:110px;height:110px;object-fit:contain;flex-shrink:0;">
+            <div style="max-width:240px;">
+              <h3 class="font-fraunces font-bold" style="font-size:1.25rem;line-height:1.25;margin-bottom:0.5rem;">1. Inscrivez-vous</h3>
+              <p style="font-size:0.9375rem;line-height:1.5;color:rgba(0,0,0,0.6);">
                 Cr&#233;ez un compte pour votre organisation &amp; rattachez autant d'utilisateurs que vous le souhaitez
               </p>
             </div>
@@ -124,10 +157,10 @@
           {# Step 2 - mid left #}
           <div class="flex flex-col items-center text-center gap-3 sm:flex-row-reverse sm:items-start sm:text-right sm:absolute step-pos-2">
             <img src="{{ url_for('static', filename='img/landing/shape-star-pink.png') }}"
-                 alt="" aria-hidden="true" style="width:90px;height:90px;object-fit:contain;flex-shrink:0;">
-            <div style="max-width:200px;">
-              <h3 class="font-fraunces font-bold" style="font-size:1rem;margin-bottom:0.25rem;">2. D&#233;posez votre demande de devis</h3>
-              <p style="font-size:0.75rem;color:rgba(0,0,0,0.6);">
+                 alt="" aria-hidden="true" style="width:110px;height:110px;object-fit:contain;flex-shrink:0;">
+            <div style="max-width:240px;">
+              <h3 class="font-fraunces font-bold" style="font-size:1.25rem;line-height:1.25;margin-bottom:0.5rem;">2. D&#233;posez votre demande de devis</h3>
+              <p style="font-size:0.9375rem;line-height:1.5;color:rgba(0,0,0,0.6);">
                 Type d'&#233;v&#233;nement, nombre de convives, date, lieu&#160;: nous qualifions votre demande&#160;!
               </p>
             </div>
@@ -136,10 +169,10 @@
           {# Step 3 - mid right #}
           <div class="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left sm:absolute step-pos-3">
             <img src="{{ url_for('static', filename='img/landing/shape-butterfly.png') }}"
-                 alt="" aria-hidden="true" style="width:90px;height:90px;object-fit:contain;flex-shrink:0;">
-            <div style="max-width:200px;">
-              <h3 class="font-fraunces font-bold" style="font-size:1rem;margin-bottom:0.25rem;">3. Recevez 3 devis</h3>
-              <p style="font-size:0.75rem;color:rgba(0,0,0,0.6);">
+                 alt="" aria-hidden="true" style="width:110px;height:110px;object-fit:contain;flex-shrink:0;">
+            <div style="max-width:240px;">
+              <h3 class="font-fraunces font-bold" style="font-size:1.25rem;line-height:1.25;margin-bottom:0.5rem;">3. Recevez 3 devis</h3>
+              <p style="font-size:0.9375rem;line-height:1.5;color:rgba(0,0,0,0.6);">
                 Les traiteurs les plus adapt&#233;s vous envoient leurs propositions personnalis&#233;es
               </p>
             </div>
@@ -148,10 +181,10 @@
           {# Step 4 - bottom left #}
           <div class="flex flex-col items-center text-center gap-3 sm:flex-row-reverse sm:items-start sm:text-right sm:absolute step-pos-4">
             <img src="{{ url_for('static', filename='img/landing/shape-scallop-pink.png') }}"
-                 alt="" aria-hidden="true" style="width:90px;height:90px;object-fit:contain;flex-shrink:0;">
-            <div style="max-width:200px;">
-              <h3 class="font-fraunces font-bold" style="font-size:1rem;margin-bottom:0.25rem;">4. Choisissez et<br>c'est parti&#160;!</h3>
-              <p style="font-size:0.75rem;color:rgba(0,0,0,0.6);">
+                 alt="" aria-hidden="true" style="width:110px;height:110px;object-fit:contain;flex-shrink:0;">
+            <div style="max-width:240px;">
+              <h3 class="font-fraunces font-bold" style="font-size:1.25rem;line-height:1.25;margin-bottom:0.5rem;">4. Choisissez et<br>c'est parti&#160;!</h3>
+              <p style="font-size:0.9375rem;line-height:1.5;color:rgba(0,0,0,0.6);">
                 Comparez, &#233;changez et validez votre choix en toute simplicit&#233;
               </p>
             </div>
@@ -162,45 +195,45 @@
   </section>
 
   {# ========== BIENTOT DISPONIBLE ========== #}
-  <section id="coming-soon" class="relative" style="background-color:#1A3A52;padding-top:3rem;padding-bottom:3rem;">
+  <section id="coming-soon" class="relative" style="background-color:#1A3A52;padding-top:4rem;padding-bottom:4rem;">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-      <div class="text-center" style="margin-bottom:2.5rem;">
+      <div class="text-center" style="margin-bottom:3rem;">
         <span class="badge-launch" style="margin-bottom:1.25rem;">Lancement avril 2026</span>
-        <h2 class="font-fraunces font-bold text-white" style="font-size:1.5rem;margin-top:0.75rem;margin-bottom:0.75rem;">
+        <h2 class="landing-h2 font-fraunces font-bold text-white" style="font-size:2rem;line-height:1.2;margin-top:1rem;margin-bottom:1rem;">
           Bient&#244;t disponible
         </h2>
-        <p class="text-white" style="font-size:0.875rem;max-width:36rem;margin:0 auto;">
+        <p class="text-white" style="font-size:1rem;line-height:1.55;max-width:38rem;margin:0 auto;">
           Une plateforme compl&#232;te pens&#233;e pour simplifier la gestion de vos &#233;v&#233;nements traiteurs
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3" style="gap:1.25rem;margin-bottom:2.5rem;">
+      <div class="grid grid-cols-1 md:grid-cols-3" style="gap:1.5rem;margin-bottom:3rem;">
         <div>
-          <div class="flex items-center justify-center" style="gap:0.5rem;margin-bottom:0.75rem;">
+          <div class="flex items-center justify-center" style="gap:0.5rem;margin-bottom:1rem;">
             <img src="{{ url_for('static', filename='img/landing/arrow-1.png') }}" alt="" aria-hidden="true"
-                 style="width:1.5rem;height:1.5rem;transform:rotate(180deg);">
-            <span class="font-fraunces font-fraunces-italic font-bold text-white" style="font-size:1rem;margin-bottom:1rem;">Messagerie</span>
+                 style="width:1.75rem;height:1.75rem;transform:rotate(180deg);">
+            <span class="font-fraunces font-fraunces-italic font-bold text-white" style="font-size:1.25rem;">Messagerie</span>
           </div>
           <img src="{{ url_for('static', filename='img/landing/screenshots/screenshot-messagerie.png') }}"
                alt="Aper&#231;u de la messagerie interne" style="width:100%;height:auto;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
         </div>
         <div class="flex flex-col">
-          <div class="flex items-center justify-center md:order-2 md:mt-3" style="gap:0.5rem;margin-bottom:0.75rem;">
-            <span class="font-fraunces font-fraunces-italic font-bold text-white" style="font-size:1rem;margin-bottom:1rem;">
+          <div class="flex items-center justify-center md:order-2 md:mt-3" style="gap:0.5rem;margin-bottom:1rem;">
+            <span class="font-fraunces font-fraunces-italic font-bold text-white" style="font-size:1.25rem;">
               Demande de devis sur-mesure
             </span>
             <img src="{{ url_for('static', filename='img/landing/arrow-1.png') }}" alt="" aria-hidden="true"
-                 style="width:1.5rem;height:1.5rem;transform:scaleY(-1);">
+                 style="width:1.75rem;height:1.75rem;transform:scaleY(-1);">
           </div>
           <img src="{{ url_for('static', filename='img/landing/screenshots/screenshot-demande.png') }}"
                alt="Aper&#231;u de la demande de devis sur-mesure"
                class="md:order-1" style="width:100%;height:auto;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
         </div>
         <div>
-          <div class="flex items-center justify-center" style="gap:0.5rem;margin-bottom:0.75rem;">
-            <span class="font-fraunces font-fraunces-italic font-bold text-white" style="font-size:1rem;margin-bottom:1rem;">Catalogue traiteur</span>
+          <div class="flex items-center justify-center" style="gap:0.5rem;margin-bottom:1rem;">
+            <span class="font-fraunces font-fraunces-italic font-bold text-white" style="font-size:1.25rem;">Catalogue traiteur</span>
             <img src="{{ url_for('static', filename='img/landing/arrow-2.png') }}" alt="" aria-hidden="true"
-                 style="width:2.5rem;height:1.5rem;">
+                 style="width:2.75rem;height:1.75rem;">
           </div>
           <img src="{{ url_for('static', filename='img/landing/screenshots/screenshot-catalogue.png') }}"
                alt="Aper&#231;u du catalogue traiteur" style="width:100%;height:auto;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
@@ -210,7 +243,7 @@
       <div class="text-center">
         <a href="{{ url_for('auth.signup') }}"
            class="swap-btn relative inline-block bg-white"
-           style="width:16rem;height:3rem;border-radius:9999px;color:#B70102;font-size:0.875rem;">
+           style="width:18rem;height:3.25rem;border-radius:9999px;color:#B70102;font-size:1rem;">
           <span class="swap-front">S'inscrire</span>
           <span class="swap-back">C'est parti</span>
         </a>
@@ -219,44 +252,44 @@
   </section>
 
   {# ========== PLATEFORME DE L'INCLUSION ========== #}
-  <section id="inclusion" style="background-color:#FAF7F2;padding-top:3.5rem;padding-bottom:3.5rem;">
+  <section id="inclusion" style="background-color:#FAF7F2;padding-top:4rem;padding-bottom:4rem;">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col lg:flex-row items-center" style="gap:2rem;">
+      <div class="flex flex-col lg:flex-row items-center" style="gap:2.5rem;">
         <div class="flex-1 text-center lg:text-left">
-          <h2 class="font-fraunces font-bold text-text" style="font-size:1.25rem;margin-bottom:1rem;">
+          <h2 class="landing-h2 font-fraunces font-bold text-text" style="font-size:1.875rem;line-height:1.2;margin-bottom:1.25rem;">
             <span class="title-deco">
               Un projet port&#233; par la<br>Plateforme de l'inclusion
             </span>
           </h2>
-          <p class="text-text" style="font-size:0.875rem;line-height:1.625;">
+          <p class="text-text" style="font-size:1rem;line-height:1.65;">
             Les traiteurs engag&#233;s est un produit n&#233; d'une ambition&#160;: rendre l'inclusion accessible &#224; toutes
             les entreprises &#224; travers leurs choix de restauration&#160;!
           </p>
-          <p class="text-text" style="font-size:0.875rem;line-height:1.625;margin-top:0.75rem;">
+          <p class="text-text" style="font-size:1rem;line-height:1.65;margin-top:1rem;">
             Port&#233; par la Plateforme de l'inclusion, ce projet connecte les entreprises avec des structures
             inclusives (SIAE, ESAT et EA) qui emploient des personnes &#233;loign&#233;es de l'emploi.
           </p>
         </div>
         <div class="flex-shrink-0">
           <img src="{{ url_for('static', filename='img/landing/logo-plateforme-inclusion.png') }}"
-               alt="Plateforme de l'inclusion" style="width:14rem;height:auto;">
+               alt="Plateforme de l'inclusion" style="width:16rem;height:auto;">
         </div>
       </div>
     </div>
   </section>
 
   {# ========== CTA FINAL ========== #}
-  <section id="cta-final" class="relative overflow-hidden" style="background-color:#FFDDDD;padding-top:3rem;padding-bottom:3rem;">
+  <section id="cta-final" class="relative overflow-hidden" style="background-color:#FFDDDD;padding-top:4rem;padding-bottom:4rem;">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-      <h2 class="font-fraunces font-bold" style="font-size:1.25rem;line-height:1.2;margin-bottom:1rem;color:#B70102;">
+      <h2 class="landing-h2 font-fraunces font-bold" style="font-size:1.875rem;line-height:1.2;margin-bottom:1.25rem;color:#B70102;">
         Vous pouvez d&#232;s &#224; pr&#233;sent faire appel aux traiteurs engag&#233;s&#160;!
       </h2>
-      <p style="font-size:0.875rem;margin-bottom:2rem;color:#B70102;">
+      <p style="font-size:1.0625rem;line-height:1.55;margin-bottom:2.25rem;color:#B70102;">
         Demandez un devis en quelques minutes &amp; recevez jusqu'&#224; 3 devis.
       </p>
       <a href="{{ TALLY_QUOTE }}" target="_blank" rel="noopener noreferrer"
          class="swap-btn relative inline-block"
-         style="width:16rem;height:3rem;border-radius:9999px;border:2px solid #B70102;color:#B70102;font-size:0.875rem;">
+         style="width:18rem;height:3.25rem;border-radius:9999px;border:2px solid #B70102;color:#B70102;font-size:1rem;">
         <span class="swap-front">Faire une demande de devis</span>
         <span class="swap-back">C'est parti&#160;!</span>
       </a>
@@ -264,15 +297,15 @@
   </section>
 
   {# ========== FOOTER ========== #}
-  <footer style="background-color:#1A3A52;padding-top:2rem;padding-bottom:2rem;">
+  <footer style="background-color:#1A3A52;padding-top:2.5rem;padding-bottom:2.5rem;">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row items-center md:items-start justify-between" style="gap:1.5rem;">
+      <div class="flex flex-col md:flex-row items-center md:items-start justify-between" style="gap:2rem;">
         <div>
           <img src="{{ url_for('static', filename='img/landing/logo-traiteurs-engages-white.svg') }}"
-               alt="Les traiteurs engag&#233;s" style="height:2.25rem;width:auto;">
+               alt="Les traiteurs engag&#233;s" style="height:2.75rem;width:auto;">
         </div>
-        <nav class="flex flex-col md:flex-row items-center text-xs"
-             style="gap:0.5rem;color:rgba(255,255,255,0.7);">
+        <nav class="flex flex-col md:flex-row items-center"
+             style="gap:0.875rem;color:rgba(255,255,255,0.7);font-size:0.875rem;">
           <a href="{{ TALLY_QUOTE }}" target="_blank" rel="noopener noreferrer">Faire une demande de devis</a>
           <a href="{{ url_for('auth.signup') }}">S'inscrire</a>
           <a href="{{ url_for('auth.login') }}">Espace connect&#233;</a>
