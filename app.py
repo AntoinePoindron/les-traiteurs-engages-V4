@@ -60,7 +60,10 @@ CSP = (
     # sont generees par le navigateur lui-meme a partir de fichiers locaux,
     # donc elles n'ouvrent aucune surface reseau ni cross-origin.
     "img-src 'self' data: blob:; "
-    "connect-src 'self'; "
+    # api-adresse.data.gouv.fr is the BAN (Base Adresse Nationale)
+    # public endpoint — CORS-enabled, no key required — we call it
+    # from the address autocomplete on /client/requests/new and /edit.
+    "connect-src 'self' https://api-adresse.data.gouv.fr; "
     "object-src 'none'; "
     "frame-ancestors 'none'; "
     "base-uri 'self'"

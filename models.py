@@ -16,6 +16,7 @@ from sqlalchemy import (
     Sequence,
     String,
     Text,
+    Time,
     UniqueConstraint,
     Uuid,
     func,
@@ -330,6 +331,10 @@ class QuoteRequest(DietaryMixin, Base):
     service_type: Mapped[str | None] = mapped_column(String(100))
     meal_type: Mapped[MealType | None] = mapped_column(String(20))
     event_date: Mapped[datetime.date | None] = mapped_column(Date)
+    # Optional start/end of the event itself (not the delivery slot).
+    # Caterer uses these to plan staff and equipment delivery windows.
+    event_start_time: Mapped[datetime.time | None] = mapped_column(Time)
+    event_end_time: Mapped[datetime.time | None] = mapped_column(Time)
     guest_count: Mapped[int | None] = mapped_column(Integer)
     event_address: Mapped[str | None] = mapped_column(String(500))
     event_city: Mapped[str | None] = mapped_column(String(255))

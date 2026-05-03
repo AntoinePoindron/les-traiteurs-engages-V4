@@ -58,6 +58,16 @@
             <i data-lucide="calendar" class="w-4 h-4 text-text-soft"></i>
             <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else '-' }}</span>
           </div>
+          {% if qr.event_start_time or qr.event_end_time %}
+          <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+            <i data-lucide="clock" class="w-4 h-4 text-text-soft"></i>
+            <span class="text-xs font-bold whitespace-nowrap text-text-soft">
+              {{ qr.event_start_time.strftime('%H:%M') if qr.event_start_time else '?' }}
+              &ndash;
+              {{ qr.event_end_time.strftime('%H:%M') if qr.event_end_time else '?' }}
+            </span>
+          </div>
+          {% endif %}
           <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
             <i data-lucide="users" class="w-4 h-4 text-text-soft"></i>
             <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ qr.guest_count or '-' }} convives</span>

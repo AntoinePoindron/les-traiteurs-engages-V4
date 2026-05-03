@@ -40,6 +40,8 @@ DIETARY_FLAGS = [
 # Fields copied verbatim from QuoteRequestForm to QuoteRequest.
 _QR_DIRECT_FIELDS = (
     "event_date",
+    "event_start_time",
+    "event_end_time",
     "guest_count",
     "event_latitude",
     "event_longitude",
