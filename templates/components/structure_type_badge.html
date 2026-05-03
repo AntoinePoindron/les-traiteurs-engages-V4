@@ -1,9 +1,26 @@
+{# Mapping unique du code structure (ESAT/EA/EI/ACI) → libellé complet.
+   Partagé par `structure_type_badge` (la pastille colorée) et
+   `structure_type_label` (juste la chaîne, utilisée en remplacement
+   du label "Traiteur" dans les caterer cards de /client/requests/<id>
+   et /client/orders/<id>). #}
+
+{% macro structure_type_label(type) -%}
+{%- set type_str = type.value if type is not string else type -%}
+{%- set labels = {
+  'ESAT': 'ESAT',
+  'EA': 'Entreprise Adaptée',
+  'EI': "Entreprise d'Insertion",
+  'ACI': "Atelier et Chantier d'Insertion",
+} -%}
+{{- labels.get(type_str, type_str) -}}
+{%- endmacro %}
+
 {% macro structure_type_badge(type, size="md") %}
 {% set type_str = type.value if type is not string else type %}
 
 {% set labels = {
   'ESAT': 'ESAT',
-  'EA': 'Entreprise Adapt\u00e9e',
+  'EA': 'Entreprise Adaptée',
   'EI': "Entreprise d'Insertion",
   'ACI': "Atelier et Chantier d'Insertion",
 } %}

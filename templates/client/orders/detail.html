@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
+{% from "components/structure_type_badge.html" import structure_type_label %}
 {% from "components/ui.html" import back_button %}
 
 {% block title %}Commande - Les Traiteurs Engages{% endblock %}
@@ -144,10 +145,15 @@
     </div>
     {% endif %}
 
-    {# Caterer card — logo + name (clickable) + send-message button #}
+    {# Caterer card — logo + name (clickable) + send-message button.
+       Le label "Traiteur" est remplacé par le type de structure
+       complet (ESAT / Entreprise Adaptée / Entreprise d'Insertion /
+       Atelier et Chantier d'Insertion) dans le même style typo
+       (uppercase 10px mute). Plus de pastille verte top-right :
+       l'info est portée par le label. #}
     <div class="bg-white rounded-lg p-6 mb-6">
       <a href="{{ url_for('client.caterer_detail', caterer_id=order.quote.caterer.id) }}"
-         class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+         class="flex items-center gap-3 -mx-2 px-2 -my-1 py-1 rounded-lg hover:bg-cream transition-colors">
         {% if order.quote.caterer.logo_url %}
         <img src="{{ order.quote.caterer.logo_url }}" alt="Logo {{ order.quote.caterer.name }}"
              class="w-12 h-12 rounded-lg object-contain p-1 bg-cream">
@@ -157,13 +163,12 @@
         </div>
         {% endif %}
         <div class="flex-1 min-w-0">
-          <p class="text-mute font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">Traiteur</p>
+          <p class="text-mute font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">{{ structure_type_label(order.quote.caterer.structure_type) }}</p>
           <p class="font-display font-bold text-base text-text truncate">{{ order.quote.caterer.name }}</p>
           {% if order.quote.caterer.city %}
           <p class="text-xs text-mute truncate">{{ order.quote.caterer.city }}</p>
           {% endif %}
         </div>
-        <i data-lucide="external-link" class="w-4 h-4 text-mute" style="flex-shrink:0;"></i>
       </a>
 
       <a href="{{ caterer_message_href }}"
