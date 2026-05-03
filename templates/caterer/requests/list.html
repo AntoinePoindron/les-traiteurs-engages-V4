@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
+{% from "components/list_header.html" import list_header %}
 
 {% block title %}Demandes recues - Les Traiteurs Engages{% endblock %}
 
@@ -26,17 +27,7 @@
 
 {% if qrcs %}
 <div class="bg-white rounded-lg p-6">
-  {# Header : count + sort indicator. Sort dropdown is visual-only for now,
-     backend already orders by id desc (= "La plus recente"). Wire up real
-     sorting when other criteria are needed. #}
-  <div class="flex items-center justify-between mb-2">
-    <h2 class="font-display font-bold text-sm text-text">{{ qrcs|length }} demande{{ 's' if qrcs|length > 1 else '' }}</h2>
-    <div class="text-xs text-mute inline-flex items-center gap-1">
-      <span>Trier par</span>
-      <span class="font-bold text-text">La plus recente</span>
-      <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
-    </div>
-  </div>
+  {{ list_header(count=qrcs|length, noun='demande') }}
 
   <div>
     {% for qrc in qrcs %}
