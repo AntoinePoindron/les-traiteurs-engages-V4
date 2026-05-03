@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
-{% from "components/structure_type_badge.html" import structure_type_badge %}
+{% from "components/structure_type_badge.html" import structure_type_label %}
 {% from "components/ui.html" import back_button %}
 
 {% block title %}Demande #{{ qr.id | string | truncate(8, True, '') }} - Les Traiteurs Engages{% endblock %}
@@ -215,38 +215,62 @@
 
     <!-- Devis recus -->
     <div class="mb-8">
-      <h2 class="font-display font-bold text-xl mb-4 text-text">Devis recus</h2>
-
+      {# Titre unique en tête de colonne — on ne le répète plus à chaque
+         devis pour ne pas surcharger le mode comparatif (3 devis). #}
       {% if quotes %}
-      <div class="space-y-4">
+      <h2 class="font-display font-bold text-xl mb-4 text-text">Devis reçus</h2>
+      <div class="space-y-6">
         {% for quote in quotes %}
+        {# Un seul bloc par devis — les infos traiteur et les infos
+           devis cohabitent dans la même carte, séparées par un liseré
+           horizontal (`border-t border-soft`). Cohérent avec ce qu'on
+           fait par exemple côté /client/orders/<id> où un order =
+           une carte. Pas de bouton "Envoyer un message" : depuis une
+           demande on ne peut pas encore écrire au traiteur (la
+           messagerie démarre une fois le devis accepté → /orders/<id>). #}
+        {# Le label "Traiteur" est remplacé par le type de structure
+           complet (ESAT / Entreprise Adaptée / Entreprise d'Insertion /
+           Atelier et Chantier d'Insertion) dans le même style typo
+           (uppercase 10px mute). Plus de pastille verte top-right :
+           l'info est portée par le label. #}
         <div class="bg-white rounded-lg p-6">
-          <div class="flex items-start justify-between mb-4">
-            {# Logo + nom cliquables vers la fiche traiteur publique. #}
-            <a href="{{ url_for('client.caterer_detail', caterer_id=quote.caterer.id) }}"
-               class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              {% if quote.caterer.logo_url %}
-              <img src="{{ quote.caterer.logo_url }}" alt="Logo {{ quote.caterer.name }}"
-                   class="w-9 h-9 rounded-lg object-contain p-1 bg-cream">
-              {% else %}
-              <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft" style="flex-shrink:0;">
-                <i data-lucide="chef-hat" class="w-4\.5 h-4\.5 text-navy"></i>
-              </div>
-              {% endif %}
-              <div>
-                <div class="mb-1">{{ structure_type_badge(quote.caterer.structure_type) }}</div>
-                <p class="text-sm font-bold text-text">{{ quote.caterer.name }}</p>
-                <span class="text-xs text-mute">Ref. {{ quote.reference }}</span>
-              </div>
-            </a>
-            {# Hide the "Devis envoyé" pill — Accept/Refuse buttons already
-               signal that the quote is actionable. We still show the badge
-               for accepted / refused / expired quotes since those carry a
-               distinct meaning the buttons can't replace. #}
+          {# Ligne Ref + statut tout en haut de la section — sur le mode
+             "sent" on cache le badge (les boutons Accepter/Refuser plus
+             bas signalent déjà l'état actionnable). Sur les autres
+             statuts (accepted / refused / expired) le badge porte
+             l'info. #}
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs text-mute">Ref. {{ quote.reference }}</span>
             {% if quote.status != QuoteStatus.sent %}
               {{ status_badge(quote.status) }}
             {% endif %}
           </div>
+
+          {# Section haute : infos traiteur (cliquable, fond cream au
+             hover pour signaler l'affordance vers la fiche publique). #}
+          <a href="{{ url_for('client.caterer_detail', caterer_id=quote.caterer.id) }}"
+             class="flex items-center gap-3 -mx-2 px-2 -my-1 py-1 rounded-lg hover:bg-cream transition-colors">
+            {% if quote.caterer.logo_url %}
+            <img src="{{ quote.caterer.logo_url }}" alt="Logo {{ quote.caterer.name }}"
+                 class="w-12 h-12 rounded-lg object-contain p-1 bg-cream">
+            {% else %}
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-navy-soft" style="flex-shrink:0;">
+              <i data-lucide="chef-hat" class="w-5 h-5 text-navy"></i>
+            </div>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+              <p class="text-mute font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">{{ structure_type_label(quote.caterer.structure_type) }}</p>
+              <p class="font-display font-bold text-base text-text truncate">{{ quote.caterer.name }}</p>
+              {% if quote.caterer.city %}
+              <p class="text-xs text-mute truncate">{{ quote.caterer.city }}</p>
+              {% endif %}
+            </div>
+          </a>
+
+          {# Liseré séparant infos traiteur (haut) des infos devis (bas).
+             mt-3 pt-3 (au lieu de mt-6 pt-6) — espace plus serré sous
+             les infos traiteur, demandé pour resserrer la carte. #}
+          <div class="mt-3 pt-3 border-t border-soft">
 
           <dl class="space-y-2 mb-4 text-sm">
             <div class="flex items-center justify-between">
@@ -380,6 +404,7 @@
             </a>
           </div>
           {% endif %}
+          </div>{# /.mt-6 pt-6 border-t — sous-section infos devis #}
         </div>
         {% endfor %}
       </div>
