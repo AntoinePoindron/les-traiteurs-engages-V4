@@ -497,6 +497,11 @@ def signup_invite(token: str):
         session.clear()
         _stamp_session(new_user)
         session.permanent = True
+        from services import email_triggers
+
+        email_triggers.welcome_signup(
+            new_user, role_kind="client", cta_path="/client/dashboard"
+        )
         flash("Bienvenue ! Votre compte est cree.", "success")
         return redirect(url_for("client.dashboard"))
 
