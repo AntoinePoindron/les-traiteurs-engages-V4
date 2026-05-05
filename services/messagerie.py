@@ -103,37 +103,57 @@ def threads_for_viewer(db: Session, viewer) -> list[dict]:
 
     One row per thread, ordered by most recent message first. Designed
     for the left pane of the messagerie.
+
+    Three queries total regardless of how many messages the viewer has:
+      1. Latest message per thread via PostgreSQL DISTINCT ON.
+      2. Unread counts per thread via a single GROUP BY.
+      3. Bulk-fetch the involved users.
     """
-    rows = db.scalars(
+    last_messages = db.scalars(
         select(Message)
         .where(or_(Message.sender_id == viewer.id, Message.recipient_id == viewer.id))
-        .order_by(Message.created_at.desc())
+        .order_by(Message.thread_id, Message.created_at.desc())
+        .distinct(Message.thread_id)
     ).all()
+    if not last_messages:
+        return []
 
-    seen: dict[str, dict] = {}
-    for msg in rows:
-        tid = str(msg.thread_id)
-        if tid in seen:
-            continue
-        other_id = msg.recipient_id if msg.sender_id == viewer.id else msg.sender_id
-        other_user = db.get(User, other_id) if other_id else None
-        unread = (
-            db.scalar(
-                select(func.count(Message.id)).where(
-                    Message.thread_id == msg.thread_id,
-                    Message.recipient_id == viewer.id,
-                    Message.is_read.is_(False),
-                )
+    # Final ordering: most recent activity first. DISTINCT ON's required
+    # ordering above is by thread_id; we re-sort here for the UI.
+    last_messages.sort(key=lambda m: m.created_at, reverse=True)
+
+    unread_by_thread = dict(
+        db.execute(
+            select(Message.thread_id, func.count(Message.id))
+            .where(
+                Message.recipient_id == viewer.id,
+                Message.is_read.is_(False),
             )
-            or 0
-        )
-        seen[tid] = _summarise_thread(
+            .group_by(Message.thread_id)
+        ).all()
+    )
+
+    other_ids = {
+        msg.recipient_id if msg.sender_id == viewer.id else msg.sender_id
+        for msg in last_messages
+    }
+    other_ids.discard(None)
+    users_by_id = {
+        u.id: u
+        for u in db.scalars(select(User).where(User.id.in_(other_ids))).all()
+    } if other_ids else {}
+
+    return [
+        _summarise_thread(
             viewer_id=viewer.id,
-            other_user=other_user,
+            other_user=users_by_id.get(
+                msg.recipient_id if msg.sender_id == viewer.id else msg.sender_id
+            ),
             last_message=msg,
-            unread=unread,
+            unread=unread_by_thread.get(msg.thread_id, 0),
         )
-    return list(seen.values())
+        for msg in last_messages
+    ]
 
 
 def threads_for_admin(db: Session, *, page: int, page_size: int):
