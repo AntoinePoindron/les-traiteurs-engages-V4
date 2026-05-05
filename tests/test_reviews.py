@@ -158,6 +158,22 @@ def test_submit_review_non_integer_rating_raises(session):
         )
 
 
+def test_submit_review_fractional_rating_rejected(session):
+    """`int(3.7)` silently returns 3, which would smuggle a fractional
+    rating in via a JSON caller. The coercer routes through `str()`
+    first so '3.7' fails as ValueError → InvalidRating."""
+    order_id, _, alice = _seed_paid_order(session)
+    for raw in (3.7, "3.7", "4.5"):
+        with pytest.raises(reviews_service.InvalidRating):
+            reviews_service.submit_review(
+                session,
+                order_id=order_id,
+                viewer=alice,
+                rating_raw=raw,
+                comment_raw=None,
+            )
+
+
 def test_submit_review_blocks_non_requester(session):
     """A user who didn't create the QR can't review even if they're a
     member of the same company."""

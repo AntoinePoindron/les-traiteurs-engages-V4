@@ -132,8 +132,15 @@ class InvalidRating(ReviewError):
 
 
 def _coerce_rating(raw) -> int:
+    # `int(3.7)` silently returns 3, so a JSON caller posting
+    # `rating=3.7` would land 3 stars in the DB without complaint.
+    # Routing the value through `str()` first ('3.7' → ValueError) keeps
+    # the contract honest: the DB CHECK enforces 1–5 integers, and we
+    # reject anything that wouldn't reach it intact.
+    if raw is None:
+        raise InvalidRating
     try:
-        rating = int(raw)
+        rating = int(str(raw))
     except (TypeError, ValueError) as exc:
         raise InvalidRating from exc
     if rating < 1 or rating > 5:
