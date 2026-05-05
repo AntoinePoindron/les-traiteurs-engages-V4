@@ -45,7 +45,17 @@ logger = logging.getLogger(__name__)
 def _safe(label: str):
     """Decorator wrapping the trigger so a queue / template error doesn't
     bubble up into the calling route. The business write is already
-    committed at the call point; an email failure shouldn't roll it back."""
+    committed at the call point; an email failure shouldn't roll it back.
+
+    The bare `except Exception` is deliberate (BLE001 silenced) — we
+    swallow *anything* a notification-side bug might raise, including
+    AttributeError on a missing relationship, KeyError on a template
+    context, OperationalError on a transient DB hiccup, etc. Narrowing
+    the catch list here would risk a hard 500 in the request handler
+    every time someone touches an email path; the WARNING-level log
+    with `exc_info=True` keeps the failure visible in production
+    aggregators (Sentry, log search) without rolling the user back.
+    """
 
     def deco(fn):
         def wrapper(*args, **kwargs):
@@ -141,9 +151,14 @@ def order_confirmed(db: Session, *, order: Order) -> None:
     """Email every active user of the caterer that the client just
     accepted their quote and the order is confirmed.
 
-    Multi-user caterers: send to each. Brevo's `to` field accepts a
-    list, but bumping it through `render_and_send_async` per user keeps
-    the rendering simple and lets one bad address not sink the others.
+    Multi-user caterers: render + enqueue once per user. The template
+    personalises with `{{ user.first_name }}`, so a Brevo bulk send
+    (single `to: [array]`) wouldn't be a clean substitute — every
+    recipient would also see the others' addresses in the To: header,
+    which is a privacy leak. Per-user enqueue keeps personalisation,
+    keeps recipients private, and lets one bad address not sink the
+    others. Caterer teams are typically <10, so the N renders + N
+    Brevo POSTs are not a real cost.
     """
     quote = db.get(Quote, order.quote_id)
     if quote is None:
