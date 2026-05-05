@@ -323,6 +323,9 @@ def register(bp):
             except workflow.QuoteNotFound:
                 abort(404)
             except workflow.QuoteRequestClosed:
+                # Persist the workflow's defensive self-heal of qrc.status
+                # if any (no-op when the function raised before mutating).
+                db.commit()
                 flash(
                     "Devis enregistre en brouillon. La demande a ete cloturee "
                     "avant l'envoi : trois autres traiteurs ont deja repondu.",
@@ -421,6 +424,9 @@ def register(bp):
             except workflow.QuoteNotFound:
                 abort(404)
             except workflow.QuoteRequestClosed:
+                # Persist the workflow's defensive self-heal of qrc.status
+                # if any (no-op when the function raised before mutating).
+                db.commit()
                 flash(
                     "Devis mis a jour en brouillon. La demande a ete cloturee "
                     "avant l'envoi : trois autres traiteurs ont deja repondu.",
@@ -447,6 +453,9 @@ def register(bp):
         except workflow.QuoteNotFound:
             abort(404)
         except workflow.QuoteRequestClosed:
+            # Persist the workflow's defensive self-heal of qrc.status
+            # if any (no-op when the function raised before mutating).
+            db.commit()
             flash(
                 "La demande a ete cloturee : trois autres traiteurs ont deja "
                 "envoye leur devis. Votre devis reste enregistre en brouillon.",

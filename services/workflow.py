@@ -331,6 +331,13 @@ def submit_quote(
         .where(QuoteRequestCaterer.status == QRCStatus.transmitted_to_client)
     )
     if transmitted >= 3:
+        # Self-heal the inconsistency: 3 are transmitted but our QRC was
+        # never closed by the prior 3rd-submit step (race that beat the
+        # lock, manual data import, partial rollback). Mark it closed so
+        # the next admin/caterer view sees a coherent state. The caller
+        # is expected to db.commit() on QuoteRequestClosed to persist
+        # this fix-up.
+        qrc.status = QRCStatus.closed
         raise QuoteRequestClosed
 
     quote.status = QuoteStatus.sent
