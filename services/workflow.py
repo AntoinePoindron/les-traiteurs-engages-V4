@@ -110,7 +110,7 @@ def refuse_quote(
     # any) goes into the body so they can adjust their next proposal.
     body = "Votre devis a été refusé."
     if reason:
-        body += f" Motif&nbsp;: {reason}"
+        body += f" Motif : {reason}"
     notify_users(
         db,
         caterer_user_ids(db, quote.caterer_id),
@@ -335,7 +335,7 @@ def reject_quote_request(
     if qr.user_id is not None:
         body = "Votre demande de devis a été refusée par notre équipe."
         if reason:
-            body += f" Motif&nbsp;: {reason}"
+            body += f" Motif : {reason}"
         notify(
             db,
             user_id=qr.user_id,

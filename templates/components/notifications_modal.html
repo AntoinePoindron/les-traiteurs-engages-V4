@@ -76,7 +76,7 @@
                 {% endif %}
               </div>
               {% if n.body %}
-              <p class="text-xs mt-1 text-text-soft" style="line-height:1.5;">{{ n.body|safe }}</p>
+              <p class="text-xs mt-1 text-text-soft" style="line-height:1.5;">{{ n.body }}</p>
               {% endif %}
               <p class="text-xs mt-1 text-mute">
                 {{ n.created_at.day }} {{ fr_months[n.created_at.month - 1] }} · {{ '%02d'|format(n.created_at.hour) }}:{{ '%02d'|format(n.created_at.minute) }}
