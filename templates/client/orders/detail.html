@@ -241,7 +241,9 @@
         <h3 class="font-display font-bold text-sm text-text">Laisser un avis sur le traiteur</h3>
       </div>
       <p class="text-xs mb-4 text-mute">
-        Votre avis sera publié dans le catalogue. Une fois envoyé, il ne peut plus être modifié.
+        Votre avis sera publié <strong>de manière anonyme</strong> dans le catalogue
+        public — votre nom et votre structure ne seront pas affichés. Une fois envoyé,
+        il ne peut plus être modifié.
       </p>
       <form method="POST" action="{{ url_for('client.order_review', order_id=order.id) }}" class="space-y-4">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

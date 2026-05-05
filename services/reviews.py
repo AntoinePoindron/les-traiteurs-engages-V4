@@ -102,18 +102,18 @@ def list_for_caterer(
 def format_author(reviewer: User | None) -> str:
     """Public-safe author label for a review.
 
-    Reduces to "FirstName L. — Company" so we don't expose full names or
-    email. Falls back gracefully when fields are missing.
+    Returns "Un client" — fully anonymous. Reviews are visible to any
+    visitor who lands on /caterers/<id> (cf. the public catalogue), and
+    the previous "FirstName L. — CompanyName" shape is identifying
+    enough that a caterer reading a negative review could pin the
+    person, and competitors could profile customer→caterer relationships.
+
+    Until an explicit "show my display name" opt-in lands, anonymise
+    everyone. The reviewer relationship is still stored on the
+    CatererReview row for moderation / audit; only the public surface
+    is anonymised.
     """
-    if reviewer is None:
-        return "Anonyme"
-    first = (reviewer.first_name or "").strip()
-    last_initial = ""
-    if reviewer.last_name:
-        last_initial = f" {reviewer.last_name.strip()[:1]}."
-    company = reviewer.company.name if reviewer.company else None
-    name = f"{first}{last_initial}".strip() or "Anonyme"
-    return f"{name} — {company}" if company else name
+    return "Un client"
 
 
 # --- Write path -----------------------------------------------------------
