@@ -557,6 +557,7 @@ def register(bp):
         return redirect(url_for("client.request_detail", request_id=request_id))
 
     @bp.route("/search")
+    @limiter.limit("60 per minute")
     def search():
         # Catalogue public — accessible aux visiteurs non connectés depuis
         # le bloc de recherche de la landing. Les actions qui nécessitent
@@ -564,6 +565,12 @@ def register(bp):
         # devis, etc.) restent gatées par leur propre `@login_required`
         # et redirigeront via le `next=` standard si on clique dessus
         # sans session.
+        #
+        # Per-IP rate limit (the per-blueprint default only applies to
+        # POSTs): /search is now public + GET, so a scraper could
+        # otherwise harvest the catalogue at high RPS. 60/min is loose
+        # enough for legitimate paginated browsing, tight enough to make
+        # bulk scraping inconvenient.
         page = request.args.get("page", 1, type=int)
         q = request.args.get("q", "").strip()
         location = request.args.get("location", "").strip()
@@ -718,12 +725,17 @@ def register(bp):
         )
 
     @bp.route("/caterers/<uuid:caterer_id>")
+    @limiter.limit("60 per minute")
     def caterer_detail(caterer_id):
         # Fiche traiteur publique — accessible aux visiteurs non connectés
         # qui naviguent depuis le catalogue public (cf. la route /search
         # qui a aussi perdu son @login_required). Les CTA d'action
         # (demande de devis) restent gatées par leur propre login_required
         # côté /client/requests/new.
+        #
+        # Per-IP rate limit for the same reason as /search above: this
+        # route is now public + GET so it needs explicit throttling
+        # (the per-blueprint default only catches POSTs).
         db = get_db()
         caterer = db.get(Caterer, caterer_id)
         if not caterer or not caterer.is_validated:
