@@ -60,12 +60,14 @@ def aggregates_for_caterers(
         .where(CatererReview.caterer_id.in_(caterer_ids))
         .group_by(CatererReview.caterer_id)
     ).all()
+    # Round to 1 decimal so the catalogue displays "4.3" instead of
+    # "4.333333". Quantising on the Decimal directly avoids a float
+    # round-trip; the precision-loss is harmless on a 1–5 rating scale
+    # but the cleaner shape signals intent.
+    one_decimal = Decimal("0.1")
     return {
         row.caterer_id: ReviewAggregate(
-            # Round to 1 decimal so the catalog displays "4.3" not
-            # "4.333333" — Python's `round` is half-banker which is fine
-            # for a UI-only value.
-            avg=Decimal(round(float(row.avg), 1)) if row.avg is not None else None,
+            avg=row.avg.quantize(one_decimal) if row.avg is not None else None,
             count=int(row.count),
         )
         for row in rows
