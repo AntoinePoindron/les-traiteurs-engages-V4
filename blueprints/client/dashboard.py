@@ -1,6 +1,6 @@
 from flask import g, render_template
 from sqlalchemy import func, select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.client._helpers import ORDER_STATUS_LABELS
 from blueprints.middleware import login_required, role_required
@@ -60,16 +60,29 @@ def register(bp):
             orders_stmt = orders_stmt.where(own_only)
         recent_orders = db.execute(orders_stmt).unique().scalars().all()
 
-        # Last 10 demandes
+        # Last 5 demandes — same row format as /client/requests so the
+        # dashboard and the list render identical cards. Hydrate
+        # display_status + received/expected counts via the helpers in
+        # requests.py; selectinload(QuoteRequest.quotes) avoids the N+1
+        # the helpers would otherwise trigger.
+        from blueprints.client.requests import (
+            _derive_request_display_status,
+            _request_quote_counts,
+        )
+
         requests_stmt = (
             select(QuoteRequest)
             .where(QuoteRequest.company_id == user.company_id)
+            .options(selectinload(QuoteRequest.quotes))
             .order_by(QuoteRequest.created_at.desc())
-            .limit(10)
+            .limit(5)
         )
         if own_only is not None:
             requests_stmt = requests_stmt.where(own_only)
         recent_requests = db.execute(requests_stmt).scalars().all()
+        for qr in recent_requests:
+            qr.display_status = _derive_request_display_status(qr)
+            qr.received_quotes, qr.expected_quotes = _request_quote_counts(qr)
 
         # Per-service budget breakdown is a company-wide aggregate that
         # only makes sense for an admin's coordination view. For

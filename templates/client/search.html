@@ -1,15 +1,32 @@
 {% extends "base.html" %}
 {% from "components/structure_type_badge.html" import structure_type_badge %}
 {% from "components/rating_stars.html" import rating_stars %}
+{% from "components/ui.html" import back_button %}
 
 {% block title %}Trouvez votre traiteur inclusif{% endblock %}
 
-{% block content %}
+{# Le catalogue est public depuis le bloc de recherche de la landing
+   (cf. blueprints/client/requests.py — la route a perdu son
+   @login_required). On rend le même body dans `content` (utilisateur
+   connecté → wrappé par la sidebar + p-6 max-w-7xl mx-auto de base.html)
+   ET dans `public_content` (visiteur déconnecté → main full-width).
+   Le `{% set %}` capture la sortie une fois et la réinjecte. #}
+{% set _search_body %}
 {# Fallback advance time used when a caterer hasn't filled in
    min_advance_days yet on its profile. #}
 {% set DEFAULT_ADVANCE_DAYS = 3 %}
 
-<main class="bg-cream min-h-screen">
+<div class="bg-cream min-h-screen"
+     {% if not user %}style="padding:1.5rem;max-width:80rem;margin:0 auto;"{% endif %}>
+
+  {# Back button visible uniquement pour les visiteurs déconnectés —
+     les utilisateurs connectés ont déjà la sidebar pour naviguer. Lien
+     explicite vers la landing (au lieu de history.back) parce que
+     l'arrivée typique sur ce catalogue se fait depuis le bloc de
+     recherche de la home. #}
+  {% if not user %}
+  <div class="mb-4">{{ back_button(label="Retour à l'accueil", href=url_for('landing')) }}</div>
+  {% endif %}
 
   <h1 class="font-display font-bold text-4xl mb-6 text-text">Trouvez votre traiteur inclusif</h1>
 
@@ -49,7 +66,11 @@
          ============================================================ #}
       <aside class="lg:w-72 flex-shrink-0 space-y-6">
 
-        {# CTA card : comparer 3 devis #}
+        {# CTA card : comparer 3 devis. Réservée aux utilisateurs connectés
+           parce qu'elle pointe vers /client/requests/new (gated). Pour
+           les visiteurs publics, on remplace par un encart "Créer un
+           compte pour lancer une demande" qui pointe vers /signup. #}
+        {% if user %}
         <div class="bg-white rounded-lg p-6">
           <div class="flex items-center gap-3 mb-3">
             <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:var(--c-coral);">
@@ -66,6 +87,24 @@
             Lancer la demande
           </a>
         </div>
+        {% else %}
+        <div class="bg-white rounded-lg p-6">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color:var(--c-coral);">
+              <i data-lucide="user-plus" class="w-5 h-5 text-white"></i>
+            </div>
+            <h3 class="font-display font-bold text-base text-text">Créer un compte</h3>
+          </div>
+          <p class="text-sm text-mute mb-4">
+            Inscrivez-vous pour lancer une demande de devis et comparer jusqu'à 3 traiteurs sur vos critères.
+          </p>
+          <a href="{{ url_for('auth.signup') }}"
+             class="block w-full text-center rounded-full text-sm font-bold px-4 py-2.5 text-white hover:opacity-90 transition-opacity"
+             style="background-color:var(--c-coral);">
+            S'inscrire
+          </a>
+        </div>
+        {% endif %}
 
         {# Filter card #}
         <div class="bg-white rounded-lg p-6 space-y-6">
@@ -288,5 +327,8 @@
 
   </form>
 
-</main>
-{% endblock %}
+</div>
+{% endset %}
+
+{% block content %}{{ _search_body }}{% endblock %}
+{% block public_content %}{{ _search_body }}{% endblock %}

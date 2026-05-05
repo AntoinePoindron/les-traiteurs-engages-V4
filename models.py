@@ -16,6 +16,7 @@ from sqlalchemy import (
     Sequence,
     String,
     Text,
+    Time,
     UniqueConstraint,
     Uuid,
     func,
@@ -342,6 +343,10 @@ class QuoteRequest(DietaryMixin, Base):
     service_type: Mapped[str | None] = mapped_column(String(100))
     meal_type: Mapped[MealType | None] = mapped_column(String(20))
     event_date: Mapped[datetime.date | None] = mapped_column(Date)
+    # Optional start/end of the event itself (not the delivery slot).
+    # Caterer uses these to plan staff and equipment delivery windows.
+    event_start_time: Mapped[datetime.time | None] = mapped_column(Time)
+    event_end_time: Mapped[datetime.time | None] = mapped_column(Time)
     guest_count: Mapped[int | None] = mapped_column(Integer)
     event_address: Mapped[str | None] = mapped_column(String(500))
     event_city: Mapped[str | None] = mapped_column(String(255))
@@ -361,7 +366,15 @@ class QuoteRequest(DietaryMixin, Base):
     service_waitstaff_details: Mapped[str | None] = mapped_column(Text)
     wants_equipment: Mapped[bool] = mapped_column(Boolean, default=False)
     wants_decoration: Mapped[bool] = mapped_column(Boolean, default=False)
+    wants_nappes: Mapped[bool] = mapped_column(Boolean, default=False)
+    wants_livraison: Mapped[bool] = mapped_column(Boolean, default=False)
     wants_setup: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Horaire + précisions associés au setup (Installation / mise en place).
+    # `service_setup_time` est rendu obligatoire côté UI quand
+    # `wants_setup` est coché ; côté DB on laisse nullable pour ne pas
+    # casser les anciennes demandes. Le textarea précisions reste libre.
+    service_setup_time: Mapped[datetime.time | None] = mapped_column(Time)
+    service_setup_details: Mapped[str | None] = mapped_column(Text)
     wants_cleanup: Mapped[bool] = mapped_column(Boolean, default=False)
     is_compare_mode: Mapped[bool] = mapped_column(Boolean, default=True)
     message_to_caterer: Mapped[str | None] = mapped_column(Text)

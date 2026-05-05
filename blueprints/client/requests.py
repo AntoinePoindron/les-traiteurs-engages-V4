@@ -196,11 +196,77 @@ def register(bp):
                     .where(Caterer.id == cid)
                     .where(Caterer.is_validated.is_(True))
                 )
+
+        # Targeted demand → expose two things the template needs to
+        # render the wizard with the caterer's real catalogue :
+        #
+        # 1) `target_offerings` : the slugs the caterer actually
+        #    published under "Catalogue & tarifs" on the public fiche
+        #    (= `Caterer.service_offerings`). On step 1 of the wizard,
+        #    we replace the 5 generic meal_types with these specific
+        #    offerings, so the user picks something the caterer
+        #    explicitly proposes — and only that. Each offering carries
+        #    a default `meal_type` (the wider enum stored on
+        #    QuoteRequest), wired through `data-meal-type` so a tiny
+        #    JS in wizard.js can set the hidden meal_type field.
+        #
+        # 2) `caterer_capabilities.dietary` : the 5 dietary booleans
+        #    from the Caterer row, used on step 4 to disable régimes
+        #    the caterer doesn't accommodate.
+        target_offerings = []
+        # Mapping from service_offering slug → wizard meal_type enum
+        # value. Each offering picks the most natural meal_type so
+        # the legacy filter / matching code (which keys on meal_type)
+        # keeps working. The label / icon used to render the radio
+        # come from the canonical SERVICE_OFFERING_LABELS dict.
+        OFFERING_TO_MEAL_TYPE = {
+            "petit_dejeuner": "petit_dejeuner",
+            "pause_gourmande": "petit_dejeuner",
+            "plateaux_repas": "dejeuner",
+            "cocktail_dinatoire": "cocktail",
+            "cocktail_dejeunatoire": "cocktail",
+            "aperitif": "cocktail",
+        }
+        OFFERING_ICONS = {
+            "petit_dejeuner": "coffee",
+            "pause_gourmande": "cookie",
+            "plateaux_repas": "utensils",
+            "cocktail_dinatoire": "wine",
+            "cocktail_dejeunatoire": "wine",
+            "aperitif": "martini",
+        }
+        caterer_capabilities = None
+        if target_caterer is not None:
+            raw_offerings = target_caterer.service_offerings or []
+            # Filter out unknown slugs (data integrity guard) and dedupe.
+            seen = set()
+            for slug in raw_offerings:
+                if slug in SERVICE_OFFERING_LABELS and slug not in seen:
+                    seen.add(slug)
+                    target_offerings.append(
+                        {
+                            "slug": slug,
+                            "label": SERVICE_OFFERING_LABELS[slug],
+                            "meal_type": OFFERING_TO_MEAL_TYPE.get(slug, "autre"),
+                            "icon": OFFERING_ICONS.get(slug, "utensils"),
+                        }
+                    )
+            caterer_capabilities = {
+                "dietary": {
+                    "vegetarian": bool(target_caterer.dietary_vegetarian),
+                    "vegan": bool(target_caterer.dietary_vegan),
+                    "halal": bool(target_caterer.dietary_halal),
+                    "gluten_free": bool(target_caterer.dietary_gluten_free),
+                    "lactose_free": bool(target_caterer.dietary_lactose_free),
+                },
+            }
         return render_template(
             "client/requests/new.html",
             user=user,
             services=services,
             target_caterer=target_caterer,
+            target_offerings=target_offerings,
+            caterer_capabilities=caterer_capabilities,
         )
 
     @bp.route("/requests/new", methods=["POST"])
@@ -438,6 +504,10 @@ def register(bp):
             return redirect(url_for("client.request_detail", request_id=request_id))
         db.commit()
 
+        from services import email_triggers
+
+        email_triggers.order_confirmed(db, order=order)
+
         flash("Devis accepte ! La commande a ete creee.", "success")
         return redirect(url_for("client.order_detail", order_id=order.id))
 
@@ -557,9 +627,20 @@ def register(bp):
         return redirect(url_for("client.request_detail", request_id=request_id))
 
     @bp.route("/search")
-    @login_required
-    @role_required("client_admin", "client_user")
+    @limiter.limit("60 per minute")
     def search():
+        # Catalogue public — accessible aux visiteurs non connectés depuis
+        # le bloc de recherche de la landing. Les actions qui nécessitent
+        # un compte (lancer une demande, voir une fiche, accepter un
+        # devis, etc.) restent gatées par leur propre `@login_required`
+        # et redirigeront via le `next=` standard si on clique dessus
+        # sans session.
+        #
+        # Per-IP rate limit (the per-blueprint default only applies to
+        # POSTs): /search is now public + GET, so a scraper could
+        # otherwise harvest the catalogue at high RPS. 60/min is loose
+        # enough for legitimate paginated browsing, tight enough to make
+        # bulk scraping inconvenient.
         page = request.args.get("page", 1, type=int)
         q = request.args.get("q", "").strip()
         location = request.args.get("location", "").strip()
@@ -714,9 +795,17 @@ def register(bp):
         )
 
     @bp.route("/caterers/<uuid:caterer_id>")
-    @login_required
-    @role_required("client_admin", "client_user")
+    @limiter.limit("60 per minute")
     def caterer_detail(caterer_id):
+        # Fiche traiteur publique — accessible aux visiteurs non connectés
+        # qui naviguent depuis le catalogue public (cf. la route /search
+        # qui a aussi perdu son @login_required). Les CTA d'action
+        # (demande de devis) restent gatées par leur propre login_required
+        # côté /client/requests/new.
+        #
+        # Per-IP rate limit for the same reason as /search above: this
+        # route is now public + GET so it needs explicit throttling
+        # (the per-blueprint default only catches POSTs).
         db = get_db()
         caterer = db.get(Caterer, caterer_id)
         if not caterer or not caterer.is_validated:

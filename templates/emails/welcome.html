@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Bienvenue chez Les Traiteurs Engagés</title>
+</head>
+<body style="margin:0;padding:0;background:#FBF8F4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A3A52;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FBF8F4;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;border:1px solid rgba(26,58,82,0.08);">
+          <tr>
+            <td style="padding:32px 32px 24px;">
+              <h1 style="margin:0 0 16px;font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;color:#1A3A52;">
+                Bienvenue {{ user.first_name }} !
+              </h1>
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#1A3A52;">
+                Votre compte sur <strong>Les Traiteurs Engagés</strong> est prêt.
+              </p>
+
+              {% if role_kind == 'client' %}
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#1A3A52;">
+                Vous pouvez dès maintenant lancer une demande de devis et recevoir
+                jusqu'à 3 propositions de traiteurs solidaires sélectionnés.
+              </p>
+              <p style="margin:24px 0;text-align:center;">
+                <a href="{{ cta_url }}"
+                   style="display:inline-block;padding:14px 28px;background:#B70102;color:#ffffff;text-decoration:none;border-radius:9999px;font-weight:600;font-size:14px;">
+                  Faire une première demande
+                </a>
+              </p>
+
+              {% elif role_kind == 'caterer' %}
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#1A3A52;">
+                Pour commencer à recevoir des demandes de devis, complétez votre
+                profil (description, capacités, prestations, photos). Notre équipe
+                validera ensuite votre compte sous 48 heures ouvrées.
+              </p>
+              <p style="margin:24px 0;text-align:center;">
+                <a href="{{ cta_url }}"
+                   style="display:inline-block;padding:14px 28px;background:#B70102;color:#ffffff;text-decoration:none;border-radius:9999px;font-weight:600;font-size:14px;">
+                  Compléter mon profil
+                </a>
+              </p>
+
+              {% else %}
+              <p style="margin:24px 0;text-align:center;">
+                <a href="{{ cta_url }}"
+                   style="display:inline-block;padding:14px 28px;background:#B70102;color:#ffffff;text-decoration:none;border-radius:9999px;font-weight:600;font-size:14px;">
+                  Accéder à mon espace
+                </a>
+              </p>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 32px;border-top:1px solid rgba(26,58,82,0.08);padding-top:16px;">
+              <p style="margin:0;font-size:11px;color:#9AA8B5;line-height:1.5;">
+                Une question ? Répondez directement à cet email, nous vous lirons.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

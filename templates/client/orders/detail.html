@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
+{% from "components/structure_type_badge.html" import structure_type_label %}
 {% from "components/ui.html" import back_button %}
 
 {% block title %}Commande - Les Traiteurs Engages{% endblock %}
@@ -93,11 +94,22 @@
         <i data-lucide="truck" class="w-4 h-4 text-navy"></i>
         <h3 class="font-display font-bold text-sm text-text">Livraison</h3>
       </div>
+      {% set qr = order.quote.quote_request %}
       <div class="flex flex-wrap gap-3">
         <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
           <i data-lucide="calendar" class="w-4 h-4 text-text-soft"></i>
           <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</span>
         </div>
+        {% if qr.event_start_time or qr.event_end_time %}
+        <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
+          <i data-lucide="clock" class="w-4 h-4 text-text-soft"></i>
+          <span class="text-xs font-bold whitespace-nowrap text-text-soft">
+            {{ qr.event_start_time.strftime('%H:%M') if qr.event_start_time else '?' }}
+            –
+            {{ qr.event_end_time.strftime('%H:%M') if qr.event_end_time else '?' }}
+          </span>
+        </div>
+        {% endif %}
         <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
           <i data-lucide="map-pin" class="w-4 h-4 text-text-soft"></i>
           <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ order.delivery_address or '-' }}</span>
@@ -133,10 +145,15 @@
     </div>
     {% endif %}
 
-    {# Caterer card — logo + name (clickable) + send-message button #}
+    {# Caterer card — logo + name (clickable) + send-message button.
+       Le label "Traiteur" est remplacé par le type de structure
+       complet (ESAT / Entreprise Adaptée / Entreprise d'Insertion /
+       Atelier et Chantier d'Insertion) dans le même style typo
+       (uppercase 10px mute). Plus de pastille verte top-right :
+       l'info est portée par le label. #}
     <div class="bg-white rounded-lg p-6 mb-6">
       <a href="{{ url_for('client.caterer_detail', caterer_id=order.quote.caterer.id) }}"
-         class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+         class="flex items-center gap-3 -mx-2 px-2 -my-1 py-1 rounded-lg hover:bg-cream transition-colors">
         {% if order.quote.caterer.logo_url %}
         <img src="{{ order.quote.caterer.logo_url }}" alt="Logo {{ order.quote.caterer.name }}"
              class="w-12 h-12 rounded-lg object-contain p-1 bg-cream">
@@ -146,13 +163,12 @@
         </div>
         {% endif %}
         <div class="flex-1 min-w-0">
-          <p class="text-mute font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">Traiteur</p>
+          <p class="text-mute font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">{{ structure_type_label(order.quote.caterer.structure_type) }}</p>
           <p class="font-display font-bold text-base text-text truncate">{{ order.quote.caterer.name }}</p>
           {% if order.quote.caterer.city %}
           <p class="text-xs text-mute truncate">{{ order.quote.caterer.city }}</p>
           {% endif %}
         </div>
-        <i data-lucide="external-link" class="w-4 h-4 text-mute" style="flex-shrink:0;"></i>
       </a>
 
       <a href="{{ caterer_message_href }}"
@@ -225,7 +241,9 @@
         <h3 class="font-display font-bold text-sm text-text">Laisser un avis sur le traiteur</h3>
       </div>
       <p class="text-xs mb-4 text-mute">
-        Votre avis sera publié dans le catalogue. Une fois envoyé, il ne peut plus être modifié.
+        Votre avis sera publié <strong>de manière anonyme</strong> dans le catalogue
+        public — votre nom et votre structure ne seront pas affichés. Une fois envoyé,
+        il ne peut plus être modifié.
       </p>
       <form method="POST" action="{{ url_for('client.order_review', order_id=order.id) }}" class="space-y-4">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

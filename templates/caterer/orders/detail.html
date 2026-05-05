@@ -82,6 +82,16 @@
           <dt class="text-sm text-mute">Date</dt>
           <dd class="text-sm font-bold text-text">{{ order.delivery_date.strftime('%d/%m/%Y') if order.delivery_date else '-' }}</dd>
         </div>
+        {% if qr.event_start_time or qr.event_end_time %}
+        <div class="flex justify-between">
+          <dt class="text-sm text-mute">Horaires</dt>
+          <dd class="text-sm font-bold text-text">
+            {{ qr.event_start_time.strftime('%H:%M') if qr.event_start_time else '?' }}
+            –
+            {{ qr.event_end_time.strftime('%H:%M') if qr.event_end_time else '?' }}
+          </dd>
+        </div>
+        {% endif %}
         <div class="flex justify-between">
           <dt class="text-sm text-mute">Adresse</dt>
           <dd class="text-sm font-bold text-right text-text">{{ order.delivery_address or '-' }}</dd>
@@ -155,6 +165,29 @@
 
   {# ---- RIGHT ~33% : montants + bloc client ---- #}
   <div class="flex flex-col gap-6">
+
+    {# Notification "facture envoyée + paiement en route" — visible
+       uniquement sur les commandes au statut `invoiced` (la facture
+       Stripe a été émise et envoyée au client, le virement vers le
+       compte connecté du traiteur suit automatiquement le webhook
+       payment_intent.succeeded). Même pattern que le bloc côté client
+       sur /client/orders/<id> : carte blanche, bordure gauche navy,
+       tuile d'icône bg-navy-soft, titre bold + sous-titre muted. #}
+    {% if order.status == OrderStatus.invoiced %}
+    <div class="bg-white rounded-lg p-6 border-l-4 border-navy">
+      <div class="flex items-start gap-3">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft" style="flex-shrink:0;">
+          <i data-lucide="banknote" class="w-4\.5 h-4\.5 text-navy"></i>
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-bold text-text">Facture envoyée au client</p>
+          <p class="text-xs mt-1 text-mute">
+            La facture a été adressée au client. Le paiement sera automatiquement viré sur votre compte dès réception.
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
     <div class="bg-white rounded-lg p-6">
       <h2 class="font-display font-bold text-xl mb-4 text-text">Montants</h2>

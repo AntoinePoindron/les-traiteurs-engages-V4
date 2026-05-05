@@ -42,19 +42,26 @@
   <div class="bg-white rounded-lg p-6">
     <h2 class="font-display font-bold text-lg text-black mb-4">File de qualification</h2>
     {% if recent_requests %}
+    {# Chaque ligne devient un <a> vers /admin/qualification/<id> — même
+       cible que le bouton "Voir" de /admin/qualification, pour que
+       cliquer la carte ouvre la fiche détaillée à qualifier. Hover
+       cream + chevron à droite alignés sur le bloc "Commandes à
+       facturer" juste en dessous (pattern partagé). #}
     <div>
       {% for req in recent_requests %}
-      <div class="flex items-center gap-3 py-3.5 hover:rounded-lg {% if not loop.first %}border-t border-soft{% endif %}">
+      <a href="{{ url_for('admin.qualification_detail', request_id=req.id) }}"
+         class="flex items-center gap-3 py-3.5 hover:bg-cream rounded-lg px-2 -mx-2 transition-colors {% if not loop.first %}border-t border-soft{% endif %}">
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-black">{{ req.company.name }}</p>
           <p class="text-xs text-mute">{{ req.service_type or req.meal_type or '-' }} &middot; {{ req.guest_count or '-' }} convives</p>
         </div>
-        <div class="text-right">
+        <div class="text-right flex-shrink-0">
           {% from "components/status_badge.html" import status_badge %}
           {{ status_badge(req.status) }}
           <p class="text-xs mt-1 text-mute">{{ req.created_at.strftime('%d/%m/%Y') }}</p>
         </div>
-      </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-disabled flex-shrink-0"></i>
+      </a>
       {% endfor %}
     </div>
     {% else %}

@@ -1,0 +1,17 @@
+Bonne nouvelle, votre devis a été accepté !
+
+{{ company.name }} vient d'accepter votre devis{% if quote_reference %} ({{ quote_reference }}){% endif %}.
+La commande est confirmée.
+
+{% if event_date %}Date : {{ event_date.strftime('%d/%m/%Y') }}
+{% endif %}{% if guest_count %}Convives : {{ guest_count }}
+{% endif %}{% if delivery_address %}Lieu : {{ delivery_address }}
+{% endif %}{% if total_amount_ht is not none %}Montant HT : {{ "%.2f"|format(total_amount_ht|float) }} €
+{% endif %}
+Voir la commande : {{ cta_url }}
+
+Une fois la prestation livrée, marquez la commande comme livrée depuis
+votre espace pour déclencher la facturation automatique.
+
+—
+Les Traiteurs Engagés
