@@ -160,9 +160,7 @@ def test_notifications_modal_escapes_body_against_xss(client, login):
         s = session_factory()
         try:
             s.execute(
-                Notification.__table__.delete().where(
-                    Notification.type == "test_xss"
-                )
+                Notification.__table__.delete().where(Notification.type == "test_xss")
             )
             s.commit()
         finally:
@@ -192,9 +190,7 @@ def test_approve_notifies_every_validated_caterer_when_matcher_empty(session):
         session.scalars(select(Caterer.id).where(Caterer.is_validated.is_(True)))
     )
     expected_user_ids = set(
-        session.scalars(
-            select(User.id).where(User.caterer_id.in_(all_validated_ids))
-        )
+        session.scalars(select(User.id).where(User.caterer_id.in_(all_validated_ids)))
     )
 
     workflow.approve_quote_request(session, request_id=qr_id)
@@ -280,9 +276,7 @@ def test_approve_skips_notifications_when_no_validated_caterer(session):
             Notification.related_entity_id == qr_id,
         )
     )
-    assert notif_count == 0, (
-        "no caterers reached → no notifications should fire"
-    )
+    assert notif_count == 0, "no caterers reached → no notifications should fire"
 
 
 # ---------------------------------------------------------------------------

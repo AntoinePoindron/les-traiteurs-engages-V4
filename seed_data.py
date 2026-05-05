@@ -54,7 +54,10 @@ def _ensure_admin_employee_rows(db):
         existing = db.scalar(
             select(CompanyEmployee).where(
                 CompanyEmployee.company_id == u.company_id,
-                ((CompanyEmployee.user_id == u.id) | (CompanyEmployee.email == u.email)),
+                (
+                    (CompanyEmployee.user_id == u.id)
+                    | (CompanyEmployee.email == u.email)
+                ),
             )
         )
         if existing:

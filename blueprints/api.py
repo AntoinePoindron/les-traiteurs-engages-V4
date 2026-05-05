@@ -368,9 +368,7 @@ def send_message():
 
         if not any(
             recipient_id
-            in _allowed_recipients_for(
-                db, user, order_id=oid, quote_request_id=qrid
-            )
+            in _allowed_recipients_for(db, user, order_id=oid, quote_request_id=qrid)
             for oid, qrid in gate_contexts
         ):
             return jsonify({"error": "Destinataire non autorise."}), 403

@@ -452,9 +452,7 @@ def signup_invite(token: str):
         # admin pre-filled — a tampered POST that smuggles different
         # values is ignored. Race-safe: re-check user_id under the
         # session before commit.
-        existing_user = db.scalar(
-            select(User).where(User.email == employee.email)
-        )
+        existing_user = db.scalar(select(User).where(User.email == employee.email))
         if existing_user:
             flash(
                 "Un compte existe deja avec cette adresse e-mail. Connectez-vous.",
