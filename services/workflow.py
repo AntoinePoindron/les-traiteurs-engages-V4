@@ -30,6 +30,12 @@ from models import (
     User,
 )
 from services.matching import find_matching_caterers
+from services.notifications import (
+    caterer_user_ids,
+    company_admin_user_ids,
+    notify,
+    notify_users,
+)
 
 
 class WorkflowError(Exception):
@@ -99,6 +105,21 @@ def refuse_quote(
 
     quote.status = QuoteStatus.refused
     quote.refusal_reason = reason or None
+
+    # Notify the caterer that their quote was turned down. Reason (if
+    # any) goes into the body so they can adjust their next proposal.
+    body = "Votre devis a été refusé."
+    if reason:
+        body += f" Motif : {reason}"
+    notify_users(
+        db,
+        caterer_user_ids(db, quote.caterer_id),
+        type="quote_refused",
+        title="Devis refusé",
+        body=body,
+        related_entity_type="quote_request",
+        related_entity_id=request_id,
+    )
 
     remaining = db.execute(
         select(func.count(Quote.id)).where(
@@ -188,6 +209,20 @@ def accept_quote(
     db.flush()
 
     qr.status = QuoteRequestStatus.completed
+
+    # Tell the winning caterer they got the deal. The losing caterers
+    # already got their `status -> refused` flip silently — sending them
+    # « un autre traiteur a été choisi » mails would be spammy and isn't
+    # critical for V1.
+    notify_users(
+        db,
+        caterer_user_ids(db, accepted.caterer_id),
+        type="quote_accepted",
+        title="Devis accepté !",
+        body="Votre devis a été retenu. Une commande a été créée.",
+        related_entity_type="order",
+        related_entity_id=order.id,
+    )
     return order
 
 
@@ -246,6 +281,50 @@ def approve_quote_request(
 
     if targets:
         qr.status = QuoteRequestStatus.sent_to_caterers
+
+        # Notify every caterer that got a QRC, plus the original
+        # requester. Iterating over `targets` (not `matches`) covers the
+        # fallback-to-all-validated path so a caterer who got the demand
+        # via the empty-matcher branch still hears about it. When
+        # targets is empty (no validated caterer at all) the demand
+        # stays in pending_review — no notification, the admin handler
+        # flashes the warning.
+        #
+        # Pre-fetch every targeted caterer's active users in a single
+        # query, group by caterer_id, then iterate. The previous shape
+        # (one `caterer_user_ids` call per caterer) was N+1 — each
+        # admin approval scaled with len(targets) DB round-trips.
+        target_ids = [c.id for c in targets]
+        users_by_caterer: dict = {}
+        for uid, cid in db.execute(
+            select(User.id, User.caterer_id).where(
+                User.caterer_id.in_(target_ids),
+                User.is_active.is_(True),
+            )
+        ).all():
+            users_by_caterer.setdefault(cid, []).append(uid)
+
+        for caterer in targets:
+            notify_users(
+                db,
+                users_by_caterer.get(caterer.id, []),
+                type="quote_request_received",
+                title="Nouvelle demande de devis",
+                body=f"Une demande pour {qr.guest_count or '?'} convives "
+                f"({qr.event_city or 'lieu non renseigné'}) vous a été transmise.",
+                related_entity_type="quote_request",
+                related_entity_id=qr.id,
+            )
+        if qr.user_id is not None:
+            notify(
+                db,
+                user_id=qr.user_id,
+                type="quote_request_approved",
+                title="Votre demande a été transmise",
+                body=f"Votre demande a été envoyée à {len(targets)} traiteur(s).",
+                related_entity_type="quote_request",
+                related_entity_id=qr.id,
+            )
     db.flush()
     return qrcs
 
@@ -265,6 +344,22 @@ def reject_quote_request(
         raise RequestNotFound
     qr.status = QuoteRequestStatus.cancelled
     qr.message_to_caterer = reason or ""
+
+    # Let the requester know their demand was rejected by the platform
+    # admin (with the reason if they provided one).
+    if qr.user_id is not None:
+        body = "Votre demande de devis a été refusée par notre équipe."
+        if reason:
+            body += f" Motif : {reason}"
+        notify(
+            db,
+            user_id=qr.user_id,
+            type="quote_request_rejected",
+            title="Demande refusée",
+            body=body,
+            related_entity_type="quote_request",
+            related_entity_id=qr.id,
+        )
 
 
 def submit_quote(
@@ -354,6 +449,21 @@ def submit_quote(
         for r in remaining:
             r.status = QRCStatus.closed
 
+    # The quote reaches the client whenever the QRC flips to
+    # `transmitted_to_client` (rank 1, 2 or 3). Notify the requester
+    # for every transmission, not just the closing-third one.
+    qr_obj = db.get(QuoteRequest, request_id)
+    if qr_obj is not None and qr_obj.user_id is not None:
+        notify(
+            db,
+            user_id=qr_obj.user_id,
+            type="quote_received",
+            title="Nouveau devis reçu",
+            body=f"{caterer.name} vient de vous envoyer un devis.",
+            related_entity_type="quote",
+            related_entity_id=quote.id,
+        )
+
     db.flush()
     return quote
 
@@ -384,4 +494,17 @@ def mark_delivered(
     if not order:
         raise OrderNotFound
     order.status = OrderStatus.delivered
+
+    # Tell the company admins their commande just got marked delivered
+    # by the caterer. They'll typically expect an invoice next.
+    qr = order.quote.quote_request
+    notify_users(
+        db,
+        company_admin_user_ids(db, qr.company_id),
+        type="order_delivered",
+        title="Commande marquée comme livrée",
+        body=f"{caterer.name} a marqué la commande comme livrée.",
+        related_entity_type="order",
+        related_entity_id=order.id,
+    )
     return order
