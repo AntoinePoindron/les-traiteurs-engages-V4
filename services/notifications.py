@@ -177,6 +177,11 @@ def notification_target_url(note, role):
         # Pending member to approve — the team page shows the queue.
         return url_for("client.team")
 
+    # No `et == "user"` route for super_admin: there is no /admin/users
+    # page in V1, and no current code path emits a "user" notification
+    # to a super_admin. Falls through to None → the visit endpoint
+    # bounces to /admin/notifications.
+
     if et == "caterer" and role == "super_admin":
         return url_for("admin.caterer_detail", caterer_id=eid)
 

@@ -289,10 +289,25 @@ def approve_quote_request(
         # targets is empty (no validated caterer at all) the demand
         # stays in pending_review — no notification, the admin handler
         # flashes the warning.
+        #
+        # Pre-fetch every targeted caterer's active users in a single
+        # query, group by caterer_id, then iterate. The previous shape
+        # (one `caterer_user_ids` call per caterer) was N+1 — each
+        # admin approval scaled with len(targets) DB round-trips.
+        target_ids = [c.id for c in targets]
+        users_by_caterer: dict = {}
+        for uid, cid in db.execute(
+            select(User.id, User.caterer_id).where(
+                User.caterer_id.in_(target_ids),
+                User.is_active.is_(True),
+            )
+        ).all():
+            users_by_caterer.setdefault(cid, []).append(uid)
+
         for caterer in targets:
             notify_users(
                 db,
-                caterer_user_ids(db, caterer.id),
+                users_by_caterer.get(caterer.id, []),
                 type="quote_request_received",
                 title="Nouvelle demande de devis",
                 body=f"Une demande pour {qr.guest_count or '?'} convives "
