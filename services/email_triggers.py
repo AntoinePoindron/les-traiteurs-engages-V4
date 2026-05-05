@@ -96,6 +96,12 @@ def quote_received(db: Session, *, quote: Quote, caterer: Caterer) -> None:
         responder doesn't trigger the email — they're closed out);
       * the QR has no user_id (defensive — should never happen);
       * the requester is inactive.
+
+    The QRC status re-check is intentional defense-in-depth : in the
+    normal flow `workflow.submit_quote` already raised on the 4th
+    responder, but a future caller (admin "resend" button, CLI, …)
+    might pass a quote whose QRC is still `selected`. One indexed
+    lookup beats accidentally emailing the wrong state.
     """
     qrc = db.scalar(
         select(QuoteRequestCaterer).where(
