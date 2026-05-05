@@ -54,7 +54,10 @@ class Settings(BaseSettings):
     s3_endpoint_url: str | None = None
     s3_public_url: str | None = None
 
-    db_pool_size: int = 5
+    # 4 gunicorn workers x 2 threads = 8 concurrent requests per worker max.
+    # pool_size=10 + max_overflow=10 keeps each worker's pool ahead of demand
+    # without blowing past Postgres `max_connections` (4 workers * 20 = 80).
+    db_pool_size: int = 10
     db_pool_max_overflow: int = 10
     db_pool_timeout: int = 30
     db_pool_recycle: int = 1800

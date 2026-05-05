@@ -138,10 +138,11 @@ def threads_for_viewer(db: Session, viewer) -> list[dict]:
         for msg in last_messages
     }
     other_ids.discard(None)
-    users_by_id = {
-        u.id: u
-        for u in db.scalars(select(User).where(User.id.in_(other_ids))).all()
-    } if other_ids else {}
+    users_by_id = (
+        {u.id: u for u in db.scalars(select(User).where(User.id.in_(other_ids))).all()}
+        if other_ids
+        else {}
+    )
 
     return [
         _summarise_thread(

@@ -133,9 +133,7 @@ def test_admin_can_delete_other_effectifs_row(client, login):
     account (not user_id=None) so we exercise the realistic case where
     the guard's `employee.user_id == user.id` check has a non-null LHS
     that simply differs from the admin's id."""
-    row_id = _ensure_employee(
-        "colleague-to-delete@test.local", user_id=_bob_id()
-    )
+    row_id = _ensure_employee("colleague-to-delete@test.local", user_id=_bob_id())
 
     login("alice@test.local")
     resp = client.post(
@@ -244,14 +242,10 @@ def test_invite_for_already_linked_employee_is_noop(client, login):
     """An employee already attached to a User shouldn't get a new token.
     Assert *both* token and invited_at stay untouched so a regression that
     silently sets invited_at without minting a token still fails."""
-    employee_id = _ensure_employee(
-        "already-linked@test.local", user_id=_bob_id()
-    )
+    employee_id = _ensure_employee("already-linked@test.local", user_id=_bob_id())
 
     login("alice@test.local")
-    client.post(
-        f"/client/team/employees/{employee_id}/invite", follow_redirects=False
-    )
+    client.post(f"/client/team/employees/{employee_id}/invite", follow_redirects=False)
     row = _fetch_employee(employee_id)
     assert row.invite_token is None, "must not mint a token for a linked employee"
     assert row.invited_at is None, "must not stamp invited_at for a linked employee"
@@ -584,9 +578,7 @@ def test_approve_clears_stale_invite_token_on_existing_row(client, login):
                 )
             )
             s.commit()
-        pending_user_id = s.scalar(
-            select(User.id).where(User.email == pending_email)
-        )
+        pending_user_id = s.scalar(select(User.id).where(User.email == pending_email))
     finally:
         s.close()
 

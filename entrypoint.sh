@@ -15,12 +15,7 @@ if [ "${ENABLE_DEMO_SEED}" = "1" ]; then
 fi
 
 echo "Starting gunicorn..."
-# Local dev: GUNICORN_RELOAD=1 (set in docker-compose.dev.yml) makes gunicorn
-# watch the mounted source tree and restart workers on every save. Stays
-# off in staging/prod where workers should be stable.
-GUNICORN_OPTS=""
-if [ "${GUNICORN_RELOAD}" = "1" ]; then
-    echo "GUNICORN_RELOAD=1 — enabling --reload (dev mode)."
-    GUNICORN_OPTS="--reload"
-fi
-exec gunicorn --bind 0.0.0.0:${PORT:-8000} ${GUNICORN_OPTS} "app:create_app()"
+# Bind, workers, threads, timeout, --preload, and the SQLAlchemy fork-safety
+# hook all live in gunicorn.conf.py (auto-discovered from CWD). Tunables:
+# WEB_CONCURRENCY, GUNICORN_THREADS, GUNICORN_TIMEOUT, PORT, GUNICORN_RELOAD.
+exec gunicorn "app:create_app()"
