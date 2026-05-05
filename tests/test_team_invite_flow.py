@@ -20,7 +20,7 @@ across the suite.
 """
 
 import datetime as _dt
-import uuid
+import re as _re
 
 import bcrypt
 from sqlalchemy import select
@@ -129,8 +129,13 @@ def test_admin_cannot_delete_own_effectifs_row(client, login):
 
 def test_admin_can_delete_other_effectifs_row(client, login):
     """Regression: the self-delete guard must not break the normal
-    'delete a colleague' path."""
-    row_id = _ensure_employee("colleague-to-delete@test.local")
+    'delete a colleague' path. The colleague is linked to bob's user
+    account (not user_id=None) so we exercise the realistic case where
+    the guard's `employee.user_id == user.id` check has a non-null LHS
+    that simply differs from the admin's id."""
+    row_id = _ensure_employee(
+        "colleague-to-delete@test.local", user_id=_bob_id()
+    )
 
     login("alice@test.local")
     resp = client.post(
@@ -174,7 +179,16 @@ def test_create_employee_generates_invite_token(client, login):
             )
         )
         assert row is not None
-        assert row.invite_token and len(row.invite_token) >= 32
+        # secrets.token_urlsafe(32) → 43 chars in [A-Za-z0-9_-]; assert
+        # the exact shape so a regression to a weaker generator (literal
+        # string, counter, predictable hash) fails the test.
+        assert row.invite_token is not None
+        assert len(row.invite_token) == 43, (
+            f"expected 43-char urlsafe token, got len={len(row.invite_token)}"
+        )
+        assert _re.fullmatch(r"[A-Za-z0-9_-]+", row.invite_token), (
+            "token must use the urlsafe alphabet"
+        )
         assert row.invited_at is not None
         assert row.user_id is None
     finally:
@@ -199,6 +213,12 @@ def test_invite_rotation_changes_token(client, login):
 
     after = _fetch_employee(employee_id).invite_token
     assert after and after != before, "rotation must produce a fresh token"
+    # Same shape constraints as fresh generation — a deterministic-but-
+    # different value (e.g. a counter) would slip through `after != before`.
+    assert len(after) == 43, f"rotated token wrong length: {len(after)}"
+    assert _re.fullmatch(r"[A-Za-z0-9_-]+", after), (
+        "rotated token must use the urlsafe alphabet"
+    )
 
 
 def test_invite_revoke_clears_token(client, login):
@@ -221,7 +241,9 @@ def test_invite_revoke_clears_token(client, login):
 
 
 def test_invite_for_already_linked_employee_is_noop(client, login):
-    """An employee already attached to a User shouldn't get a new token."""
+    """An employee already attached to a User shouldn't get a new token.
+    Assert *both* token and invited_at stay untouched so a regression that
+    silently sets invited_at without minting a token still fails."""
     employee_id = _ensure_employee(
         "already-linked@test.local", user_id=_bob_id()
     )
@@ -232,6 +254,7 @@ def test_invite_for_already_linked_employee_is_noop(client, login):
     )
     row = _fetch_employee(employee_id)
     assert row.invite_token is None, "must not mint a token for a linked employee"
+    assert row.invited_at is None, "must not stamp invited_at for a linked employee"
 
 
 # ---------------------------------------------------------------------------
@@ -425,6 +448,67 @@ def test_signup_invite_collision_with_existing_user_redirects_to_login(client):
     )
     assert resp.status_code == 302
     assert "/login" in resp.headers["Location"]
+
+
+def test_signup_invite_handles_integrity_error_at_flush(client, monkeypatch):
+    """Race-condition path of the review fix: if a parallel signup grabs
+    the User.email between the pre-check `select` and the flush, libpq
+    raises IntegrityError. The handler must catch it, rollback, and
+    redirect to /login — not 500.
+
+    Simulated by monkey-patching Session.flush to raise IntegrityError
+    only when the racing User is in `session.new`. The pre-check
+    `db.scalar(select(User)...)` runs *before* anything is added so
+    autoflush at that point has no pending changes and is unaffected.
+    """
+    from sqlalchemy.exc import IntegrityError
+    from sqlalchemy.orm import Session
+
+    token = "race-token-iiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+    employee_id = _ensure_employee(
+        "race-flush@example.com",
+        invite_token=token,
+        invited_at=_dt.datetime.utcnow(),
+    )
+
+    real_flush = Session.flush
+    fired = {"n": 0}
+
+    def patched_flush(self, *args, **kwargs):
+        # Only intercept the flush that's about to persist *our* User.
+        # Any housekeeping flush from elsewhere falls through to the real
+        # implementation.
+        for obj in self.new:
+            if getattr(obj, "email", None) == "race-flush@example.com":
+                fired["n"] += 1
+                raise IntegrityError(
+                    "simulated race on users.email",
+                    None,
+                    Exception("duplicate key"),
+                )
+        return real_flush(self, *args, **kwargs)
+
+    monkeypatch.setattr(Session, "flush", patched_flush)
+
+    resp = client.post(
+        f"/signup/invite/{token}",
+        data={"password": "RaceResistantPwd1!"},
+        follow_redirects=False,
+    )
+
+    assert fired["n"] >= 1, "simulated IntegrityError must have been triggered"
+    assert resp.status_code == 302
+    assert "/login" in resp.headers["Location"], (
+        f"expected redirect to /login, got {resp.headers.get('Location')}"
+    )
+
+    # Rollback must preserve the row's pre-redemption state — the token
+    # stays alive so the legitimate invitee can still complete signup
+    # after the race resolves, and user_id is not linked to the
+    # never-persisted User.
+    row = _fetch_employee(employee_id)
+    assert row.invite_token == token, "rollback must preserve the invite token"
+    assert row.user_id is None
 
 
 # ---------------------------------------------------------------------------
