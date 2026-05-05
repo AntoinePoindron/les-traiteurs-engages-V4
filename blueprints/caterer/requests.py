@@ -451,7 +451,7 @@ def register(bp):
         caterer = g.current_user.caterer
         db = get_db()
         try:
-            workflow.submit_quote(
+            quote = workflow.submit_quote(
                 db,
                 request_id=qr_id,
                 quote_id=q_id,
@@ -473,9 +473,7 @@ def register(bp):
 
         from services import email_triggers
 
-        quote = db.scalar(select(Quote).where(Quote.id == q_id))
-        if quote:
-            email_triggers.quote_received(db, quote=quote, caterer=caterer)
+        email_triggers.quote_received(db, quote=quote, caterer=caterer)
 
         flash("Devis envoye au client.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
