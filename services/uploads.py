@@ -95,9 +95,25 @@ def _s3_enabled() -> bool:
 
 
 def _detect_real_type(head: bytes) -> str | None:
-    """Return the extension key that matches the byte signature, or None."""
+    """Return the extension key that matches the byte signature, or None.
+
+    Each entry in `_MAGIC_SIGNATURES` is a list of `(signature, offset)`
+    tuples. Multiple tuples at the same offset are treated as
+    alternatives (OR — e.g. GIF87a / GIF89a both at offset 0); tuples
+    at distinct offsets must all match (AND — e.g. WEBP needs `RIFF`
+    at 0 AND `WEBP` at 8). Without this distinction the previous
+    implementation `all(... for sig, off in sigs)` rejected every GIF,
+    since a single byte stream cannot match both GIF87a and GIF89a
+    simultaneously.
+    """
     for ext, sigs in _MAGIC_SIGNATURES.items():
-        if all(head[off : off + len(sig)] == sig for sig, off in sigs):
+        by_offset: dict[int, list[bytes]] = {}
+        for sig, off in sigs:
+            by_offset.setdefault(off, []).append(sig)
+        if all(
+            any(head[off : off + len(sig)] == sig for sig in alts)
+            for off, alts in by_offset.items()
+        ):
             return ext
     return None
 
