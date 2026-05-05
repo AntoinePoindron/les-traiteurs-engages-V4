@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
+{% from "components/list_header.html" import list_header %}
 
 {% block title %}Mes demandes - Les Traiteurs Engages{% endblock %}
 
@@ -33,18 +34,9 @@
 
     {% if requests %}
     <div class="bg-white rounded-lg p-6">
-      {# Header : count + sort indicator (visual only — backend already
-         orders by created_at desc which matches "La plus récente"). #}
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="font-display font-bold text-sm text-text">
-          {{ requests|length }} demande{{ 's' if requests|length > 1 else '' }}
-        </h2>
-        <div class="text-xs text-mute inline-flex items-center gap-1">
-          <span>Trier par</span>
-          <span class="font-bold text-text">La plus récente</span>
-          <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
-        </div>
-      </div>
+      {# Count partagé avec /caterer/requests, /client/orders et
+         /caterer/orders via la macro list_header. #}
+      {{ list_header(count=requests|length, noun='demande') }}
 
       <div>
         {% for qr in requests %}
