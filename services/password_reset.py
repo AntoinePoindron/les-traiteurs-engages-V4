@@ -63,8 +63,15 @@ def consume_token(db: Session, *, raw_token: str, new_password: str) -> User:
     """
     if not raw_token:
         raise ResetTokenInvalid
+    # SELECT ... FOR UPDATE serializes concurrent redemption attempts on
+    # the same token. Without the lock, two simultaneous POSTs would both
+    # see used_at IS NULL and both proceed to write a (possibly different)
+    # password — last-write-wins is harmless in isolation, but a real
+    # serialization here is cheap and obvious.
     row = db.scalar(
-        select(PasswordResetToken).where(PasswordResetToken.token == raw_token)
+        select(PasswordResetToken)
+        .where(PasswordResetToken.token == raw_token)
+        .with_for_update()
     )
     if row is None:
         raise ResetTokenInvalid
