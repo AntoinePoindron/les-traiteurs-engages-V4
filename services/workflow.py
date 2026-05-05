@@ -434,20 +434,20 @@ def submit_quote(
         for r in remaining:
             r.status = QRCStatus.closed
 
-        # The quote actually reaches the client only when the QRC flips
-        # to `transmitted_to_client` (rank ≤ 3). Notify the requester
-        # so they come check it out.
-        qr_obj = db.get(QuoteRequest, request_id)
-        if qr_obj is not None and qr_obj.user_id is not None:
-            notify(
-                db,
-                user_id=qr_obj.user_id,
-                type="quote_received",
-                title="Nouveau devis reçu",
-                body=f"{caterer.name} vient de vous envoyer un devis.",
-                related_entity_type="quote",
-                related_entity_id=quote.id,
-            )
+    # The quote reaches the client whenever the QRC flips to
+    # `transmitted_to_client` (rank 1, 2 or 3). Notify the requester
+    # for every transmission, not just the closing-third one.
+    qr_obj = db.get(QuoteRequest, request_id)
+    if qr_obj is not None and qr_obj.user_id is not None:
+        notify(
+            db,
+            user_id=qr_obj.user_id,
+            type="quote_received",
+            title="Nouveau devis reçu",
+            body=f"{caterer.name} vient de vous envoyer un devis.",
+            related_entity_type="quote",
+            related_entity_id=quote.id,
+        )
 
     db.flush()
     return quote
