@@ -34,6 +34,25 @@
 <div class="split-detail">
   <div class="split-main space-y-6">
 
+    {# ---- Banner : closed by the 3-first-responders rule ---- #}
+    {% if qrc.display_status == 'closed' %}
+    <div class="bg-white rounded-lg p-6 border-l-4" style="border-color:var(--c-mute);">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-border-soft flex-shrink-0">
+          <i data-lucide="lock" class="w-5 h-5 text-mute"></i>
+        </div>
+        <div class="flex-1">
+          <h3 class="font-display font-bold text-base text-text">Demande cloturee</h3>
+          <p class="text-sm mt-1 text-mute">
+            Trois autres traiteurs ont deja envoye un devis pour cette demande.
+            Le client a recu les trois propositions et fera son choix parmi celles-ci ;
+            il n'est plus possible d'envoyer un devis.
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     {# ---- Card : event summary ---- #}
     <div class="bg-white rounded-lg p-6 space-y-2">
       <h2 class="font-display font-bold text-2xl text-text">L'événement</h2>
@@ -214,7 +233,15 @@
       </div>
 
       {# ----- Status-driven block ----- #}
-      {% if qrc.display_status == 'new' %}
+      {% if qrc.display_status == 'closed' %}
+        {# Closed : no action available — the banner above already
+           explains the situation, so we keep this card focused on the
+           recap data only. #}
+        <p class="text-xs text-mute">
+          Les actions sont desactivees pour cette demande.
+        </p>
+
+      {% elif qrc.display_status == 'new' %}
         {# Nouvelle : action buttons (accept = create quote, reject = decline) #}
         <div class="space-y-2">
           {% if existing_quote and existing_quote.status == QuoteStatus.draft %}

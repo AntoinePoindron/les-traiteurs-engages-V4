@@ -316,16 +316,35 @@ def test_approve_quote_request_dispatches_to_matching_caterers(session):
     assert all(q.status == QRCStatus.selected for q in persisted)
 
 
-def test_approve_quote_request_with_no_matches_raises(session):
+def test_approve_quote_request_with_no_matches_falls_back_to_all_caterers(session):
+    """Plus de gating sur la compatibilité : si le matcher ne renvoie
+    aucun traiteur (par ex. demande sans coordonnées géocodées), la
+    validation admin envoie quand même la demande à tous les traiteurs
+    `is_validated`. Sinon ils ne la voient pas dans leur file."""
     from sqlalchemy import select
 
     qr_id = _seed_pending_review_qr(session, with_geo=False)
 
-    with pytest.raises(workflow.NoMatchingCaterers):
-        workflow.approve_quote_request(session, request_id=qr_id)
+    validated_caterers = session.scalars(
+        select(Caterer).where(Caterer.is_validated.is_(True))
+    ).all()
+    assert len(validated_caterers) >= 1, "fixture should seed >=1 validated caterer"
 
+    qrcs = workflow.approve_quote_request(session, request_id=qr_id)
+    session.flush()
+
+    assert len(qrcs) == len(validated_caterers)
     qr = session.scalar(select(QuoteRequest).where(QuoteRequest.id == qr_id))
-    assert qr.status == QuoteRequestStatus.pending_review
+    assert qr.status == QuoteRequestStatus.sent_to_caterers
+    persisted_ids = {
+        q.caterer_id
+        for q in session.scalars(
+            select(QuoteRequestCaterer).where(
+                QuoteRequestCaterer.quote_request_id == qr_id
+            )
+        ).all()
+    }
+    assert persisted_ids == {c.id for c in validated_caterers}
 
 
 def test_approve_unknown_request_raises_not_found(session):
@@ -467,9 +486,10 @@ def test_submit_quote_third_responder_closes_others(session):
     assert qrc_fourth.status == QRCStatus.closed
 
 
-def test_submit_quote_fourth_responder_after_lockout_stays_responded(session):
-    """Si 3 transmitted existent déjà, le répondant suivant reste en
-    `responded` mais n'est pas transmis (pas de rank)."""
+def test_submit_quote_after_third_responder_raises_closed(session):
+    """Une 4e soumission après que 3 traiteurs ont transmis leur devis
+    doit être refusée avec `QuoteRequestClosed`. Le devis reste en
+    `draft` côté DB et la QRC ne change pas d'état."""
     from sqlalchemy import select
 
     qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(
@@ -477,26 +497,32 @@ def test_submit_quote_fourth_responder_after_lockout_stays_responded(session):
         n_caterers=4,
         prior_transmitted=3,
     )
-    # Forcer le 4e à être encore `selected` (pas transmitted) pour pouvoir soumettre.
-    qrc4 = session.scalar(
-        select(QuoteRequestCaterer).where(
-            QuoteRequestCaterer.caterer_id == caterers[3].id
-        )
-    )
-    qrc4.status = QRCStatus.selected
-    session.flush()
 
+    with pytest.raises(workflow.QuoteRequestClosed):
+        workflow.submit_quote(
+            session, request_id=qr_id, quote_id=qids[3], caterer=caterers[3]
+        )
+
+    quote4 = session.scalar(select(Quote).where(Quote.id == qids[3]))
+    assert quote4.status == QuoteStatus.draft
+
+
+def test_submit_quote_when_qrc_closed_raises(session):
+    """Si la QRC du traiteur est déjà `closed` (par ex. fermée par le
+    3e répondant précédent), une nouvelle tentative de soumission lève
+    `QuoteRequestClosed`."""
+    qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(
+        session, n_caterers=4, prior_transmitted=2
+    )
+    # Le 3e soumet, ce qui ferme automatiquement le 4e.
     workflow.submit_quote(
-        session, request_id=qr_id, quote_id=qids[3], caterer=caterers[3]
+        session, request_id=qr_id, quote_id=qids[2], caterer=caterers[2]
     )
 
-    qrc4 = session.scalar(
-        select(QuoteRequestCaterer).where(
-            QuoteRequestCaterer.caterer_id == caterers[3].id
+    with pytest.raises(workflow.QuoteRequestClosed):
+        workflow.submit_quote(
+            session, request_id=qr_id, quote_id=qids[3], caterer=caterers[3]
         )
-    )
-    assert qrc4.status == QRCStatus.responded
-    assert qrc4.response_rank is None
 
 
 def test_submit_unknown_quote_raises(session):
@@ -525,8 +551,10 @@ def test_submit_quote_for_other_caterer_raises(session):
 
 def test_concurrent_submit_only_one_becomes_rank_3(app):
     """Deux répondants concurrents alors que `transmitted == 2` :
-    le `SELECT … FOR UPDATE` sérialise, exactement un atteint rank=3,
-    l'autre voit `transmitted == 3` et reste en `responded` sans rank.
+    le `SELECT … FOR UPDATE` sérialise. Exactement un atteint rank=3 ;
+    l'autre voit sa QRC `closed` (par le 1er à passer la barrière) et
+    se voit refusé avec `QuoteRequestClosed`. Plus de "loser silencieux"
+    en `responded` — la nouvelle règle métier est stricte : 3 max.
     """
     import concurrent.futures
     import threading
@@ -549,25 +577,34 @@ def test_concurrent_submit_only_one_becomes_rank_3(app):
     barrier = threading.Barrier(2)
 
     def _submit(quote_id, caterer_id):
+        """Returns 'ok' on success, 'closed' when QuoteRequestClosed is
+        raised (the expected outcome for the slow racer)."""
         s = session_factory()
         try:
             cat = s.scalar(select(Caterer).where(Caterer.id == caterer_id))
             barrier.wait(timeout=5)
-            workflow.submit_quote(
-                s,
-                request_id=qr_id,
-                quote_id=quote_id,
-                caterer=cat,
-            )
-            s.commit()
+            try:
+                workflow.submit_quote(
+                    s,
+                    request_id=qr_id,
+                    quote_id=quote_id,
+                    caterer=cat,
+                )
+                s.commit()
+                return "ok"
+            except workflow.QuoteRequestClosed:
+                s.rollback()
+                return "closed"
         finally:
             s.close()
 
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
             futures = [ex.submit(_submit, q, c) for q, c in submit_pairs]
-            for f in futures:
-                f.result(timeout=10)
+            outcomes = sorted(f.result(timeout=10) for f in futures)
+        assert outcomes == ["closed", "ok"], (
+            f"expected exactly one ok + one closed, got {outcomes}"
+        )
 
         check = session_factory()
         try:

@@ -177,6 +177,26 @@
         <p class="text-sm whitespace-pre-line text-text-soft">{{ qr.message_to_caterer }}</p>
       </div>
       {% endif %}
+
+      <!-- Messages de l'administrateur -->
+      {% if admin_messages %}
+      <div class="bg-white rounded-lg p-6">
+        <div class="flex items-center gap-2 mb-3">
+          <i data-lucide="shield" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">
+            Messages de l'administrateur
+          </h3>
+        </div>
+        <div class="space-y-3">
+          {% for note in admin_messages %}
+          <div class="rounded-lg p-3 bg-cream">
+            <p class="text-sm whitespace-pre-line text-text">{{ note.body }}</p>
+            <p class="text-xs mt-2 text-mute">{{ note.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </div>
 
       </div>{# /.split-main #}
