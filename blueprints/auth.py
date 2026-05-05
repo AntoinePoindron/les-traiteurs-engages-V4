@@ -4,6 +4,7 @@ import os
 import bcrypt
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from database import get_db
 from extensions import limiter
@@ -421,14 +422,26 @@ def signup_invite(token: str):
             membership_status=MembershipStatus.active,
         )
         db.add(new_user)
-        db.flush()
 
         # Consume the token + link the employee row to the freshly
         # created user. After this, the same token will fail
         # _resolve_invite() (user_id set + token NULL).
-        employee.user_id = new_user.id
-        employee.invite_token = None
-        db.commit()
+        try:
+            db.flush()
+            employee.user_id = new_user.id
+            employee.invite_token = None
+            db.commit()
+        except IntegrityError:
+            # Concurrent redemption beat us to the User.email unique
+            # constraint, or a parallel signup grabbed the address. Token
+            # is single-use so this is near-impossible in practice, but
+            # surface a clean message instead of a 500.
+            db.rollback()
+            flash(
+                "Un compte existe deja avec cette adresse e-mail. Connectez-vous.",
+                "error",
+            )
+            return redirect(url_for("auth.login"))
 
         session.clear()
         session["user_id"] = str(new_user.id)

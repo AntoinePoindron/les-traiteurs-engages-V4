@@ -18,6 +18,7 @@ from blueprints.scoping import (
     get_pending_user,
 )
 from database import get_db
+from extensions import limiter
 from forms.client import EmployeeForm, ServiceForm
 from models import CompanyEmployee, CompanyService, MembershipStatus, User
 
@@ -149,11 +150,28 @@ def register(bp):
             flash("Prenom, nom et email sont obligatoires.", "error")
             return redirect(url_for("client.team"))
         db = get_db()
+        email = form.email.data.strip().lower()
+        # Reject duplicates up-front: a second row with the same email
+        # within the company would never be redeemable (User.email is
+        # unique globally) and would just confuse the admin's effectifs
+        # list.
+        duplicate = db.scalar(
+            select(CompanyEmployee).where(
+                CompanyEmployee.company_id == user.company_id,
+                CompanyEmployee.email == email,
+            )
+        )
+        if duplicate:
+            flash(
+                "Un collaborateur avec cette adresse e-mail existe deja.",
+                "error",
+            )
+            return redirect(url_for("client.team"))
         employee = CompanyEmployee(
             company_id=user.company_id,
             first_name=form.first_name.data.strip(),
             last_name=form.last_name.data.strip(),
-            email=form.email.data.strip().lower(),
+            email=email,
             position=(form.position.data or "").strip() or None,
             service_id=own_service_id(db, user, form.service_id.data),
             invite_token=secrets.token_urlsafe(32),
@@ -207,6 +225,7 @@ def register(bp):
     @bp.route("/team/employees/<uuid:employee_id>/invite", methods=["POST"])
     @login_required
     @role_required("client_admin")
+    @limiter.limit("10 per minute")
     def team_employee_invite(employee_id):
         """Generate a single-use signup link the admin copies to send
         manually (no mail provider yet). Re-invoking on the same employee
@@ -273,6 +292,11 @@ def register(bp):
             existing.first_name = target_user.first_name
             existing.last_name = target_user.last_name
             existing.email = target_user.email
+            # Approval supersedes any outstanding invite — the user just
+            # signed up via the SIRET flow, so the link is dead weight
+            # (and would burn the unique-token index slot otherwise).
+            existing.invite_token = None
+            existing.invited_at = None
         else:
             db.add(
                 CompanyEmployee(
