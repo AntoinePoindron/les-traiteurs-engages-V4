@@ -215,6 +215,11 @@ def approve_quote_request(
         ne la voit jamais (la liste `caterer/requests` filtre sur
         `QuoteRequestCaterer.caterer_id == caterer.id`).
 
+    Si le catalogue est vide (zéro traiteur `is_validated`), on laisse
+    la demande en `pending_review` : la marquer `sent_to_caterers` sans
+    aucun QRC créerait un état mensonger ("envoyée" mais personne ne la
+    verra). Le handler admin flash un message pour prévenir l'opérateur.
+
     Lève RequestNotFound.
     """
     qr = db.get(QuoteRequest, request_id)
@@ -239,7 +244,8 @@ def approve_quote_request(
         db.add(qrc)
         qrcs.append(qrc)
 
-    qr.status = QuoteRequestStatus.sent_to_caterers
+    if targets:
+        qr.status = QuoteRequestStatus.sent_to_caterers
     db.flush()
     return qrcs
 
