@@ -272,9 +272,6 @@ def send_message():
             quote_request_id = None
 
     # Thread per user-pair: look up existing thread or create a random one.
-    # The lookup runs *before* the relationship gate because an existing
-    # thread is itself proof of a previously vetted relationship — see
-    # below.
     db = get_db()
     existing = db.scalar(
         select(Message.thread_id)
@@ -292,25 +289,56 @@ def send_message():
     )
     thread_id = existing if existing else uuid.uuid4()
 
-    # VULN-04: gate the FIRST message of a relationship on a real business
-    # link (order or quote request). super_admin bypasses outright.
-    # Follow-up messages on an existing thread skip the gate: the original
-    # message already carried the order/QR proof, and forcing it on every
-    # reply breaks the standalone Messagerie UI (no QR/order context to
-    # thread through). Recipient is still implicitly the same pair, since
-    # we matched on (sender, recipient) in the existing-thread lookup.
+    # VULN-04: gate every message on a currently-active business
+    # relationship — not just the first message of a thread. Persisting
+    # access on a stale thread would let a user keep messaging a contact
+    # after they leave the company, after a QR is rejected, or after an
+    # order is deleted. super_admin bypasses outright.
+    #
+    # Contexts to gate against:
+    #   - if the caller passed order_id / quote_request_id explicitly,
+    #     use them (single context).
+    #   - otherwise, inherit from the thread's history: every distinct
+    #     (order_id, quote_request_id) pair seen on a prior message.
+    #     Allow if any of them still resolves to a live relationship.
+    #     This preserves the standalone-Messagerie UX (no need to thread
+    #     QR/order context through every reply) while re-validating the
+    #     gate on every send.
     is_admin = user.role == "super_admin"
-    if not is_admin and existing is None:
-        if not order_id and not quote_request_id:
+    if not is_admin:
+        gate_contexts: list[tuple] = []
+        if order_id or quote_request_id:
+            gate_contexts.append((order_id, quote_request_id))
+        elif existing is not None:
+            gate_contexts = [
+                (oid, qrid)
+                for oid, qrid in db.execute(
+                    select(Message.order_id, Message.quote_request_id)
+                    .where(Message.thread_id == existing)
+                    .where(
+                        or_(
+                            Message.order_id.is_not(None),
+                            Message.quote_request_id.is_not(None),
+                        )
+                    )
+                    .distinct()
+                ).all()
+            ]
+
+        if not gate_contexts:
             return jsonify(
                 {
                     "error": "Le message doit etre lie a une commande ou une demande de devis."
                 }
             ), 400
-        allowed = _allowed_recipients_for(
-            db, user, order_id=order_id, quote_request_id=quote_request_id
-        )
-        if recipient_id not in allowed:
+
+        if not any(
+            recipient_id
+            in _allowed_recipients_for(
+                db, user, order_id=oid, quote_request_id=qrid
+            )
+            for oid, qrid in gate_contexts
+        ):
             return jsonify({"error": "Destinataire non autorise."}), 403
 
     msg = Message(
