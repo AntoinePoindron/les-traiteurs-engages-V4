@@ -1,0 +1,41 @@
+{# Reusable star-rating display.
+
+   Args :
+     - avg        : float | None — average rating, None means "no reviews"
+     - count      : int          — number of reviews
+     - size       : str (optional) — CSS class for star size (default 'w-4 h-4')
+     - show_label : bool (optional) — when False, render only the stars
+                    (no "4.3 · 12 avis" suffix). Used for per-review rows
+                    where the count text would be misleading.
+
+   Visual :
+     ★★★★☆  4.3 · 12 avis      (when count > 0 and show_label)
+     ☆☆☆☆☆  Aucun avis           (when count == 0 and show_label)
+     ★★★★☆                       (when show_label is False)
+
+   The stars are inline SVG so the project's static Tailwind doesn't
+   have to ship a dynamic class set; one filled glyph + one outline
+   glyph is enough.
+#}
+{% macro rating_stars(avg, count, size='w-4 h-4', show_label=True) %}
+  {% set filled = (avg|round(0, 'common')|int) if avg is not none else 0 %}
+  <span class="inline-flex items-center gap-1.5 text-xs">
+    <span class="inline-flex items-center" aria-label="Note moyenne {{ avg or '0' }} sur 5">
+      {% for i in range(1, 6) %}
+        {% if i <= filled %}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="#F5A623" class="{{ size }}"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.287 3.957c.299.921-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.07 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.287-3.957z"/></svg>
+        {% else %}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="#D1D5DB" stroke-width="1.5" class="{{ size }}"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.287 3.957c.299.921-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.07 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.287-3.957z"/></svg>
+        {% endif %}
+      {% endfor %}
+    </span>
+    {% if show_label %}
+      {% if count and count > 0 %}
+        <span class="text-text-soft font-bold">{{ "%.1f"|format(avg|float) }}</span>
+        <span class="text-mute">· {{ count }} avis</span>
+      {% else %}
+        <span class="text-mute">Aucun avis</span>
+      {% endif %}
+    {% endif %}
+  </span>
+{% endmacro %}

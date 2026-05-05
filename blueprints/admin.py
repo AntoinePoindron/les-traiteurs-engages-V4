@@ -698,6 +698,13 @@ def order_transition(order_id):
         related_entity_id=order_id,
     )
 
+    # Invite the requester to review when the order has just landed in
+    # `paid`. `notify_review_invite` is idempotent so the manual admin
+    # path + the Stripe webhook path can both call it safely.
+    if target == OrderStatus.paid:
+        from services.reviews import notify_review_invite
+
+        notify_review_invite(db, order=order)
     db.commit()
     flash(f"Commande passée en {target.value}.", "success")
     return redirect(url_for("admin.order_detail", order_id=order_id))
