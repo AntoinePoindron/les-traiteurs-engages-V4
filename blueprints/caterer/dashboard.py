@@ -2,7 +2,7 @@ from datetime import date
 
 from flask import g, render_template
 from sqlalchemy import func, select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
