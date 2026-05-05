@@ -733,9 +733,11 @@ class CatererReview(Base):
     caterer_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("caterers.id"), index=True
     )
-    order_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("orders.id"), unique=True
-    )
+    # Uniqueness is declared via the named UniqueConstraint in
+    # __table_args__ below — keep it in one place so the DDL Alembic
+    # emits matches the model exactly. Adding `unique=True` here too
+    # would produce a second (unnamed) unique index.
+    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("orders.id"))
     reviewer_user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("users.id"), index=True
     )
