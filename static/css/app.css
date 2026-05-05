@@ -317,6 +317,18 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 .hover\:bg-navy-soft:hover { background-color: var(--c-navy-soft); }
 .focus\:border-navy:focus  { border-color: var(--c-navy); }
 
+/* Sticky flash-toast lifecycle. The base transition fades + slides up
+   when the JS toggles `flash-toast-leaving`; auto-dismiss is set up in
+   static/js/app.js (auto-pause on hover, then restart on mouseleave). */
+.flash-toast {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.flash-toast.flash-toast-leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
 /* Catalog list card — whole card clickable, lifts on hover. The `display`
    intentionally isn't set here so the inline `flex flex-col sm:flex-row`
    classes win and keep the image / text side-by-side on >= sm. */

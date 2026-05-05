@@ -1,6 +1,8 @@
 import datetime
+import secrets
+import uuid
 
-from flask import flash, g, redirect, render_template, url_for
+from flask import flash, g, redirect, render_template, request, url_for
 from sqlalchemy import func, select
 
 from blueprints.client._helpers import own_service_id
@@ -11,8 +13,13 @@ from blueprints.scoping import (
     get_pending_user,
 )
 from database import get_db
+from extensions import limiter
 from forms.client import EmployeeForm, ServiceForm
 from models import CompanyEmployee, CompanyService, MembershipStatus, User
+
+# Invite-link token lifetime. After this delay the token is considered
+# expired even if it's still in the DB; /signup/invite/<token> rejects it.
+INVITE_TOKEN_TTL_DAYS = 7
 
 
 def register(bp):
@@ -34,12 +41,36 @@ def register(bp):
                 User.membership_status == MembershipStatus.pending,
             )
         ).all()
+
+        # `?invite=<employee_id>` is set by the redirect after a fresh
+        # collaborator creation — surfaces the generated invite link in
+        # an auto-opened modal so the admin can copy/paste it
+        # immediately. Only honoured when the employee belongs to the
+        # admin's company and still has an active invite token.
+        invite_employee = None
+        invite_id = request.args.get("invite")
+        if invite_id:
+            try:
+                invite_uuid = uuid.UUID(invite_id)
+            except ValueError:
+                invite_uuid = None
+            if invite_uuid is not None:
+                invite_employee = db.scalar(
+                    select(CompanyEmployee).where(
+                        CompanyEmployee.id == invite_uuid,
+                        CompanyEmployee.company_id == user.company_id,
+                        CompanyEmployee.invite_token.is_not(None),
+                        CompanyEmployee.user_id.is_(None),
+                    )
+                )
+
         return render_template(
             "client/team.html",
             user=user,
             services=services,
             employees=employees,
             pending_users=pending_users,
+            invite_employee=invite_employee,
         )
 
     @bp.route("/team/services", methods=["POST"])
@@ -108,24 +139,48 @@ def register(bp):
     @login_required
     @role_required("client_admin")
     def team_employee_create():
+        """Adding a collaborator implicitly invites them: an invite_token
+        is generated at creation so the admin lands back on /client/team
+        with the link displayed in an auto-opened modal (the only way
+        for now to share access without an email pipeline)."""
         user = g.current_user
         form = EmployeeForm()
         if not form.validate_on_submit():
             flash("Prenom, nom et email sont obligatoires.", "error")
             return redirect(url_for("client.team"))
         db = get_db()
+        email = form.email.data.strip().lower()
+        # Reject duplicates up-front: a second row with the same email
+        # within the company would never be redeemable (User.email is
+        # unique globally) and would just confuse the admin's effectifs
+        # list.
+        duplicate = db.scalar(
+            select(CompanyEmployee).where(
+                CompanyEmployee.company_id == user.company_id,
+                CompanyEmployee.email == email,
+            )
+        )
+        if duplicate:
+            flash(
+                "Un collaborateur avec cette adresse e-mail existe deja.",
+                "error",
+            )
+            return redirect(url_for("client.team"))
         employee = CompanyEmployee(
             company_id=user.company_id,
             first_name=form.first_name.data.strip(),
             last_name=form.last_name.data.strip(),
-            email=form.email.data.strip().lower(),
+            email=email,
             position=(form.position.data or "").strip() or None,
             service_id=own_service_id(db, user, form.service_id.data),
+            invite_token=secrets.token_urlsafe(32),
+            invited_at=datetime.datetime.utcnow(),
         )
         db.add(employee)
         db.commit()
-        flash("Employe ajoute.", "success")
-        return redirect(url_for("client.team"))
+        # Redirect with the employee id in the query so /team can detect
+        # it and pop the « lien d'invitation » modal.
+        return redirect(url_for("client.team", invite=str(employee.id)))
 
     @bp.route("/team/employees/<uuid:employee_id>/edit", methods=["POST"])
     @login_required
@@ -154,6 +209,13 @@ def register(bp):
         user = g.current_user
         db = get_db()
         employee = get_company_employee(employee_id, user.company_id)
+        # Defense-in-depth for the disabled trash button on the team page:
+        # an admin must not be able to remove their own effectifs row, even
+        # by replaying the POST manually. The UI already hides the form
+        # when employee.user_id == current user.
+        if employee.user_id == user.id:
+            flash("Vous ne pouvez pas vous retirer vous-même des effectifs.", "error")
+            return redirect(url_for("client.team"))
         db.delete(employee)
         db.commit()
         flash("Employe supprime.", "success")
@@ -162,13 +224,44 @@ def register(bp):
     @bp.route("/team/employees/<uuid:employee_id>/invite", methods=["POST"])
     @login_required
     @role_required("client_admin")
+    @limiter.limit("10 per minute")
     def team_employee_invite(employee_id):
+        """Generate a single-use signup link the admin copies to send
+        manually (no mail provider yet). Re-invoking on the same employee
+        rotates the token — useful if the previous link was leaked or if
+        the admin lost the URL."""
         user = g.current_user
         db = get_db()
         employee = get_company_employee(employee_id, user.company_id)
+        if employee.user_id is not None:
+            flash(
+                "Ce collaborateur a deja un compte; aucune invitation necessaire.",
+                "info",
+            )
+            return redirect(url_for("client.team"))
+        # 32 bytes urlsafe = 43 chars, ~256 bits — unguessable.
+        employee.invite_token = secrets.token_urlsafe(32)
         employee.invited_at = datetime.datetime.utcnow()
         db.commit()
-        flash(f"Invitation envoyee a {employee.email}.", "success")
+        flash(
+            "Lien d'invitation genere. Copiez-le et envoyez-le a votre collaborateur.",
+            "success",
+        )
+        return redirect(url_for("client.team"))
+
+    @bp.route("/team/employees/<uuid:employee_id>/invite/revoke", methods=["POST"])
+    @login_required
+    @role_required("client_admin")
+    def team_employee_invite_revoke(employee_id):
+        """Invalidate an outstanding invite link without rotating it
+        (admin changed their mind, the address was wrong, …)."""
+        user = g.current_user
+        db = get_db()
+        employee = get_company_employee(employee_id, user.company_id)
+        employee.invite_token = None
+        employee.invited_at = None
+        db.commit()
+        flash("Invitation revoquee.", "info")
         return redirect(url_for("client.team"))
 
     @bp.route("/team/approve/<uuid:user_id>", methods=["POST"])
@@ -198,6 +291,11 @@ def register(bp):
             existing.first_name = target_user.first_name
             existing.last_name = target_user.last_name
             existing.email = target_user.email
+            # Approval supersedes any outstanding invite — the user just
+            # signed up via the SIRET flow, so the link is dead weight
+            # (and would burn the unique-token index slot otherwise).
+            existing.invite_token = None
+            existing.invited_at = None
         else:
             db.add(
                 CompanyEmployee(

@@ -1,8 +1,10 @@
+import datetime
 import os
 
 import bcrypt
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from database import get_db
 from extensions import limiter
@@ -16,6 +18,12 @@ from models import (
     UserRole,
 )
 from services.slugs import generate_invoice_prefix
+
+
+# Same TTL the team handler uses when generating the token. Kept here so
+# /signup/invite/<token> can reject stale links without importing from
+# the team blueprint (which would create a circular dependency).
+INVITE_TOKEN_TTL_DAYS = 7
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -333,6 +341,115 @@ def signup():
             return render_template("auth/signup.html")
 
     return render_template("auth/signup.html")
+
+
+def _resolve_invite(token: str) -> CompanyEmployee | None:
+    """Look up an active invite by token. Returns None if the token doesn't
+    match, has been redeemed, or has expired. Used by both the GET (form
+    display) and POST (acceptance) handlers below."""
+    if not token:
+        return None
+    db = get_db()
+    employee = db.scalar(
+        select(CompanyEmployee).where(CompanyEmployee.invite_token == token)
+    )
+    if employee is None:
+        return None
+    # Already redeemed or otherwise tied to a user account.
+    if employee.user_id is not None:
+        return None
+    # Expired.
+    if employee.invited_at is not None:
+        age = datetime.datetime.utcnow() - employee.invited_at
+        if age.days >= INVITE_TOKEN_TTL_DAYS:
+            return None
+    return employee
+
+
+@auth_bp.route("/signup/invite/<token>", methods=["GET", "POST"])
+@limiter.limit(SIGNUP_LIMIT, methods=["POST"])
+def signup_invite(token: str):
+    """Redeem an invitation token: create a `client_user` already
+    attached + active for the inviting company, link the existing
+    CompanyEmployee row, consume the token, and log the new user in.
+
+    Bypasses the SIRET pending-approval flow because the token itself
+    proves an existing admin already trusts the recipient. The token is
+    single-use (cleared on success) and expires after
+    INVITE_TOKEN_TTL_DAYS days.
+    """
+    employee = _resolve_invite(token)
+    if employee is None:
+        return render_template("auth/signup_invite_invalid.html"), 404
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if not password:
+            flash("Veuillez renseigner un mot de passe.", "error")
+            return render_template(
+                "auth/signup_invite.html", token=token, employee=employee
+            )
+        password_error = validate_password(password)
+        if password_error:
+            flash(password_error, "error")
+            return render_template(
+                "auth/signup_invite.html", token=token, employee=employee
+            )
+
+        db = get_db()
+        # Email + name come straight from the CompanyEmployee row the
+        # admin pre-filled — a tampered POST that smuggles different
+        # values is ignored. Race-safe: re-check user_id under the
+        # session before commit.
+        existing_user = db.scalar(
+            select(User).where(User.email == employee.email)
+        )
+        if existing_user:
+            flash(
+                "Un compte existe deja avec cette adresse e-mail. Connectez-vous.",
+                "error",
+            )
+            return redirect(url_for("auth.login"))
+
+        password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        new_user = User(
+            email=employee.email,
+            password_hash=password_hash,
+            first_name=employee.first_name,
+            last_name=employee.last_name,
+            role=UserRole.client_user,
+            company_id=employee.company_id,
+            membership_status=MembershipStatus.active,
+        )
+        db.add(new_user)
+
+        # Consume the token + link the employee row to the freshly
+        # created user. After this, the same token will fail
+        # _resolve_invite() (user_id set + token NULL).
+        try:
+            db.flush()
+            employee.user_id = new_user.id
+            employee.invite_token = None
+            db.commit()
+        except IntegrityError:
+            # Concurrent redemption beat us to the User.email unique
+            # constraint, or a parallel signup grabbed the address. Token
+            # is single-use so this is near-impossible in practice, but
+            # surface a clean message instead of a 500.
+            db.rollback()
+            flash(
+                "Un compte existe deja avec cette adresse e-mail. Connectez-vous.",
+                "error",
+            )
+            return redirect(url_for("auth.login"))
+
+        session.clear()
+        session["user_id"] = str(new_user.id)
+        session.permanent = True
+        flash("Bienvenue ! Votre compte est cree.", "success")
+        return redirect(url_for("client.dashboard"))
+
+    return render_template("auth/signup_invite.html", token=token, employee=employee)
 
 
 @auth_bp.route("/logout", methods=["POST"])

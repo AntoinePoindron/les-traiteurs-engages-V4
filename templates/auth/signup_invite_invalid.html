@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Lien invalide - Les Traiteurs Engag&#233;s{% endblock %}
+
+{% block public_content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-cream-page">
+  <div class="w-full max-w-md text-center">
+    <div class="mb-6">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-12 mx-auto mb-6">
+    </div>
+
+    <div class="bg-white rounded-2xl p-8 shadow-sm border border-default">
+      <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-danger-soft">
+        <i data-lucide="alert-triangle" class="w-7 h-7 text-danger"></i>
+      </div>
+      <h1 class="font-display text-2xl font-semibold text-text mb-2">Lien invalide ou expir&#233;</h1>
+      <p class="text-sm text-mute-soft mb-6">
+        Ce lien d'invitation n'est plus valable. Il a pu &#234;tre d&#233;j&#224; utilis&#233;, r&#233;voqu&#233;, ou avoir expir&#233;.
+        Demandez &#224; l'administrateur de votre structure de g&#233;n&#233;rer un nouveau lien.
+      </p>
+      <a href="{{ url_for('auth.login') }}"
+         class="inline-block bg-navy text-white px-5 py-2.5 rounded-full font-bold text-sm no-underline">
+        Aller &#224; la connexion
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
