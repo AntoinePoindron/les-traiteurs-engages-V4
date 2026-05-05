@@ -113,6 +113,18 @@ ROLE_DASHBOARDS = {
 }
 
 
+def _stamp_session(user):
+    """Record the user_id and a snapshot of password_changed_at on the
+    session. `app.load_current_user` re-reads both on every request and
+    invalidates the session if the live column has moved past the
+    snapshot — that's how a password reset force-logs-out other devices.
+    """
+    session["user_id"] = str(user.id)
+    session["pwd_changed_at"] = (
+        user.password_changed_at.isoformat() if user.password_changed_at else None
+    )
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit(LOGIN_LIMIT, methods=["POST"])
 def login():
@@ -158,7 +170,7 @@ def login():
         # Rotate session on successful auth: drop any pre-login state
         # (CSRF token, anonymous flash) before issuing the authenticated cookie.
         session.clear()
-        session["user_id"] = str(user.id)
+        _stamp_session(user)
         session.permanent = True
         endpoint = ROLE_DASHBOARDS.get(UserRole(user.role), "client.dashboard")
         return redirect(url_for(endpoint))
@@ -282,7 +294,7 @@ def signup():
             )
             db.commit()
 
-            session["user_id"] = str(user.id)
+            _stamp_session(user)
             # First-time signup with a fresh SIRET: the new client_admin lands
             # on /client/settings so they can fill in the company name +
             # billing address. Company.name is currently the SIRET as a
@@ -332,7 +344,7 @@ def signup():
             db.add(user)
             db.flush()
             db.commit()
-            session["user_id"] = str(user.id)
+            _stamp_session(user)
             flash("Votre compte traiteur a ete cree avec succes.", "success")
             return redirect(url_for("caterer.dashboard"))
 
@@ -444,7 +456,7 @@ def signup_invite(token: str):
             return redirect(url_for("auth.login"))
 
         session.clear()
-        session["user_id"] = str(new_user.id)
+        _stamp_session(new_user)
         session.permanent = True
         flash("Bienvenue ! Votre compte est cree.", "success")
         return redirect(url_for("client.dashboard"))

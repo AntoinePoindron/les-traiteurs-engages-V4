@@ -86,10 +86,15 @@ def consume_token(db: Session, *, raw_token: str, new_password: str) -> User:
         # issued — refuse the consume. Same opaque error.
         raise ResetTokenInvalid
 
-    row.used_at = datetime.datetime.utcnow()
+    now = datetime.datetime.utcnow()
+    row.used_at = now
     user.password_hash = bcrypt.hashpw(
         new_password.encode("utf-8"), bcrypt.gensalt()
     ).decode("utf-8")
+    # Bumping this column invalidates every existing session for the
+    # user — `app.load_current_user` compares the live value against
+    # the snapshot the session was issued with.
+    user.password_changed_at = now
     db.flush()
     return user
 

@@ -173,6 +173,26 @@ def create_app():
             if user and not user.is_active:
                 session.clear()
                 user = None
+            if user:
+                # Session invalidation on password reset: the snapshot
+                # stored at login must still match the live column.
+                # Mismatch = the user reset their password from another
+                # device/IP, so this session is stale.
+                #
+                # We pull the column with a fresh scalar query rather
+                # than reading user.password_changed_at directly: a
+                # parallel commit (other tab, other process) updates
+                # the row, but a session whose identity map already
+                # holds the User instance may serve a stale attribute.
+                # The dedicated column query bypasses the identity map.
+                stamped = session.get("pwd_changed_at")
+                live_at = db.scalar(
+                    select(User.password_changed_at).where(User.id == user_id)
+                )
+                live = live_at.isoformat() if live_at else None
+                if stamped != live:
+                    session.clear()
+                    user = None
             g.current_user = user
 
     @app.teardown_appcontext

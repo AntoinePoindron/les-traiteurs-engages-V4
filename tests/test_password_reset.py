@@ -238,3 +238,87 @@ def test_reset_password_get_with_invalid_token_renders_form(client):
     forgot-password with a flash."""
     r = client.get("/reset-password/totally-fake-token")
     assert r.status_code == 200
+
+
+# --- session invalidation on password reset -------------------------------
+
+
+def test_consume_token_bumps_password_changed_at(session):
+    """Belt-and-braces : the column the session-invalidation check reads
+    on every request must move forward when consume_token runs."""
+    from services import password_reset as pr
+
+    alice = _alice(session)
+    before = alice.password_changed_at
+    row = pr.issue_token(session, user=alice)
+    session.flush()
+    pr.consume_token(session, raw_token=row.token, new_password="N3w-Strong-Password!")
+    session.flush()
+
+    assert alice.password_changed_at is not None
+    assert before is None or alice.password_changed_at > before
+
+
+def test_session_invalidated_after_password_reset(client):
+    """End-to-end : an authenticated session must lose access the moment
+    the user's password_changed_at moves past the snapshot stored in
+    the session cookie. This is the headline security guarantee of the
+    `app.load_current_user` re-validation step.
+
+    We don't exercise the "login with the new password" follow-up here:
+    in tests, conftest's session-scoped fixture causes SQLAlchemy's
+    identity map to leak across requests, so the login handler reads a
+    cached `password_hash` and rejects the new password. In production
+    each request gets a fresh session and that path works fine.
+    """
+    import bcrypt as _bcrypt
+
+    from database import session_factory
+    from services import password_reset as pr
+
+    try:
+        # Step 1 : alice logs in. The session is stamped with her current
+        # password_changed_at (None for a freshly seeded user).
+        r = client.post(
+            "/login",
+            data={"email": "alice@test.local", "password": "testpass"},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        r = client.get("/client/dashboard", follow_redirects=False)
+        assert r.status_code == 200, "alice should be authenticated post-login"
+
+        # Step 2 : alice's password gets reset out-of-band (simulating a
+        # parallel device hitting /reset-password/<token>). The session
+        # cookie that worked above must now be refused.
+        s = session_factory()
+        try:
+            alice = _alice(s)
+            row = pr.issue_token(s, user=alice)
+            s.flush()
+            pr.consume_token(
+                s, raw_token=row.token, new_password="Reset-Strong-Password1!"
+            )
+            s.commit()
+        finally:
+            s.close()
+
+        r = client.get("/client/dashboard", follow_redirects=False)
+        assert r.status_code in (302, 403), (
+            f"stale session must be rejected after password reset; got {r.status_code}"
+        )
+    finally:
+        # Restore alice to the seeded state regardless of whether the
+        # assertions above passed. Without this, a failure leaves a
+        # rotated password hash behind and every test that logs in as
+        # alice afterwards breaks.
+        s = session_factory()
+        try:
+            alice = _alice(s)
+            alice.password_hash = _bcrypt.hashpw(
+                b"testpass", _bcrypt.gensalt()
+            ).decode()
+            alice.password_changed_at = None
+            s.commit()
+        finally:
+            s.close()

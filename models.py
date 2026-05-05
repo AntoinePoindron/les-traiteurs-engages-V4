@@ -252,6 +252,12 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     membership_status: Mapped[MembershipStatus | None] = mapped_column(String(20))
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255))
+    # Bumped whenever password_hash is rotated (currently: password reset
+    # flow). The session stores this timestamp at login time; any request
+    # whose session value differs from the live column is rejected. NULL
+    # for users who have never reset — matches sessions issued before the
+    # column existed, so the deploy doesn't force-logout anyone.
+    password_changed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()
     )
