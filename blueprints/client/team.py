@@ -5,11 +5,6 @@ import uuid
 from flask import flash, g, redirect, render_template, request, url_for
 from sqlalchemy import func, select
 
-
-# Invite-link token lifetime. After this delay the token is considered
-# expired even if it's still in the DB; /signup/invite/<token> rejects it.
-INVITE_TOKEN_TTL_DAYS = 7
-
 from blueprints.client._helpers import own_service_id
 from blueprints.middleware import login_required, role_required
 from blueprints.scoping import (
@@ -21,6 +16,10 @@ from database import get_db
 from extensions import limiter
 from forms.client import EmployeeForm, ServiceForm
 from models import CompanyEmployee, CompanyService, MembershipStatus, User
+
+# Invite-link token lifetime. After this delay the token is considered
+# expired even if it's still in the DB; /signup/invite/<token> rejects it.
+INVITE_TOKEN_TTL_DAYS = 7
 
 
 def register(bp):
