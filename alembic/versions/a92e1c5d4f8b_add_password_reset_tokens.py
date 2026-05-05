@@ -1,7 +1,7 @@
 """add_password_reset_tokens
 
 Revision ID: a92e1c5d4f8b
-Revises: a4d62b15c899
+Revises: b3e84f217a5d
 Create Date: 2026-05-02 14:10:00.000000
 
 """
@@ -14,7 +14,10 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "a92e1c5d4f8b"
-down_revision: Union[str, Sequence[str], None] = "a4d62b15c899"
+# Originally created against a4d62b15c899; repointed to the now-current
+# head b3e84f217a5d (company_employee_invite_token, merged via
+# feat/no-self-delete-effectifs) to keep the alembic chain linear.
+down_revision: Union[str, Sequence[str], None] = "b3e84f217a5d"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
