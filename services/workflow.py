@@ -52,16 +52,6 @@ class QuoteExpired(WorkflowError):
     """La date de validité du devis est dépassée."""
 
 
-class NoMatchingCaterers(WorkflowError):
-    """Aucun traiteur compatible trouvé pour la demande (admin).
-
-    Plus levée par `approve_quote_request` (cf. son docstring sur le repli
-    "tous les traiteurs validés"). Conservée pour ne pas casser un
-    consommateur externe éventuel — à supprimer dès qu'on a la certitude
-    que rien n'en dépend en dehors du repo.
-    """
-
-
 class QuoteRequestClosed(WorkflowError):
     """Cette demande est clôturée pour ce traiteur : trois autres ont déjà
     transmis leur devis au client. Levée par `submit_quote` quand la QRC
