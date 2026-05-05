@@ -1,7 +1,7 @@
 """add_caterer_reviews
 
 Revision ID: 11a3c9fbf7ee
-Revises: a4d62b15c899
+Revises: a1f3e9c2b4d6
 Create Date: 2026-05-02 11:26:22.980689
 
 """
@@ -14,7 +14,10 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "11a3c9fbf7ee"
-down_revision: Union[str, Sequence[str], None] = "a4d62b15c899"
+# Originally created against a4d62b15c899; repointed to the now-current
+# head a1f3e9c2b4d6 (users.password_changed_at, merged via
+# feat/email-infra-brevo) to keep the alembic chain linear.
+down_revision: Union[str, Sequence[str], None] = "a1f3e9c2b4d6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
