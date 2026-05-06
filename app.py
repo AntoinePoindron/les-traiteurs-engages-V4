@@ -14,6 +14,7 @@ from flask import (
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
+from whitenoise import WhiteNoise
 
 import config
 from config import settings
@@ -73,6 +74,27 @@ CSP = (
 def create_app():
     app = Flask(__name__)
     app.secret_key = config.SECRET_KEY
+
+    # Whitenoise serves /static/* at the WSGI layer, before Flask routing —
+    # avoids waking the full Flask stack (request middleware, blueprint
+    # dispatch, login_required, notification injection, etc.) for every
+    # CSS/JS/image. On Scalingo this is the only thing keeping static-asset
+    # traffic off the gunicorn worker pool (no Caddy in front of the dyno).
+    # On self-hosted (docker-compose.{staging,prod}.yml), Caddy intercepts
+    # /static/* first via handle_path, so Whitenoise sits dormant there.
+    #
+    # max_age=3600 (not `immutable`) because CSS/JS filenames in this project
+    # are NOT content-hashed; longer caching would strand stale assets after
+    # a deploy. Whitenoise still emits ETag so revalidation is a cheap 304.
+    # Uploads are not in static/ on Scalingo (they live on S3 with their own
+    # immutable Cache-Control set in services/uploads.py:_save_s3).
+    app.wsgi_app = WhiteNoise(
+        app.wsgi_app,
+        root=os.path.join(os.path.dirname(__file__), "static"),
+        prefix="/static/",
+        max_age=3600,
+        autorefresh=os.getenv("FLASK_DEBUG") == "1",
+    )
 
     if settings.trust_proxy_headers:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
