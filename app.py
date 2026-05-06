@@ -361,7 +361,5 @@ if __name__ == "__main__":
     # / Bandit B201. Production runs through gunicorn (entrypoint.sh) which
     # ignores this block entirely, so the practical risk is a `python app.py`
     # in dev with FLASK_DEBUG accidentally set in the environment.
-    import os
-
     debug_flag = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
     create_app().run(debug=debug_flag, port=8000)
