@@ -11,7 +11,7 @@ venv/
 # Environments / secrets
 .env
 .env.*
-.deploy.env
+!.env.example
 *.pem
 *.key
 

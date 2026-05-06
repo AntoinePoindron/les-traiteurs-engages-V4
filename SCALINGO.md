@@ -117,5 +117,4 @@ Scalingo Router (TLS termination)
           +-- Redis addon
 ```
 
-Scalingo handles TLS, routing, and load balancing. The Caddy reverse proxy
-from the Docker Compose setup is not needed.
+Scalingo handles TLS, routing, and load balancing.

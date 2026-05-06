@@ -22,6 +22,13 @@ stripe==15.1.0
 python-json-logger==4.1.0
 flask-limiter==4.1.1
 
+# Serves /static/* at the WSGI layer instead of through Flask routing —
+# critical on Scalingo where there is no Caddy/nginx in front of gunicorn
+# and every asset request would otherwise consume a worker. Self-hosted
+# deploys (docker-compose.{staging,prod}.yml + Caddy) short-circuit
+# /static/* in Caddy first, so whitenoise is dormant in that path.
+whitenoise==6.12.0
+
 # Background task queue (P3.4) — phase 2 of Stripe billing runs in a
 # separate worker so the user-facing POST returns in <100ms instead of
 # waiting on Stripe API round-trips. Redis is the broker.

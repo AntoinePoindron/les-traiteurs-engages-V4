@@ -30,59 +30,25 @@ python seed_data.py
 flask run --port 8000
 ```
 
-## Deployment (staging / prod)
+## Deployment
 
-The stack ships in three flavours selected via overlay compose files:
+| Env | Where | How |
+|---|---|---|
+| local | your machine | `docker compose up` (see [Quick start](#quick-start-docker)) |
+| prod | Scalingo | `git push scalingo main` (see [SCALINGO.md](SCALINGO.md)) |
 
-| Env | Compose files | TLS | Cookies | Ports exposed |
-|---|---|---|---|---|
-| dev (local) | `docker-compose.yml` | none | insecure | 8000 on `0.0.0.0` |
-| staging | base + `docker-compose.staging.yml` | Caddy + Let's Encrypt | secure | 80 + 443 only |
-| prod | base + `docker-compose.prod.yml` | Caddy + Let's Encrypt | secure | 80 + 443 only |
+Production runs on **Scalingo** as a Python buildpack app with Postgres
+and Redis addons. TLS, routing and load balancing are handled by the
+Scalingo router — there is no Caddy/nginx in front of gunicorn.
+Whitenoise serves `/static/*` at the WSGI layer so static assets don't
+consume a gunicorn worker.
 
-Both deployed flavours rely on **Caddy** as a reverse-proxy (auto-HTTPS,
-HSTS, HTTP/3) in front of gunicorn, and rebind the app to `127.0.0.1:8000`
-so only Caddy can reach it.
-
-### Staging deploy
-
-```bash
-# One-time: copy the env template, fill in real values
-cp .deploy.env.staging.example .deploy.env
-# Edit .deploy.env: SECRET_KEY, DATABASE_URL with prod password, Stripe test keys
-
-# Make sure DNS is set: A record for staging.traiteurs.engages.inclusion.gouv.fr
-# pointing to the staging server's public IP, BEFORE first start.
-
-docker compose --env-file .deploy.env \
-  -f docker-compose.yml \
-  -f .deploy-override.yml \
-  -f docker-compose.staging.yml \
-  up -d --build
-
-# First boot only — provision the super admin via CLI:
-docker compose -p traiteurs-staging exec app flask admin create
-```
-
-Caddy will request a Let's Encrypt cert on first start. Watch the
-logs: `docker compose -p traiteurs-staging logs -f caddy`.
-
-### Prod deploy
-
-Same as staging, but use `.deploy.env.prod.example`,
-`docker-compose.prod.yml`, and `traiteurs.engages.inclusion.gouv.fr`.
-
-Critical differences from staging:
+Critical reminders for the prod environment on Scalingo:
 - `STRIPE_SECRET_KEY` is a **live** key (`sk_live_...`)
-- `ENABLE_DEMO_SEED` MUST be empty (no demo accounts in prod)
-- `ADMIN_INITIAL_PASSWORD` MUST be empty after first boot — manage admins
-  exclusively via `flask admin {create,reset-password,disable}`
-
-### DNS prerequisite
-
-Before first start, an A record (or CNAME) must point `CADDY_DOMAIN`
-at the server's public IP. If Let's Encrypt cannot validate via HTTP-01,
-the cert fails to provision and Caddy serves an empty HTTPS endpoint.
+- `ENABLE_DEMO_SEED` MUST be unset (no demo accounts in prod)
+- `ADMIN_INITIAL_PASSWORD` MUST be unset after first boot — manage admins
+  via `scalingo run flask admin {create,reset-password,disable}`
+- `S3_*` MUST be set (Scalingo dynos are ephemeral; uploads need S3)
 
 ## Environment variables
 
@@ -97,7 +63,8 @@ the cert fails to provision and Caddy serves an empty HTTPS endpoint.
 
 ## Admin lifecycle (CLI)
 
-Day-to-day super-admin management uses the Flask CLI (no env var needed):
+Day-to-day super-admin management uses the Flask CLI (no env var needed).
+Locally:
 
 ```bash
 docker compose exec app flask admin create               # interactive prompt
@@ -106,10 +73,12 @@ docker compose exec app flask admin list
 docker compose exec app flask admin disable EMAIL        # soft delete (audit trail kept)
 ```
 
+On Scalingo, swap `docker compose exec app` for `scalingo --app <name> run`.
+
 `ADMIN_INITIAL_PASSWORD` env var bootstrap remains available for first
 boot only. Once the platform is live, prefer the CLI: passwords are
-typed at the prompt (no shell history, no `.deploy.env` exposure) and
-the policy from `blueprints/auth.validate_password` is enforced.
+typed at the prompt (no shell history, no env exposure) and the policy
+from `blueprints/auth.validate_password` is enforced.
 
 ## Default credentials
 

@@ -38,7 +38,8 @@ def _make_broker():
         # Fail loud rather than silently lose every queued invoice.
         raise RuntimeError(
             "REDIS_URL is not set. The web process and the worker both "
-            "need it. Check docker-compose.yml or .deploy.env."
+            "need it. Check docker-compose.yml (local) or the Scalingo "
+            "Redis addon (REDIS_URL is auto-injected once provisioned)."
         )
     return RedisBroker(url=redis_url)
 

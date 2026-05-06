@@ -1,15 +1,13 @@
 services:
   app:
     build: .
-    # In dev, HOST_BIND defaults to 0.0.0.0 so the app is reachable from
-    # phones on the same wifi. In staging/prod, set HOST_BIND=127.0.0.1
-    # in .deploy.env so only the local Caddy reverse-proxy can reach 8000
-    # (Caddy contacts `app:8000` via the Docker network either way).
+    # HOST_BIND defaults to 0.0.0.0 so the app is reachable from phones on
+    # the same wifi during local dev. Override via env if needed.
     ports:
       - "${HOST_BIND:-0.0.0.0}:${HOST_PORT:-8000}:8000"
     environment:
       - DATABASE_URL=postgresql://traiteurs:traiteurs@db:5432/traiteurs
-      # SECRET_KEY must be set via .deploy.env or shell env. App fails to boot if missing or <32 chars.
+      # SECRET_KEY must be set via .env or shell env. App fails to boot if missing or <32 chars.
       - SECRET_KEY=${SECRET_KEY:-}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
@@ -43,6 +41,13 @@ services:
     pids_limit: 200
     security_opt:
       - no-new-privileges:true
+    # Runtime uploads (logos, profile pictures, attachments) live on a
+    # named volume so they survive container rebuilds during local dev.
+    # Without this, files written to /app/static/uploads are stranded in
+    # the container's writable layer and lost on every rebuild. (Prod runs
+    # on Scalingo and writes uploads to S3 instead — see services/uploads.py.)
+    volumes:
+      - app_uploads:/app/static/uploads
 
   db:
     image: postgres:16
@@ -118,3 +123,4 @@ services:
 
 volumes:
   pgdata:
+  app_uploads:

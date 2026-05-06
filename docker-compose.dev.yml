@@ -8,13 +8,13 @@
 #
 # Use:
 #
-#   docker compose --env-file .deploy.env \
+#   docker compose --env-file .env \
 #     -f docker-compose.yml \
 #     -f docker-compose.dev.yml \
 #     up -d
 #
-# Stays out of staging/prod (those use docker-compose.staging.yml /
-# docker-compose.prod.yml respectively, which never reference this file).
+# Local dev only. Production runs on Scalingo (see SCALINGO.md) and
+# does not use docker-compose at all.
 
 services:
   app:
