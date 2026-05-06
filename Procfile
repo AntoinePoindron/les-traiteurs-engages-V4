@@ -1,3 +1,3 @@
 web: gunicorn "app:create_app()"
 worker: dramatiq services.billing_tasks services.email --processes 1 --threads 4
-postdeploy: alembic upgrade head && python init_db.py
+postdeploy: alembic upgrade head && python init_db.py && { [ "$SEED_FIXTURES" = "true" ] && python seed_data.py || true; }
