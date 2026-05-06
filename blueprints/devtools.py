@@ -8,8 +8,8 @@ entirely and would let any visitor impersonate any user.
 
 Two safeguards keep that risk contained:
   1. The blueprint is only registered by app.py when
-     `ENABLE_DEMO_SEED == "1"`. In a prod .deploy.env the flag is empty,
-     so the route literally does not exist.
+     `ENABLE_DEMO_SEED == "1"`. The flag is never set on Scalingo, so
+     in production the route literally does not exist.
   2. The endpoint additionally hard-codes the demo email allowlist.
      Even if the flag accidentally leaked into prod, only the seven
      well-known demo accounts could be impersonated — not real users.

@@ -6,7 +6,6 @@
 # Secrets / env
 .env
 .env.*
-.deploy.env
 *.pem
 *.key
 
@@ -51,6 +50,5 @@ tasks.md
 # Local notes
 .claude/
 
-# Compose overrides (deploy.env is the source of truth, not committed)
+# Local-only compose overrides (not used in any deployment)
 docker-compose.local.yml
-.deploy-override.yml
