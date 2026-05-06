@@ -280,10 +280,10 @@ def save_upload(file, subfolder: str = "general") -> str | None:
         clean_buf = _reencode_pdf(file.stream)
     else:
         clean_buf = _reencode_image(file.stream, declared_ext)
-    if clean_buf is not None:
-        file.stream = clean_buf
-    else:
-        file.stream.seek(0)
+    if clean_buf is None:
+        logger.warning("upload rejected: re-encode failed for %s", declared_ext)
+        return None
+    file.stream = clean_buf
 
     if _s3_enabled():
         try:

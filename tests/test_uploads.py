@@ -3,6 +3,7 @@
 import io
 
 import pytest
+from PIL import Image
 
 from services.uploads import (
     MAX_FILE_SIZE,
@@ -18,6 +19,13 @@ JPEG_HEADER = b"\xff\xd8\xff\xe0" + b"\x00" * 12
 GIF_HEADER = b"GIF89a" + b"\x00" * 10
 PDF_HEADER = b"%PDF-1.4" + b"\x00" * 8
 WEBP_HEADER = b"RIFF" + b"\x00\x00\x00\x00" + b"WEBP" + b"\x00" * 4
+
+
+def _real_image(fmt: str) -> bytes:
+    """Produce a real Pillow-decodable image so save_upload's re-encode succeeds."""
+    buf = io.BytesIO()
+    Image.new("RGB", (4, 4), color=(255, 0, 0)).save(buf, format=fmt)
+    return buf.getvalue()
 
 
 class FakeFile:
@@ -120,7 +128,7 @@ def upload_dir(tmp_path, monkeypatch):
 
 
 def test_save_upload_local_success(upload_dir):
-    f = FakeFile("logo.png", PNG_HEADER + b"\x00" * 100)
+    f = FakeFile("logo.png", _real_image("PNG"))
     url = save_upload(f, subfolder="test")
     assert url is not None
     assert url.startswith("/static/uploads/test/")
@@ -137,7 +145,14 @@ def test_save_upload_returns_none_on_invalid(upload_dir):
 
 
 def test_save_upload_subfolder_created(upload_dir):
-    f = FakeFile("pic.jpg", JPEG_HEADER + b"\x00" * 50)
+    f = FakeFile("pic.jpg", _real_image("JPEG"))
     url = save_upload(f, subfolder="caterers/logos")
     assert url is not None
     assert (upload_dir / "caterers" / "logos").is_dir()
+
+
+def test_save_upload_rejects_polyglot_with_bad_body(upload_dir):
+    """JPEG magic bytes + garbage body must be rejected, not saved raw."""
+    f = FakeFile("evil.jpg", JPEG_HEADER + b"\x00" * 100)
+    assert save_upload(f, subfolder="test") is None
+    assert not (upload_dir / "test").exists()
