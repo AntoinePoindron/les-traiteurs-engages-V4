@@ -27,8 +27,13 @@ venv/
 
 # Test / coverage
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
+
+# Local Postgres state from docker-compose.dev.yml
+.pgdata/
+.pgsock/
 
 # Build artefacts
 dist/
@@ -52,7 +57,9 @@ docker-compose.override.yml
 
 # Security scan reports
 .scan-reports/
-SECURITY_AUDIT.md
+
+# Audit reports (local synthesis, not for git history)
+*AUDIT*.md
 
 # Runtime user uploads (created by services/uploads.py at runtime)
 static/uploads/
