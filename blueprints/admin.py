@@ -10,7 +10,7 @@ from flask import (
     request,
     url_for,
 )
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
 from blueprints.middleware import login_required, role_required
@@ -42,6 +42,7 @@ from services.notifications import (
     notify_users,
 )
 from services.matching import find_matching_caterers
+from blueprints._notifications import register as _register_notifications
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -795,7 +796,5 @@ def message_thread(thread_id):
         admin_total=total,
     )
 
-
-from blueprints._notifications import register as _register_notifications
 
 _register_notifications(admin_bp, roles=("super_admin",))
