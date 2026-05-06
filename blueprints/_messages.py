@@ -1,3 +1,10 @@
+"""Shared messagerie routes for client/caterer blueprints.
+
+Endpoint names are derived from the blueprint name (e.g. `client.messages`),
+so call sites only differ by which roles are authorized. Admin's messages
+view is paginated and lives in blueprints/admin.py separately.
+"""
+
 from flask import abort, g, render_template
 
 from blueprints.middleware import login_required, role_required
@@ -6,23 +13,24 @@ from models import UserRole
 from services.messagerie import active_thread_context, threads_for_viewer
 
 
-def _build_ctx(*, viewer, threads, active_thread_id, active):
-    return {
-        "threads": threads,
-        "active_thread_id": active_thread_id,
-        "active": active,
-        "list_endpoint": "caterer.messages",
-        "thread_endpoint": "caterer.message_thread",
-        "show_role_badges": viewer.role == UserRole.super_admin,
-        "read_only": False,
-        "current_user_id": str(viewer.id),
-    }
+def register(bp, *, roles):
+    prefix = bp.name
 
+    def _build_ctx(*, viewer, threads, active_thread_id, active):
+        return {
+            "threads": threads,
+            "active_thread_id": active_thread_id,
+            "active": active,
+            "list_endpoint": f"{prefix}.messages",
+            "thread_endpoint": f"{prefix}.message_thread",
+            "show_role_badges": viewer.role == UserRole.super_admin,
+            "read_only": False,
+            "current_user_id": str(viewer.id),
+        }
 
-def register(bp):
     @bp.route("/messages")
     @login_required
-    @role_required("caterer")
+    @role_required(*roles)
     def messages():
         user = g.current_user
         db = get_db()
@@ -40,7 +48,7 @@ def register(bp):
 
     @bp.route("/messages/<uuid:thread_id>")
     @login_required
-    @role_required("caterer")
+    @role_required(*roles)
     def message_thread(thread_id):
         user = g.current_user
         db = get_db()
