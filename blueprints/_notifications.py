@@ -1,5 +1,8 @@
-"""Caterer-side notifications page. Mirrors blueprints/client/notifications.py
-— same template, only the role gate + mark-all endpoint name differ."""
+"""Shared notifications routes for client/caterer/admin blueprints.
+
+Endpoint names are derived from the blueprint name (e.g. `client.notifications`),
+so call sites only differ by which roles are authorized.
+"""
 
 from flask import flash, g, redirect, render_template, url_for
 from sqlalchemy import select, update
@@ -10,10 +13,13 @@ from models import Notification
 from services.notifications import notification_target_url
 
 
-def register(bp):
+def register(bp, *, roles):
+    prefix = bp.name
+    list_endpoint = f"{prefix}.notifications"
+
     @bp.route("/notifications")
     @login_required
-    @role_required("caterer")
+    @role_required(*roles)
     def notifications():
         user = g.current_user
         db = get_db()
@@ -29,13 +35,13 @@ def register(bp):
             user=user,
             notes=notes,
             unread_count=unread_count,
-            mark_all_endpoint="caterer.notifications_mark_all_read",
-            read_one_endpoint="caterer.notifications_read_one",
+            mark_all_endpoint=f"{prefix}.notifications_mark_all_read",
+            read_one_endpoint=f"{prefix}.notifications_read_one",
         )
 
     @bp.route("/notifications/<uuid:notification_id>/read", methods=["POST"])
     @login_required
-    @role_required("caterer")
+    @role_required(*roles)
     def notifications_read_one(notification_id):
         user = g.current_user
         db = get_db()
@@ -43,16 +49,16 @@ def register(bp):
         if note and note.user_id == user.id:
             note.is_read = True
             db.commit()
-        return redirect(url_for("caterer.notifications"))
+        return redirect(url_for(list_endpoint))
 
     @bp.route("/notifications/<uuid:notification_id>/visit", methods=["POST"])
     @login_required
-    @role_required("caterer")
+    @role_required(*roles)
     def notifications_visit(notification_id):
         user = g.current_user
         db = get_db()
         note = db.get(Notification, notification_id)
-        target = url_for("caterer.notifications")
+        target = url_for(list_endpoint)
         if note and note.user_id == user.id:
             resolved = notification_target_url(note, user.role)
             if resolved:
@@ -63,7 +69,7 @@ def register(bp):
 
     @bp.route("/notifications/mark-all-read", methods=["POST"])
     @login_required
-    @role_required("caterer")
+    @role_required(*roles)
     def notifications_mark_all_read():
         user = g.current_user
         db = get_db()
@@ -74,4 +80,4 @@ def register(bp):
         )
         db.commit()
         flash("Toutes les notifications sont marquées comme lues.", "info")
-        return redirect(url_for("caterer.notifications"))
+        return redirect(url_for(list_endpoint))

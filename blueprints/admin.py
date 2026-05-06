@@ -10,7 +10,7 @@ from flask import (
     request,
     url_for,
 )
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
 from blueprints.middleware import login_required, role_required
@@ -39,10 +39,10 @@ from services.audit import log_admin_action
 from services.notifications import (
     caterer_user_ids,
     company_admin_user_ids,
-    notification_target_url,
     notify_users,
 )
 from services.matching import find_matching_caterers
+from blueprints._notifications import register as _register_notifications
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -797,70 +797,4 @@ def message_thread(thread_id):
     )
 
 
-@admin_bp.route("/notifications")
-@login_required
-@role_required("super_admin")
-def notifications():
-    user = g.current_user
-    db = get_db()
-    notes = db.scalars(
-        select(Notification)
-        .where(Notification.user_id == user.id)
-        .order_by(Notification.created_at.desc())
-        .limit(100)
-    ).all()
-    unread_count = sum(1 for n in notes if not n.is_read)
-    return render_template(
-        "notifications/list.html",
-        user=user,
-        notes=notes,
-        unread_count=unread_count,
-        mark_all_endpoint="admin.notifications_mark_all_read",
-        read_one_endpoint="admin.notifications_read_one",
-    )
-
-
-@admin_bp.route("/notifications/<uuid:notification_id>/read", methods=["POST"])
-@login_required
-@role_required("super_admin")
-def notifications_read_one(notification_id):
-    user = g.current_user
-    db = get_db()
-    note = db.get(Notification, notification_id)
-    if note and note.user_id == user.id:
-        note.is_read = True
-        db.commit()
-    return redirect(url_for("admin.notifications"))
-
-
-@admin_bp.route("/notifications/<uuid:notification_id>/visit", methods=["POST"])
-@login_required
-@role_required("super_admin")
-def notifications_visit(notification_id):
-    user = g.current_user
-    db = get_db()
-    note = db.get(Notification, notification_id)
-    target = url_for("admin.notifications")
-    if note and note.user_id == user.id:
-        resolved = notification_target_url(note, user.role)
-        if resolved:
-            target = resolved
-        note.is_read = True
-        db.commit()
-    return redirect(target)
-
-
-@admin_bp.route("/notifications/mark-all-read", methods=["POST"])
-@login_required
-@role_required("super_admin")
-def notifications_mark_all_read():
-    user = g.current_user
-    db = get_db()
-    db.execute(
-        update(Notification)
-        .where(Notification.user_id == user.id, Notification.is_read.is_(False))
-        .values(is_read=True)
-    )
-    db.commit()
-    flash("Toutes les notifications sont marquées comme lues.", "info")
-    return redirect(url_for("admin.notifications"))
+_register_notifications(admin_bp, roles=("super_admin",))
