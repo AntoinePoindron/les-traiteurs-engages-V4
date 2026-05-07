@@ -303,9 +303,7 @@ def create_app():
                         )
                     )
                     for qid in quote_ids:
-                        touched |= bool(
-                            mark_read_for_entity(db, user_id, "quote", qid)
-                        )
+                        touched |= bool(mark_read_for_entity(db, user_id, "quote", qid))
             elif endpoint in (
                 "client.order_detail",
                 "caterer.order_detail",
@@ -317,9 +315,7 @@ def create_app():
             elif endpoint == "admin.caterer_detail":
                 cid = args.get("caterer_id")
                 if cid:
-                    touched |= bool(
-                        mark_read_for_entity(db, user_id, "caterer", cid)
-                    )
+                    touched |= bool(mark_read_for_entity(db, user_id, "caterer", cid))
             elif endpoint in (
                 "client.message_thread",
                 "caterer.message_thread",
@@ -329,9 +325,7 @@ def create_app():
                     from models import Message
 
                     msg_ids = list(
-                        db.scalars(
-                            select(Message.id).where(Message.thread_id == tid)
-                        )
+                        db.scalars(select(Message.id).where(Message.thread_id == tid))
                     )
                     for mid in msg_ids:
                         touched |= bool(
