@@ -98,7 +98,9 @@ def register(bp):
         # attached to the caterer (template hides the button then).
         if caterer_user:
             caterer_message_href = url_for(
-                "client.message_with", user_id=caterer_user.id
+                "client.message_with",
+                user_id=caterer_user.id,
+                order_id=order.id,
             )
         else:
             caterer_message_href = url_for("client.messages")

@@ -145,3 +145,58 @@ def test_message_with_unknown_user_404s(client, login):
     fake_id = uuid.uuid4()
     r = client.get(f"/client/messages/with/{fake_id}", follow_redirects=False)
     assert r.status_code == 404
+
+
+def test_message_with_forwards_order_context_to_form(client, login):
+    """When the entry point is hit with `?order_id=...`, the compose
+    form must carry the order_id as a hidden input. Without it, the
+    first send hits the VULN-04 gate in /api/messages and bounces
+    with "le message doit etre lie a une commande..."."""
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import User
+
+    s = session_factory()
+    try:
+        cook = s.scalar(select(User).where(User.email == "cook@test.local"))
+        cook_id = str(cook.id)
+    finally:
+        s.close()
+
+    fake_order_id = uuid.uuid4()  # Real lookup happens server-side at POST time.
+    login("alice@test.local")
+    r = client.get(
+        f"/client/messages/with/{cook_id}?order_id={fake_order_id}",
+        follow_redirects=False,
+    )
+    assert r.status_code == 200
+    body = r.data.decode("utf-8", errors="replace")
+    assert f'name="order_id" value="{fake_order_id}"' in body, (
+        "compose form must carry the order_id hidden input"
+    )
+
+
+def test_message_with_forwards_quote_request_context_to_form(client, login):
+    """Symmetric: `?quote_request_id=...` propagates to the form."""
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import User
+
+    s = session_factory()
+    try:
+        cook = s.scalar(select(User).where(User.email == "cook@test.local"))
+        cook_id = str(cook.id)
+    finally:
+        s.close()
+
+    fake_qr_id = uuid.uuid4()
+    login("alice@test.local")
+    r = client.get(
+        f"/client/messages/with/{cook_id}?quote_request_id={fake_qr_id}",
+        follow_redirects=False,
+    )
+    assert r.status_code == 200
+    body = r.data.decode("utf-8", errors="replace")
+    assert f'name="quote_request_id" value="{fake_qr_id}"' in body

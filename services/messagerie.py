@@ -258,7 +258,14 @@ def find_thread_with(db: Session, *, viewer, other_user_id):
     )
 
 
-def compose_thread_context(db: Session, *, viewer, other_user_id) -> dict | None:
+def compose_thread_context(
+    db: Session,
+    *,
+    viewer,
+    other_user_id,
+    order_id=None,
+    quote_request_id=None,
+) -> dict | None:
     """Build a right-pane "compose new conversation" context — same
     shape as `active_thread_context` but with no `thread_id` yet.
 
@@ -266,6 +273,11 @@ def compose_thread_context(db: Session, *, viewer, other_user_id) -> dict | None
     form pre-filled with `other_user_id`; messages.js skips the
     initial load (no thread to fetch) and adopts the thread_id
     returned by the API after the first send.
+
+    `order_id` / `quote_request_id` flow through to hidden inputs in
+    the form so the first POST satisfies the VULN-04 business-relation
+    gate in /api/messages — without an explicit context, the API
+    rejects messages that have no inheritable thread history.
 
     Returns None if the target user doesn't exist or is the viewer
     themselves (which the UI shouldn't allow but we guard anyway).
@@ -290,6 +302,10 @@ def compose_thread_context(db: Session, *, viewer, other_user_id) -> dict | None
         "other_avatar_kind": avatar_kind,
         "contact_full_name": contact_full_name,
         "detail_url": detail_url_for(viewer, other_user),
+        "compose_order_id": str(order_id) if order_id else None,
+        "compose_quote_request_id": (
+            str(quote_request_id) if quote_request_id else None
+        ),
     }
 
 

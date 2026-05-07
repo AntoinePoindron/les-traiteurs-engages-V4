@@ -166,6 +166,17 @@
         {% else %}
         <form id="message-form" class="border-t border-soft p-4 flex items-center gap-2">
           <input type="hidden" name="recipient_id" value="{{ ctx.active.other_user_id }}">
+          {# In compose-new mode, forward the originating context (order
+             or quote_request) so the first send clears the VULN-04
+             business-relation gate in /api/messages — there's no
+             thread history to inherit from yet. Existing threads omit
+             these so the API inherits from prior messages. #}
+          {% if ctx.active.compose_order_id %}
+          <input type="hidden" name="order_id" value="{{ ctx.active.compose_order_id }}">
+          {% endif %}
+          {% if ctx.active.compose_quote_request_id %}
+          <input type="hidden" name="quote_request_id" value="{{ ctx.active.compose_quote_request_id }}">
+          {% endif %}
           <button type="button"
                   class="w-10 h-10 rounded-lg flex items-center justify-center hover:bg-cream transition-colors text-mute flex-shrink-0"
                   title="Joindre un fichier (bientôt)" disabled>
