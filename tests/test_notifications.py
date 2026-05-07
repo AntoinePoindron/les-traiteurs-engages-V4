@@ -556,6 +556,7 @@ def test_visiting_request_detail_also_clears_child_quote_notifs(client, login):
         quote = Quote(
             quote_request_id=qr_id,
             caterer_id=caterer.id,
+            reference=f"TST-{uuid.uuid4().hex[:6].upper()}",
             status=QuoteStatus.sent,
             total_amount_ht=_D("100.00"),
             valorisable_agefiph=_D("100.00"),
