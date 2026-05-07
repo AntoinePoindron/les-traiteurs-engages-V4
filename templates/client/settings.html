@@ -54,25 +54,6 @@
         </div>
       </div>
 
-      {# ---- Block 3 : Budget et obligation d'emploi ---- #}
-      <div class="bg-white rounded-lg p-6">
-        <h2 class="font-display font-bold text-xl mb-4 text-text">Budget et obligation d'emploi</h2>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-bold mb-2 text-text">Budget annuel restauration (&euro;)</label>
-            <input type="number" name="budget_annual" value="{{ company.budget_annual or '' }}" step="0.01" min="0" placeholder="Ex.&nbsp;: 50000"
-              class="w-full border rounded-lg px-3 py-2.5 text-sm text-black outline-none focus:border-navy transition-colors border-default">
-          </div>
-          <label class="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" name="oeth_eligible" value="1" {{ 'checked' if company.oeth_eligible }} class="accent-navy mt-1">
-            <span>
-              <span class="block text-sm font-bold text-text">Structure soumise &#224; l'OETH</span>
-              <span class="block text-xs mt-0.5 text-mute">Obligation d'Emploi des Travailleurs Handicap&#233;s (&ge; 20 salari&#233;s). Active la valorisation AGEFIPH des commandes ESAT.</span>
-            </span>
-          </label>
-        </div>
-      </div>
-
       <div>
         <button type="submit"
           class="rounded-full text-sm font-bold px-5 py-3 inline-flex items-center gap-2 btn-navy">

@@ -96,8 +96,6 @@ def seed():
             address="15 rue de Rivoli",
             city="Paris",
             zip_code="75001",
-            oeth_eligible=True,
-            budget_annual=50000,
         )
         techcorp = Company(
             name="TechCorp France",
@@ -105,8 +103,6 @@ def seed():
             address="42 avenue Jean Jaures",
             city="Lyon",
             zip_code="69007",
-            oeth_eligible=False,
-            budget_annual=30000,
         )
         db.add_all([acme, techcorp])
         db.flush()

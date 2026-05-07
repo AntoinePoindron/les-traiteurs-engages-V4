@@ -165,8 +165,6 @@ class Company(Base):
     address: Mapped[str | None] = mapped_column(String(500))
     city: Mapped[str | None] = mapped_column(String(255))
     zip_code: Mapped[str | None] = mapped_column(String(10))
-    oeth_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
-    budget_annual: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     logo_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()
