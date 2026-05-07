@@ -31,7 +31,5 @@ def downgrade() -> None:
     )
     op.add_column(
         "companies",
-        sa.Column(
-            "budget_annual", sa.Numeric(precision=12, scale=2), nullable=True
-        ),
+        sa.Column("budget_annual", sa.Numeric(precision=12, scale=2), nullable=True),
     )
