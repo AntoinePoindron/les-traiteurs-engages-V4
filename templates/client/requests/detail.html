@@ -428,14 +428,74 @@
         {% endfor %}
       </div>
       {% else %}
-      <!-- Empty state -->
-      <div class="bg-white rounded-lg p-12 text-center">
-        <div class="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-4 bg-navy-soft">
-          <i data-lucide="clock" class="w-6 h-6 text-navy"></i>
-        </div>
-        <h3 class="font-display font-bold text-xl mb-2 text-text">Aucun devis recu</h3>
-        <p class="text-sm text-mute">Les traiteurs seront notifies et pourront vous envoyer leurs propositions.</p>
-      </div>
+        {# Pas encore de devis reçu : deux affichages selon le mode.
+           - Demande directe (1 traiteur) : on rend une carte avec les
+             infos du traiteur ciblé + bouton Message + texte d'attente
+             en dessous. Le client voit qui il a sollicité avant
+             d'attendre la réponse.
+           - Comparateur 3 devis : on évite la liste de cartes "en
+             attente" pour ne pas brouiller la lecture (3 cartes
+             vides juste pour les remplacer plus tard) ; on affiche
+             juste un texte d'attente au pluriel. Dès qu'au moins un
+             devis arrive, ce texte disparaît au profit de la liste
+             classique des devis reçus. #}
+        {% if not qr.is_compare_mode and qrcs %}
+          {% set pending_qrc = qrcs[0] %}
+          {% set pending_caterer = pending_qrc.caterer %}
+          {% set pending_caterer_user = pending_caterer.users[0] if pending_caterer.users else None %}
+          {% set pending_modal_id = 'send-message-pending-' ~ (pending_qrc.id|string) %}
+          <div class="bg-white rounded-lg p-6">
+            <div class="flex items-center gap-3">
+              <a href="{{ url_for('client.caterer_detail', caterer_id=pending_caterer.id) }}"
+                 class="flex items-center gap-3 flex-1 min-w-0 -mx-2 px-2 -my-1 py-1 rounded-lg hover:bg-cream transition-colors">
+                {% if pending_caterer.logo_url %}
+                <img src="{{ pending_caterer.logo_url }}" alt="Logo {{ pending_caterer.name }}"
+                     class="w-12 h-12 rounded-lg object-contain p-1 bg-cream">
+                {% else %}
+                <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-navy-soft" style="flex-shrink:0;">
+                  <i data-lucide="chef-hat" class="w-5 h-5 text-navy"></i>
+                </div>
+                {% endif %}
+                <div class="flex-1 min-w-0">
+                  <p class="text-mute font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">{{ structure_type_label(pending_caterer.structure_type) }}</p>
+                  <p class="font-display font-bold text-base text-text truncate">{{ pending_caterer.name }}</p>
+                  {% if pending_caterer.city %}
+                  <p class="text-xs text-mute truncate">{{ pending_caterer.city }}</p>
+                  {% endif %}
+                </div>
+              </a>
+              {% if pending_caterer_user %}
+              <button type="button" data-action="dialog-open"
+                      data-target="{{ pending_modal_id }}"
+                      class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1.5 btn-ghost-navy flex-shrink-0">
+                <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                Message
+              </button>
+              {% endif %}
+            </div>
+            {# Bandeau "en attente" : même boîte blanche que les infos
+               traiteur, séparé par un liseré + pastille soft-navy
+               (icône clock + texte) pour signaler visuellement
+               l'attente sans jurer avec la card. #}
+            <div class="mt-4 pt-4 border-t border-soft">
+              <div class="inline-flex items-start gap-2 px-3 py-2 rounded-lg bg-navy-soft text-navy">
+                <i data-lucide="clock" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+                <p class="text-sm font-bold">Le traiteur ne devrait pas tarder à envoyer son devis.</p>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          {# Mode comparateur 3 devis, 0 reçu : même pastille soft-navy
+             dans une boîte blanche dédiée — pas de cards "en attente"
+             traiteur par traiteur (3 cards vides juste pour les
+             remplacer plus tard, c'était trop chargé). #}
+          <div class="bg-white rounded-lg p-6">
+            <div class="inline-flex items-start gap-2 px-3 py-2 rounded-lg bg-navy-soft text-navy">
+              <i data-lucide="clock" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+              <p class="text-sm font-bold">Les traiteurs ne devraient pas tarder à envoyer leurs devis.</p>
+            </div>
+          </div>
+        {% endif %}
       {% endif %}
     </div>
 
@@ -495,6 +555,23 @@
            thread_endpoint='client.message_thread') }}
       {% endif %}
     {% endfor %}
+
+    {# Modal pour le bouton Message de la card "traiteur en attente"
+       (mode direct, 0 devis reçu). Rendue uniquement quand la card
+       l'a affiché — mêmes garde-fous : QRC + caterer.users non vide. #}
+    {% if not quotes and not qr.is_compare_mode and qrcs %}
+      {% set pending_qrc = qrcs[0] %}
+      {% set pending_caterer = pending_qrc.caterer %}
+      {% set pending_caterer_user = pending_caterer.users[0] if pending_caterer.users else None %}
+      {% if pending_caterer_user %}
+      {{ send_message_modal(
+           modal_id='send-message-pending-' ~ (pending_qrc.id|string),
+           recipient_user_id=pending_caterer_user.id,
+           recipient_name=pending_caterer.name,
+           quote_request_id=qr.id,
+           thread_endpoint='client.message_thread') }}
+      {% endif %}
+    {% endif %}
 
 </main>
 {% endblock %}
