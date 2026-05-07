@@ -19,7 +19,11 @@
     var container = document.getElementById('messages-container');
     if (!container) return;
 
-    var threadId = container.dataset.threadId;
+    // threadId may be empty when the page is rendered in "compose new
+    // conversation" mode (entry point: /messages/with/<user_id>). In
+    // that case we skip the initial poll and adopt the thread_id
+    // returned by /api/messages after the first successful send.
+    var threadId = container.dataset.threadId || '';
     var currentUserId = container.dataset.currentUserId;
     var otherAvatarUrl = container.dataset.otherAvatarUrl || '';
 
@@ -94,6 +98,8 @@
     }
 
     function loadMessages() {
+      // Compose-new mode: no thread to fetch yet.
+      if (!threadId) return;
       fetch('/api/messages/' + threadId)
         .then(function (r) { return r.json(); })
         .then(function (data) {
@@ -162,6 +168,14 @@
             clearErrorBanner();
             bodyInput.value = '';
             refreshSendBtn();
+            // Adopt the thread_id returned by the API on the first
+            // send when we started in compose-new mode (no thread yet).
+            // Subsequent sends fall through this branch as a no-op
+            // because threadId is already set and equals res.data.thread_id.
+            if (!threadId && res.data && res.data.thread_id) {
+              threadId = res.data.thread_id;
+              container.dataset.threadId = threadId;
+            }
             loadMessages();
           })
           .catch(function () {

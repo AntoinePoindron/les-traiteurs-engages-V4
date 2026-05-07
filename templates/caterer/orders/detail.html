@@ -215,7 +215,7 @@
       contact_first_name=client_user.first_name if client_user else None,
       contact_last_name=client_user.last_name if client_user else None,
       contact_email=client_user.email if client_user else None,
-      messages_href=url_for('caterer.messages')
+      messages_href=url_for('caterer.message_with', user_id=client_user.id) if client_user else None
     ) }}
 
   </div>

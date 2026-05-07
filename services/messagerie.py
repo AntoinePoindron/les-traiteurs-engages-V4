@@ -235,6 +235,64 @@ def threads_for_admin(db: Session, *, page: int, page_size: int):
     return rows, total
 
 
+def find_thread_with(db: Session, *, viewer, other_user_id):
+    """Return the thread_id of the (viewer, other_user) pair, or None
+    if they've never exchanged a message yet.
+
+    Used by the "go to conversation with X" entry points so the same
+    button reuses an existing thread or falls through to compose-new.
+    """
+    if not other_user_id:
+        return None
+    return db.scalar(
+        select(Message.thread_id)
+        .where(
+            or_(
+                (Message.sender_id == viewer.id)
+                & (Message.recipient_id == other_user_id),
+                (Message.sender_id == other_user_id)
+                & (Message.recipient_id == viewer.id),
+            )
+        )
+        .limit(1)
+    )
+
+
+def compose_thread_context(db: Session, *, viewer, other_user_id) -> dict | None:
+    """Build a right-pane "compose new conversation" context — same
+    shape as `active_thread_context` but with no `thread_id` yet.
+
+    The template renders the empty conversation pane + the message
+    form pre-filled with `other_user_id`; messages.js skips the
+    initial load (no thread to fetch) and adopts the thread_id
+    returned by the API after the first send.
+
+    Returns None if the target user doesn't exist or is the viewer
+    themselves (which the UI shouldn't allow but we guard anyway).
+    """
+    if not other_user_id or str(other_user_id) == str(viewer.id):
+        return None
+    other_user = db.get(User, other_user_id)
+    if other_user is None:
+        return None
+
+    avatar_url, avatar_kind = _avatar_for_user(other_user)
+    contact_full_name = (
+        f"{other_user.first_name} {other_user.last_name}".strip()
+        if other_user.first_name or other_user.last_name
+        else ""
+    )
+    return {
+        "other_user_id": str(other_user.id),
+        "other_name": _entity_name(other_user),
+        "other_role": str(other_user.role),
+        "other_avatar_url": avatar_url,
+        "other_avatar_kind": avatar_kind,
+        "contact_full_name": contact_full_name,
+        "detail_url": detail_url_for(viewer, other_user),
+    }
+
+
 def active_thread_context(db: Session, *, thread_id, viewer) -> dict | None:
     """Build the "active" pane dict (right side) for a given thread.
 
