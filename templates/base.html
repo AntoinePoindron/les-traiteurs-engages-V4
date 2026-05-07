@@ -37,20 +37,15 @@
     <!-- Logo + notifications bell -->
     <div class="p-4 flex items-center justify-between gap-3">
       <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-10">
-      {# Bell + dropdown live in the same `relative` wrapper so the dropdown is
-         positioned right next to the bell, no JS coordinate math needed. #}
-      <div class="relative">
-        <button type="button" data-action="toggle-hidden" data-target="notifications-modal"
-                class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
-          <i data-lucide="bell" class="w-5 h-5 text-mute"></i>
-          {# Badge sits on the icon's top-right corner. The button is w-9
-             with a w-5 icon centered (~8px gap each side), so top-1.5
-             right-1.5 + ring places the dot right on the corner of the
-             bell glyph rather than floating in the button padding. #}
-          <span class="notification-badge absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-coral-red ring-2 ring-white hidden"></span>
-        </button>
-        {% include "components/notifications_modal.html" %}
-      </div>
+      <button type="button" data-action="toggle-hidden" data-target="notifications-modal"
+              class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
+        <i data-lucide="bell" class="w-5 h-5 text-mute"></i>
+        {# Badge sits on the icon's top-right corner. The button is w-9
+           with a w-5 icon centered (~8px gap each side), so top-1.5
+           right-1.5 + ring places the dot right on the corner of the
+           bell glyph rather than floating in the button padding. #}
+        <span class="notification-badge absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-coral-red ring-2 ring-white hidden"></span>
+      </button>
     </div>
 
     <!-- Entity badge -->
@@ -217,9 +212,12 @@
     {% include "components/dev_account_switcher.html" %}
   {% endif %}
 
-  {# Notifications dropdown is now inlined inside the sidebar header next
-     to the bell button (see top of <aside>) — keeps it positioned relative
-     to its trigger without any JS coordinate math. #}
+  {# Notifications dropdown — triggered by the bell button at the top of
+     the sidebar. Uses fixed positioning so it lands just past the
+     sidebar's right edge regardless of where it sits in the DOM. #}
+  {% if g.current_user %}
+    {% include "components/notifications_modal.html" %}
+  {% endif %}
 
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
   {% block scripts %}{% endblock %}
