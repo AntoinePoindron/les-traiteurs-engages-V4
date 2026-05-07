@@ -211,32 +211,32 @@
     {% endif %}
 
     {% if display_name %}
+    {# Ligne contact : avatar + nom/role à gauche, bouton "Message" à
+       droite si on a un user contactable. Format compact pour rester
+       cohérent avec la card devis sur /client/requests/<id>. #}
     <div class="flex items-center pt-3 border-t" style="gap:0.625rem;border-color:var(--c-border-soft);">
       <div class="rounded-full flex items-center justify-center text-white text-xs font-bold"
            style="width:2rem;height:2rem;flex-shrink:0;background-color:var(--c-navy);">
         {{ initials }}
       </div>
-      <div class="flex flex-col" style="min-width:0;">
+      <div class="flex flex-col flex-1" style="min-width:0;">
         <p class="text-sm font-bold text-black truncate">{{ display_name }}</p>
         <p class="text-mute" style="font-size:11px;">{{ L.contact_label }}</p>
       </div>
+      {% if contact_user_id and messages_modal_id %}
+      <button type="button" data-action="dialog-open" data-target="{{ messages_modal_id }}"
+              class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1.5 btn-ghost-navy flex-shrink-0">
+        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+        Message
+      </button>
+      {% elif contact_user_id and messages_href %}
+      <a href="{{ messages_href }}"
+         class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1.5 btn-ghost-navy flex-shrink-0 no-underline">
+        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+        Message
+      </a>
+      {% endif %}
     </div>
-    {% endif %}
-
-    {% if contact_user_id and messages_modal_id %}
-    <button type="button" data-action="dialog-open" data-target="{{ messages_modal_id }}"
-       class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white transition-colors hover:opacity-90"
-       style="background-color:var(--c-navy);">
-      <i data-lucide="message-circle" class="w-4 h-4"></i>
-      Envoyer un message
-    </button>
-    {% elif contact_user_id and messages_href %}
-    <a href="{{ messages_href }}"
-       class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white transition-colors hover:opacity-90"
-       style="background-color:var(--c-navy);">
-      <i data-lucide="message-circle" class="w-4 h-4"></i>
-      Envoyer un message
-    </a>
     {% endif %}
   </div>
 {% endmacro %}
