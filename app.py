@@ -171,10 +171,12 @@ def create_app():
 
     @app.context_processor
     def _inject_notifications():
-        # Surface the recent notifications + the role-aware URL resolver
-        # to base.html so the topbar bell can show a dropdown without an
-        # extra round-trip per page. Cap at 10 — the dedicated
-        # /notifications page handles the longer history.
+        # Surface the recent UNREAD notifications + the role-aware URL
+        # resolver to base.html so the topbar bell can show a dropdown
+        # without an extra round-trip per page. Cap at 10 — once a
+        # notification is consulted (marked read), it leaves the
+        # dropdown but stays accessible via the dedicated /notifications
+        # history page.
         from models import Notification as _Notification
         from services.notifications import notification_target_url
 
@@ -186,7 +188,10 @@ def create_app():
         db = get_db()
         recent = db.scalars(
             select(_Notification)
-            .where(_Notification.user_id == g.current_user.id)
+            .where(
+                _Notification.user_id == g.current_user.id,
+                _Notification.is_read.is_(False),
+            )
             .order_by(_Notification.created_at.desc())
             .limit(10)
         ).all()
