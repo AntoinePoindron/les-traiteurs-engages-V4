@@ -1,6 +1,7 @@
 import json
 
 from flask import (
+    Response,
     abort,
     flash,
     g,
@@ -309,7 +310,11 @@ def register(bp):
         db.add(quote)
         db.commit()
         # action=send saves the draft AND sends it in one go, so the caterer
-        # doesn't have to navigate away and come back. Default is 'draft'.
+        # doesn't have to navigate away and come back.
+        # action=draft_and_pdf saves the draft and bounces to the PDF
+        # download route — covers the "Télécharger en PDF" button on a
+        # not-yet-saved quote.
+        # Default is 'draft'.
         action = flask_request.form.get("action", "draft")
         if action == "send":
             try:
@@ -336,6 +341,10 @@ def register(bp):
 
             email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis enregistre et envoye au client.", "success")
+        elif action == "draft_and_pdf":
+            return redirect(
+                url_for("caterer.quote_pdf", qr_id=qr_id, q_id=quote.id)
+            )
         else:
             flash("Devis enregistre en brouillon.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
@@ -414,6 +423,9 @@ def register(bp):
         db.commit()
         # Same as quote_create: action=send chains save + send so the
         # caterer can ship the quote without leaving the editor.
+        # action=draft_and_pdf chains save + redirect-to-PDF so a click
+        # on "Télécharger en PDF" persists the latest edits before
+        # downloading them.
         action = flask_request.form.get("action", "draft")
         if action == "send":
             try:
@@ -440,9 +452,45 @@ def register(bp):
 
             email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis mis a jour et envoye au client.", "success")
+        elif action == "draft_and_pdf":
+            return redirect(
+                url_for("caterer.quote_pdf", qr_id=qr_id, q_id=quote.id)
+            )
         else:
             flash("Devis mis a jour.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
+
+    @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/pdf", methods=["GET"])
+    @login_required
+    @role_required("caterer")
+    def quote_pdf(qr_id, q_id):
+        """Download the quote as a server-rendered PDF.
+
+        Replaces the old `window.print()` fallback (which produced a
+        screenshot of the editor's chrome). The PDF reuses the same
+        `_pdf_preview.html` partial as the in-app modal so the file
+        looks identical to what was on screen.
+        """
+        from services.quote_pdf import render_quote_pdf
+
+        caterer = g.current_user.caterer
+        quote = get_caterer_quote(qr_id, q_id, caterer.id)
+        # Touch the .lines / .quote_request relationships so they're loaded
+        # before the template renders (avoids accidental N+1 inside the
+        # render call below).
+        _ = quote.lines
+        _ = quote.quote_request.company
+
+        pdf_bytes = render_quote_pdf(quote)
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="devis-{quote.reference}.pdf"'
+                ),
+            },
+        )
 
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/send", methods=["POST"])
     @login_required

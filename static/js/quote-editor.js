@@ -404,10 +404,13 @@
 
     var pdfBtn = ev.target.closest('[data-action="download-pdf"]');
     if (pdfBtn) {
-      // Browser-native print is the simplest path; the user can pick
-      // "Save as PDF" in the print dialog. A real PDF export route can
-      // come later if we want a deterministic backend-rendered PDF.
-      window.print();
+      // Save the quote as a draft and bounce to the server-rendered
+      // PDF download. The route handler (quote_create / quote_update)
+      // sees `action=draft_and_pdf`, persists the latest edits, then
+      // 302s to /caterer/.../quote/<id>/pdf which streams the PDF as
+      // an attachment. Works for both new (no q_id yet) and existing
+      // quotes — same form, same path.
+      submitWithAction('draft_and_pdf');
       return;
     }
 
