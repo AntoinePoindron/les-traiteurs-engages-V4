@@ -2,12 +2,20 @@
   'use strict';
 
   var TVA_RATES = [
+    // 0% available because some caterers (auto-entrepreneurs sous le
+    // seuil de franchise, structures non assujetties, etc.) ne facturent
+    // pas la TVA. Server-side (services/quotes.py) handles tva_rate=0
+    // naturally — `lineHT * 0 / 100 == 0`.
+    { value: '0', label: '0%' },
     { value: '5.5', label: '5,5%' },
     { value: '10', label: '10%' },
     { value: '20', label: '20%' },
   ];
   var PLATFORM_FEE_RATE = 0.05;     // 5% commission added to the quote
-  var PLATFORM_FEE_TVA_RATE = 0.20; // 20% VAT on the platform fee itself
+  // Platform isn't a VAT collector for now — fee carries no TVA. Kept
+  // as a constant so this is the single source of truth on the front
+  // (mirror of services/quotes.py:platform_fee_tva = Decimal("0")).
+  var PLATFORM_FEE_TVA_RATE = 0;
 
   var GUEST_COUNT = 0;
   var INITIAL_LINES = [];
@@ -49,16 +57,19 @@
       return '<option value="' + r.value + '"' + sel + '>' + r.label + '</option>';
     }).join('');
 
+    // Largeurs : description prioritaire (flex-1 + min plus généreux),
+    // qté/prix réduits parce que les valeurs y sont courtes (entiers,
+    // 2 décimales) et n'ont pas besoin d'autant d'espace.
     return '<div class="flex flex-wrap items-start gap-2 p-3 rounded-lg border border-soft" id="' + id + '" data-section="' + section + '">' +
-      '<div class="flex-1 min-w-[200px]">' +
+      '<div class="flex-1 min-w-[260px]">' +
         '<label class="block text-xs text-mute mb-1">Description</label>' +
         '<input type="text" value="' + escapeHtml(desc).replace(/"/g, '&quot;') + '" class="line-desc w-full px-2 py-1.5 rounded text-sm input-soft">' +
       '</div>' +
-      '<div class="w-20">' +
+      '<div class="w-16">' +
         '<label class="block text-xs text-mute mb-1">Qté</label>' +
         '<input type="number" value="' + qty + '" min="0" step="1" class="line-qty w-full px-2 py-1.5 rounded text-sm text-right input-soft">' +
       '</div>' +
-      '<div class="w-28">' +
+      '<div class="w-24">' +
         '<label class="block text-xs text-mute mb-1">PU HT (€)</label>' +
         '<input type="number" value="' + price + '" min="0" step="0.01" class="line-price w-full px-2 py-1.5 rounded text-sm text-right input-soft">' +
       '</div>' +
@@ -66,7 +77,7 @@
         '<label class="block text-xs text-mute mb-1">TVA</label>' +
         '<select class="line-tva w-full px-2 py-1.5 rounded text-sm input-soft">' + tvaOptions + '</select>' +
       '</div>' +
-      '<div class="w-28 text-right">' +
+      '<div class="w-24 text-right">' +
         '<label class="block text-xs text-mute mb-1">Total HT</label>' +
         '<p class="line-total text-sm font-bold text-text py-1.5">0,00 €</p>' +
       '</div>' +
@@ -179,6 +190,27 @@
     setText('display-fee-tva', fmt(totals.feeTVA));
     setText('display-fee-ttc', fmt(totals.feeTTC));
     setText('display-grand-total', fmt(totals.grandTotal));
+
+    // Per-rate TVA breakdown (Prestation traiteur). One row per
+    // bucket that has at least one line attached (`base > 0`),
+    // ordered ascending. The 0% bucket is included on purpose — it
+    // confirms to the caterer that lines flagged sans-TVA contribute
+    // 0 € de TVA, plutôt que de masquer la ligne et laisser un doute.
+    var breakdown = document.getElementById('display-tva-breakdown');
+    if (breakdown) {
+      var rows = Object.keys(totals.tvaTotals)
+        .map(function (k) { return parseFloat(k); })
+        .sort(function (a, b) { return a - b; })
+        .filter(function (rate) { return totals.tvaTotals[String(rate)].base > 0; });
+      breakdown.innerHTML = rows.map(function (rate) {
+        var amount = totals.tvaTotals[String(rate)].tva;
+        var label = (rate === Math.floor(rate)) ? rate : rate.toString().replace('.', ',');
+        return '<div class="flex justify-between text-sm">' +
+          '<span class="text-mute">TVA ' + label + ' %</span>' +
+          '<span class="font-bold text-text">' + fmt(amount) + '</span>' +
+        '</div>';
+      }).join('');
+    }
 
     // Enable "Save & send" only when there's something worth sending.
     var sendBtn = document.getElementById('btn-send');
@@ -315,7 +347,7 @@
     html += '<p class="uppercase font-bold text-mute mb-2 text-xs">Frais de mise en relation (5% ajoutés)</p>';
     html += '<dl class="space-y-1 text-sm ml-auto" style="max-width:400px;">';
     html += '<div class="flex justify-between"><dt class="text-mute">Montant HT</dt><dd class="font-bold text-text">' + fmt(totals.feeHT) + '</dd></div>';
-    html += '<div class="flex justify-between"><dt class="text-mute">TVA 20 %</dt><dd class="font-bold text-text">' + fmt(totals.feeTVA) + '</dd></div>';
+    html += '<div class="flex justify-between"><dt class="text-mute">TVA 0 %</dt><dd class="font-bold text-text">' + fmt(totals.feeTVA) + '</dd></div>';
     html += '<div class="flex justify-between border-t border-soft pt-1"><dt class="font-bold text-text">Sous-total TTC</dt><dd class="font-bold text-text">' + fmt(totals.feeTTC) + '</dd></div>';
     html += '</dl>';
     html += '</div>';
