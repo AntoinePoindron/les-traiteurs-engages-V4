@@ -1,7 +1,9 @@
-{# Sticky modal listing the 10 most recent notifications. Triggered by
-   the bell button in the sidebar footer (data-action="dialog-open"
-   data-target="notifications-modal"). The full history lives at the
-   per-blueprint /notifications page. #}
+{# Dropdown panel listing the 10 most recent notifications. Triggered by
+   the bell button in the sidebar header (data-action="toggle-hidden"
+   data-target="notifications-modal") and rendered as a sibling of that
+   button inside a `position: relative` wrapper, so the panel is anchored
+   to the right of the bell. The full history lives at the per-blueprint
+   /notifications page. #}
 
 {% set role = g.current_user.role|string %}
 {% set role_endpoint_prefix = (
@@ -35,23 +37,23 @@
 
 {% set unread_count = notifications_recent | rejectattr('is_read') | list | length %}
 
-<div id="notifications-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4"
-     style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
-  <div class="bg-white rounded-xl shadow-2xl w-full flex flex-col" style="max-width:520px;max-height:85vh;">
+<div id="notifications-modal"
+     class="hidden absolute top-0 left-full ml-3 z-50 bg-white rounded-xl shadow-2xl flex flex-col"
+     style="width:380px;max-width:calc(100vw - 1rem);max-height:85vh;">
 
-    <div class="flex items-center justify-between gap-3 p-6 border-b" style="border-color:var(--c-border-soft);flex-shrink:0;">
+    <div class="flex items-center justify-between gap-3 p-5 border-b" style="border-color:var(--c-border-soft);flex-shrink:0;">
       <div class="flex items-center gap-3" style="min-width:0;">
-        <div class="rounded-lg flex items-center justify-center bg-navy-soft" style="width:2.5rem;height:2.5rem;flex-shrink:0;">
-          <i data-lucide="bell" class="w-5 h-5 text-navy"></i>
+        <div class="rounded-lg flex items-center justify-center bg-navy-soft" style="width:2.25rem;height:2.25rem;flex-shrink:0;">
+          <i data-lucide="bell" class="w-4 h-4 text-navy"></i>
         </div>
         <div>
-          <h3 class="font-display font-bold text-lg text-black">Notifications</h3>
+          <h3 class="font-display font-bold text-base text-black">Notifications</h3>
           {% if unread_count > 0 %}
           <p class="text-xs text-mute">{{ unread_count }} non lue{{ 's' if unread_count > 1 else '' }}</p>
           {% endif %}
         </div>
       </div>
-      <button type="button" data-action="dialog-close" data-target="notifications-modal"
+      <button type="button" data-action="toggle-hidden" data-target="notifications-modal"
               class="text-mute-soft hover:text-black transition-colors" aria-label="Fermer" style="flex-shrink:0;">
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
@@ -97,7 +99,7 @@
     </div>
 
     {% if notifications_recent %}
-    <div class="flex items-center justify-between gap-2 p-6 border-t" style="border-color:var(--c-border-soft);flex-shrink:0;">
+    <div class="flex items-center justify-between gap-2 p-4 border-t" style="border-color:var(--c-border-soft);flex-shrink:0;">
       {% if unread_count > 0 %}
       <form method="POST" action="{{ url_for(mark_all_endpoint) }}" class="flex-1">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -113,5 +115,4 @@
     </div>
     {% endif %}
 
-  </div>
 </div>
