@@ -1,0 +1,105 @@
+{# Modal "Envoyer un message" — quick-send dialog that posts to
+   /api/messages without leaving the current page.
+
+   The same recipient + business-context (order or quote_request) is
+   threaded through hidden inputs so the first send clears the
+   VULN-04 gate when no thread exists yet. After a successful send,
+   the modal swaps to a confirmation state with a link to the
+   conversation (thread_id returned by the API).
+
+   Usage:
+     {% from "components/send_message_modal.html" import send_message_modal %}
+     ...
+     <button type="button" data-action="dialog-open" data-target="send-message-modal-1">
+       Envoyer un message
+     </button>
+     {{ send_message_modal(
+          modal_id="send-message-modal-1",
+          recipient_user_id=client_user.id,
+          recipient_name=qr.company.name,
+          order_id=order.id,
+          thread_endpoint="caterer.message_thread") }}
+
+   Args:
+     modal_id            : DOM id of the <dialog>. Must be unique on the
+                           page (so the same macro can be used twice).
+     recipient_user_id   : UUID of the message recipient (User.id).
+     recipient_name      : Display name shown in the dialog header.
+     order_id            : optional — propagated to /api/messages so the
+                           VULN-04 gate finds an active relationship.
+     quote_request_id    : optional — same as order_id for QR context.
+     thread_endpoint     : Flask endpoint string used by the post-send
+                           "Voir la conversation" link
+                           (e.g. "client.message_thread"). #}
+{% macro send_message_modal(modal_id, recipient_user_id, recipient_name,
+                            order_id=None, quote_request_id=None,
+                            thread_endpoint=None) %}
+<dialog id="{{ modal_id }}"
+        class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full"
+        data-backdrop-dismiss
+        data-thread-endpoint="{{ thread_endpoint or '' }}">
+  <div class="p-6">
+    {# --- Compose state (default) --- #}
+    <div data-modal-state="compose">
+      <h3 class="font-display font-bold text-lg text-black mb-2">
+        Envoyer un message à {{ recipient_name }}
+      </h3>
+      <p class="text-sm mb-4 text-mute">
+        Le message sera ajouté à votre conversation avec ce contact, accessible depuis la messagerie.
+      </p>
+      <form data-send-message-form="{{ modal_id }}">
+        <input type="hidden" name="recipient_id" value="{{ recipient_user_id }}">
+        {% if order_id %}
+        <input type="hidden" name="order_id" value="{{ order_id }}">
+        {% endif %}
+        {% if quote_request_id %}
+        <input type="hidden" name="quote_request_id" value="{{ quote_request_id }}">
+        {% endif %}
+        <textarea name="body" rows="5" required minlength="1" maxlength="5000"
+          class="w-full rounded-lg px-3 py-2.5 text-sm text-black mb-2 input-soft"
+          placeholder="Votre message..."></textarea>
+        <div data-modal-error
+             class="hidden mb-3 px-3 py-2 rounded-lg text-xs bg-danger-soft text-danger"></div>
+        <div class="flex items-center justify-end gap-3 mt-2">
+          <button type="button" data-action="dialog-close" data-target="{{ modal_id }}"
+            class="px-4 py-2 text-sm font-bold rounded-full btn-ghost-navy">
+            Annuler
+          </button>
+          <button type="submit" data-modal-send
+            class="px-4 py-2 text-sm font-bold text-white rounded-full bg-navy inline-flex items-center gap-2">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            Envoyer
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {# --- Success state — shown after a successful send --- #}
+    <div data-modal-state="sent" class="hidden">
+      <div class="flex flex-col items-center text-center py-2">
+        <div class="rounded-full flex items-center justify-center mb-3"
+             style="width:3rem;height:3rem;background-color:rgba(34,197,94,0.12);">
+          <i data-lucide="check" class="w-5 h-5 text-success"></i>
+        </div>
+        <h3 class="font-display font-bold text-lg text-black mb-1">Message envoyé</h3>
+        <p class="text-sm text-mute mb-4">
+          Votre message a été ajouté à la conversation avec {{ recipient_name }}.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-2 w-full">
+          <button type="button" data-action="dialog-close" data-target="{{ modal_id }}"
+            class="px-4 py-2 text-sm font-bold rounded-full btn-ghost-navy w-full sm:w-auto">
+            Fermer
+          </button>
+          {% if thread_endpoint %}
+          <a data-modal-thread-link href="#"
+             class="px-4 py-2 text-sm font-bold text-white rounded-full bg-navy inline-flex items-center gap-2 no-underline">
+            Voir la conversation
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</dialog>
+{% endmacro %}
