@@ -171,27 +171,44 @@ def create_app():
 
     @app.context_processor
     def _inject_notifications():
-        # Surface the recent notifications + the role-aware URL resolver
-        # to base.html so the topbar bell can show a dropdown without an
-        # extra round-trip per page. Cap at 10 — the dedicated
-        # /notifications page handles the longer history.
+        # Surface the recent UNREAD notifications + the role-aware URL
+        # resolver to base.html so the topbar bell can show a dropdown
+        # without an extra round-trip per page. Cap at 10 — once a
+        # notification is consulted (marked read), it leaves the
+        # dropdown but stays accessible via the dedicated /notifications
+        # history page. `notifications_unread_total` is the true count
+        # (not capped) so the modal header doesn't read "10 non lues"
+        # when there are actually 25.
         from models import Notification as _Notification
-        from services.notifications import notification_target_url
+        from services.notifications import (
+            get_unread_count,
+            notification_target_url,
+        )
 
         if not g.get("current_user"):
             return {
                 "notifications_recent": [],
+                "notifications_unread_total": 0,
                 "notification_target_url": notification_target_url,
             }
         db = get_db()
         recent = db.scalars(
             select(_Notification)
-            .where(_Notification.user_id == g.current_user.id)
+            .where(
+                _Notification.user_id == g.current_user.id,
+                _Notification.is_read.is_(False),
+            )
             .order_by(_Notification.created_at.desc())
             .limit(10)
         ).all()
+        # Skip the extra COUNT when we're below the cap — the list
+        # length is exact in that case.
+        unread_total = (
+            len(recent) if len(recent) < 10 else get_unread_count(db, g.current_user.id)
+        )
         return {
             "notifications_recent": recent,
+            "notifications_unread_total": unread_total,
             "notification_target_url": notification_target_url,
         }
 
