@@ -2,6 +2,7 @@
 {% from "components/status_badge.html" import status_badge %}
 {% from "components/structure_type_badge.html" import structure_type_label %}
 {% from "components/ui.html" import back_button %}
+{% from "components/send_message_modal.html" import send_message_modal %}
 
 {% block title %}Commande - Les Traiteurs Engages{% endblock %}
 
@@ -171,12 +172,24 @@
         </div>
       </a>
 
-      <a href="{{ caterer_message_href }}"
-         class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full text-xs font-bold px-4 py-2.5 bg-navy text-white hover:opacity-90 transition-opacity no-underline">
+      {% if caterer_user %}
+      <button type="button" data-action="dialog-open"
+              data-target="send-message-caterer-{{ caterer_user.id }}"
+              class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full text-xs font-bold px-4 py-2.5 bg-navy text-white hover:opacity-90 transition-opacity">
         <i data-lucide="message-circle" class="w-4 h-4"></i>
         Envoyer un message
-      </a>
+      </button>
+      {% endif %}
     </div>
+
+    {% if caterer_user %}
+    {{ send_message_modal(
+         modal_id='send-message-caterer-' ~ (caterer_user.id|string),
+         recipient_user_id=caterer_user.id,
+         recipient_name=order.quote.caterer.name,
+         order_id=order.id,
+         thread_endpoint='client.message_thread') }}
+    {% endif %}
 
     <!-- Invoice / Payment -->
     {% if order.stripe_hosted_invoice_url %}

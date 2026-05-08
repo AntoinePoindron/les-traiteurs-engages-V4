@@ -220,6 +220,9 @@
   {% endif %}
 
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  {# Modal "Envoyer un message" — binds where the
+     `send_message_modal` Jinja macro is rendered, no-op elsewhere. #}
+  <script src="{{ url_for('static', filename='js/send-message-modal.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

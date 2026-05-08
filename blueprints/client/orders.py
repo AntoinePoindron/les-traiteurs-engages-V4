@@ -1,5 +1,5 @@
 from flask import abort, flash, g, redirect, render_template, request, url_for
-from sqlalchemy import and_, or_, select
+from sqlalchemy import select
 
 from blueprints.client._helpers import ORDER_STATUS_LABELS
 from blueprints.middleware import login_required, role_required
@@ -9,7 +9,6 @@ from extensions import limiter
 from models import (
     MEAL_TYPE_LABELS,
     CatererReview,
-    Message,
     Order,
     OrderStatus,
     Quote,
@@ -92,32 +91,11 @@ def register(bp):
         order = get_company_order(order_id, user)
 
         caterer = order.quote.caterer
+        # `caterer_user` drives the "Envoyer un message" modal in the
+        # template — modal handles the existing-thread-or-compose
+        # logic itself via /api/messages, no thread-lookup needed
+        # server-side.
         caterer_user = caterer.users[0] if caterer.users else None
-        if caterer_user:
-            existing_tid = db.scalar(
-                select(Message.thread_id)
-                .where(
-                    or_(
-                        and_(
-                            Message.sender_id == user.id,
-                            Message.recipient_id == caterer_user.id,
-                        ),
-                        and_(
-                            Message.sender_id == caterer_user.id,
-                            Message.recipient_id == user.id,
-                        ),
-                    )
-                )
-                .limit(1)
-            )
-            if existing_tid:
-                caterer_message_href = url_for(
-                    "client.message_thread", thread_id=existing_tid
-                )
-            else:
-                caterer_message_href = url_for("client.messages")
-        else:
-            caterer_message_href = url_for("client.messages")
 
         # Existing review for this order (if any), so the detail page
         # shows "Vous avez deja note ce traiteur" instead of the form.
@@ -133,7 +111,7 @@ def register(bp):
             user=user,
             order=order,
             order_status_labels=ORDER_STATUS_LABELS,
-            caterer_message_href=caterer_message_href,
+            caterer_user=caterer_user,
             existing_review=existing_review,
             review_form_visible=review_form_visible,
         )

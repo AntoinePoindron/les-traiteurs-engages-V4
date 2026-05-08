@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
 {% from "components/ui.html" import back_button, info_chip, contact_card %}
+{% from "components/send_message_modal.html" import send_message_modal %}
 
 {% block title %}Demande - {{ qr.company.name }} - Les Traiteurs Engages{% endblock %}
 
@@ -343,8 +344,17 @@
       contact_first_name=client_user.first_name if client_user else None,
       contact_last_name=client_user.last_name if client_user else None,
       contact_email=client_user.email if client_user else None,
-      messages_href=url_for('caterer.messages')
+      messages_modal_id='send-message-client-' ~ (client_user.id|string) if client_user else None
     ) }}
+
+    {% if client_user %}
+    {{ send_message_modal(
+         modal_id='send-message-client-' ~ (client_user.id|string),
+         recipient_user_id=client_user.id,
+         recipient_name=qr.company.name,
+         quote_request_id=qr.id,
+         thread_endpoint='caterer.message_thread') }}
+    {% endif %}
 
     {# ---- Card : history with this client ---- #}
     <div class="bg-white rounded-lg p-6">

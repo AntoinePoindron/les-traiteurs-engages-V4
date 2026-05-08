@@ -150,23 +150,25 @@
 {% endmacro %}
 
 {# ContactCard — carte contact (client/traiteur) avec logo, nom de structure
-   et responsable. Le bouton message est un simple lien vers `messages_href`
-   (pas d'API ouverte directement comme dans React).
+   et responsable. Le bouton message ouvre soit une modale d'envoi rapide
+   (`messages_modal_id`, prefere), soit un simple lien vers `messages_href`
+   (legacy, pour les pages qui pointent vers l'inbox).
 
    Args:
-     entity_type     : "client" | "caterer"
-     entity_name     : str
-     entity_logo_url : str | None  (URL absolue ou relative)
-     contact_user_id : str | None  (UUID du contact, sert juste a conditionner l'affichage du bouton)
+     entity_type        : "client" | "caterer"
+     entity_name        : str
+     entity_logo_url    : str | None  (URL absolue ou relative)
+     contact_user_id    : str | None  (UUID du contact, sert juste a conditionner l'affichage du bouton)
      contact_first_name, contact_last_name, contact_email : strings
      public_profile_href : str | None  (rend le header cliquable vers la fiche publique)
-     messages_href   : str | None  (URL vers la conversation dediee)
-     nested          : bool  (True quand la card est imbriquee dans un autre conteneur blanc) #}
+     messages_modal_id  : str | None  (id de la <dialog> a ouvrir au click ; passe par send_message_modal)
+     messages_href      : str | None  (URL fallback si pas de modal_id ; backwards-compat)
+     nested             : bool  (True quand la card est imbriquee dans un autre conteneur blanc) #}
 {% macro contact_card(entity_type, entity_name, entity_logo_url=None,
                       contact_user_id=None, contact_first_name=None,
                       contact_last_name=None, contact_email=None,
-                      public_profile_href=None, messages_href=None,
-                      nested=False) %}
+                      public_profile_href=None, messages_modal_id=None,
+                      messages_href=None, nested=False) %}
   {% set labels = {
     'client':  {'label': 'CLIENT',   'contact_label': 'Responsable'},
     'caterer': {'label': 'TRAITEUR', 'contact_label': 'Contact'},
@@ -221,7 +223,14 @@
     </div>
     {% endif %}
 
-    {% if contact_user_id and messages_href %}
+    {% if contact_user_id and messages_modal_id %}
+    <button type="button" data-action="dialog-open" data-target="{{ messages_modal_id }}"
+       class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white transition-colors hover:opacity-90"
+       style="background-color:var(--c-navy);">
+      <i data-lucide="message-circle" class="w-4 h-4"></i>
+      Envoyer un message
+    </button>
+    {% elif contact_user_id and messages_href %}
     <a href="{{ messages_href }}"
        class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white transition-colors hover:opacity-90"
        style="background-color:var(--c-navy);">
