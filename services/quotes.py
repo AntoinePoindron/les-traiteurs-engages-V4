@@ -95,6 +95,28 @@ def derive_invoice_reference(quote_reference):
     return quote_reference.replace("DEVIS-", "FAC-", 1)
 
 
+def build_pdf_preview(quote, qr, caterer) -> dict:
+    """Build the `pdf_preview` dict consumed by `_pdf_preview.html`.
+
+    Same shape feeds the in-app modal (caterer request detail) and the
+    downloadable PDF (services/quote_pdf.render_quote_pdf), so both
+    surfaces stay visually aligned.
+    """
+    line_dicts = [ln.as_dict() for ln in quote.lines]
+    totals = calculate_quote_totals(
+        line_dicts,
+        qr.guest_count,
+        commission_rate=caterer.commission_rate,
+    )
+    lines_by_section: dict[str, list] = {}
+    for ln in quote.lines:
+        lines_by_section.setdefault(ln.section, []).append(ln)
+    return {
+        "lines_by_section": lines_by_section,
+        "totals": totals,
+    }
+
+
 DEFAULT_COMMISSION_RATE = Decimal("0.05")
 
 

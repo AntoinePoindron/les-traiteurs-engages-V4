@@ -16,8 +16,8 @@ import os
 from flask import render_template
 from weasyprint import CSS, HTML
 
-from models import MEAL_TYPE_LABELS, QuoteRequest
-from services.quotes import calculate_quote_totals
+from models import MEAL_TYPE_LABELS
+from services.quotes import build_pdf_preview
 
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,30 +40,9 @@ def _stylesheets() -> list[CSS]:
     ]
 
 
-def render_quote_pdf(quote) -> bytes:
-    """Render `quote` as a PDF and return the bytes.
-
-    Mirrors the `pdf_preview` dict that blueprints/client/requests.py
-    builds for the in-app modal — `lines_by_section` + `totals` —
-    so the PDF and the modal can't drift visually.
-    """
-    qr: QuoteRequest = quote.quote_request
-    caterer = quote.caterer
-
-    line_dicts = [ln.as_dict() for ln in quote.lines]
-    totals = calculate_quote_totals(
-        line_dicts,
-        qr.guest_count,
-        commission_rate=caterer.commission_rate,
-    )
-    lines_by_section: dict[str, list] = {}
-    for ln in quote.lines:
-        lines_by_section.setdefault(ln.section, []).append(ln)
-    pdf_preview = {
-        "lines_by_section": lines_by_section,
-        "totals": totals,
-    }
-
+def render_quote_pdf(quote, qr, caterer) -> bytes:
+    """Render `quote` as a PDF and return the bytes."""
+    pdf_preview = build_pdf_preview(quote, qr, caterer)
     html_str = render_template(
         "caterer/quotes/pdf_document.html",
         quote=quote,
@@ -72,5 +51,4 @@ def render_quote_pdf(quote) -> bytes:
         pdf_preview=pdf_preview,
         meal_type_labels=MEAL_TYPE_LABELS,
     )
-
     return HTML(string=html_str).write_pdf(stylesheets=_stylesheets())
