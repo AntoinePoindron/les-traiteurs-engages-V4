@@ -102,6 +102,10 @@
             <span class="text-mute">Total HT</span>
             <span class="font-bold text-text" id="display-total-ht">0,00 €</span>
           </div>
+          {# Per-rate TVA breakdown — populated by quote-editor.js
+             (recalculate). Mirrors the same view in _pdf_preview.html
+             so the editor matches the document the client will see. #}
+          <div id="display-tva-breakdown" class="space-y-2"></div>
           <div class="flex justify-between text-sm">
             <span class="font-bold text-text">Sous-total TTC</span>
             <span class="font-bold text-text" id="display-total-ttc">0,00 €</span>
@@ -111,15 +115,20 @@
         <div class="space-y-2">
           <p class="text-xs uppercase tracking-wider font-bold inline-flex items-center gap-1 text-mute">
             Frais de mise en relation (5% ajoutés)
-            <i data-lucide="info" class="w-3.5 h-3.5"
-               title="Une commission de 5% est ajoutée au devis pour couvrir les frais de la plateforme."></i>
+            {# Tooltip : `title` doit être sur un parent <span> car
+               lucide.createIcons() remplace <i> par <svg> et perd
+               l'attribut au passage. Le span wrapper le conserve
+               pendant le rendu, le tooltip natif s'affiche au hover. #}
+            <span title="Ces frais concernent uniquement le client" class="inline-flex items-center cursor-help">
+              <i data-lucide="info" class="w-3.5 h-3.5"></i>
+            </span>
           </p>
           <div class="flex justify-between text-sm">
             <span class="text-mute">Montant HT</span>
             <span class="font-bold text-text" id="display-fee-ht">0,00 €</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-mute">TVA 20 %</span>
+            <span class="text-mute">TVA 0 %</span>
             <span class="font-bold text-text" id="display-fee-tva">0,00 €</span>
           </div>
           <div class="flex justify-between text-sm">

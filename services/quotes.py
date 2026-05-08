@@ -144,9 +144,12 @@ def calculate_quote_totals(details, guest_count, commission_rate=None):
     total_ttc = total_ht + total_tva
 
     # Platform fee: commission_rate of total_ht (default 5%, per-caterer override
-    # via Caterer.commission_rate), TVA 20% on fee.
+    # via Caterer.commission_rate). The platform isn't a VAT collector for now,
+    # so the fee carries no TVA — keep the *_tva / *_ttc keys in the return
+    # shape so downstream callers (Stripe service, PDF preview, editor JS)
+    # don't break, but the values are 0 / equal to HT.
     platform_fee_ht = total_ht * commission_rate
-    platform_fee_tva = platform_fee_ht * Decimal("0.20")
+    platform_fee_tva = Decimal("0")
     platform_fee_ttc = platform_fee_ht + platform_fee_tva
 
     amount_per_person = (
