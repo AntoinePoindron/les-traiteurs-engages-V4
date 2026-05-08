@@ -1,4 +1,5 @@
 import json
+import logging
 from io import BytesIO
 
 from flask import (
@@ -35,6 +36,8 @@ from services.quotes import (
     generate_quote_reference,
     lines_from_dicts,
 )
+
+logger = logging.getLogger(__name__)
 
 # Hard cap on the number of quote lines accepted by the PDF renderer.
 # WeasyPrint is CPU-bound on layout; an authenticated caterer crafting a
@@ -501,6 +504,13 @@ def register(bp):
             abort(413)
 
         pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
+        logger.info(
+            "quote_pdf_downloaded caterer_id=%s quote_id=%s reference=%s lines=%d",
+            caterer.id,
+            quote.id,
+            quote.reference,
+            len(quote.lines),
+        )
         return send_file(
             BytesIO(pdf_bytes),
             mimetype="application/pdf",
