@@ -11,6 +11,7 @@ from flask import (
     url_for,
 )
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.middleware import login_required, role_required
 from blueprints.scoping import get_caterer_qrc, get_caterer_quote
@@ -466,12 +467,27 @@ def register(bp):
         from services.quote_pdf import render_quote_pdf
 
         caterer = g.current_user.caterer
-        quote = get_caterer_quote(qr_id, q_id, caterer.id)
-        # Touch the .lines / .quote_request relationships so they're loaded
-        # before the template renders (avoids accidental N+1 inside the
-        # render call below).
-        _ = quote.lines
-        _ = quote.quote_request.company
+        # Eager-load every relationship the template touches so the PDF
+        # renders in a single round-trip — the request detail page goes
+        # through the helper, but the PDF route owns its own query so we
+        # can opt into the loader options without burdening other callers.
+        db = get_db()
+        quote = db.scalar(
+            select(Quote)
+            .options(
+                selectinload(Quote.lines),
+                joinedload(Quote.caterer),
+                joinedload(Quote.quote_request).options(
+                    joinedload(QuoteRequest.company),
+                    joinedload(QuoteRequest.user),
+                ),
+            )
+            .where(Quote.id == q_id)
+            .where(Quote.caterer_id == caterer.id)
+            .where(Quote.quote_request_id == qr_id)
+        )
+        if not quote:
+            abort(404)
 
         pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
         return Response(
