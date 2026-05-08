@@ -11,6 +11,7 @@ with `Content-Type: application/pdf`.
 
 from __future__ import annotations
 
+import functools
 import os
 
 from flask import current_app, render_template
@@ -20,9 +21,10 @@ from models import MEAL_TYPE_LABELS
 from services.quotes import build_pdf_preview
 
 
-def _stylesheets() -> list[CSS]:
-    """Read tailwind.css + app.css from disk and return them as
-    WeasyPrint CSS objects.
+@functools.cache
+def _stylesheets() -> tuple[CSS, ...]:
+    """Read tailwind.css + app.css from disk once and cache the parsed
+    `CSS` objects for the lifetime of the worker.
 
     We deliberately do NOT pass URLs to WeasyPrint: it would HTTP-fetch
     them via urlopen, calling back into gunicorn while we're already
@@ -31,10 +33,10 @@ def _stylesheets() -> list[CSS]:
     from disk skips both problems.
     """
     css_dir = os.path.join(current_app.static_folder, "css")
-    return [
+    return (
         CSS(filename=os.path.join(css_dir, "tailwind.css")),
         CSS(filename=os.path.join(css_dir, "app.css")),
-    ]
+    )
 
 
 def render_quote_pdf(quote, qr, caterer) -> bytes:
@@ -48,4 +50,4 @@ def render_quote_pdf(quote, qr, caterer) -> bytes:
         pdf_preview=pdf_preview,
         meal_type_labels=MEAL_TYPE_LABELS,
     )
-    return HTML(string=html_str).write_pdf(stylesheets=_stylesheets())
+    return HTML(string=html_str).write_pdf(stylesheets=list(_stylesheets()))
