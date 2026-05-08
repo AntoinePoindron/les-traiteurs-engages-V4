@@ -33,10 +33,11 @@
   'caterer_pending_validation': 'shield-check',
 } %}
 
-{# `notifications_recent` is already filtered to unread by the
-   `_inject_notifications` context processor in app.py — so the count
-   is simply the list length. #}
-{% set unread_count = notifications_recent | length %}
+{# `notifications_recent` is capped at 10 by the `_inject_notifications`
+   context processor; `notifications_unread_total` carries the true
+   count so the header isn't wrong when the user has more than 10
+   unread. #}
+{% set unread_count = notifications_unread_total %}
 
 <div id="notifications-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4"
      style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
