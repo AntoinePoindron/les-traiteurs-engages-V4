@@ -6,6 +6,17 @@ FROM python:3.11-slim@sha256:6d85378d88a19cd4d76079817532d62232be95757cb45945a99
 RUN groupadd --system --gid 1001 app \
  && useradd  --system --uid 1001 --gid app --create-home --shell /usr/sbin/nologin app
 
+# WeasyPrint runtime deps : libpango fournit la fonte/text-shaping pour
+# le rendu PDF, fonts-dejavu-core garantit qu'au moins une famille
+# sans-serif est disponible quand le devis est généré (sinon WeasyPrint
+# émet un warning et tombe sur une fonte interne moins lisible).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
+        fonts-dejavu-core \
+ && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Install deps as root (cleaner site-packages perms), then drop privileges.

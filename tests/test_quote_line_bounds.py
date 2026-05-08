@@ -107,3 +107,22 @@ def test_valid_line_still_parses():
     assert lines[0].quantity == Decimal("20")
     assert lines[0].unit_price_ht == Decimal("12.50")
     assert lines[0].tva_rate == Decimal("10")
+
+
+def test_overlong_description_is_rejected():
+    """A multi-MB description would slow PDF rendering disproportionately
+    (audit M3) — bound the size at the parse layer."""
+    from services.quotes import MAX_DESCRIPTION_LEN, lines_from_dicts
+
+    with pytest.raises(ValueError):
+        lines_from_dicts(
+            [
+                {
+                    "section": "principal",
+                    "description": "x" * (MAX_DESCRIPTION_LEN + 1),
+                    "quantity": 1,
+                    "unit_price_ht": 10,
+                    "tva_rate": 10,
+                }
+            ]
+        )

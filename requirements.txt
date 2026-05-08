@@ -38,6 +38,11 @@ boto3==1.38.16
 Pillow==12.2.0
 pikepdf==9.7.0
 
+# Quote download : HTML + CSS → PDF for the caterer's "Télécharger en PDF"
+# action. Replaces the previous window.print() screenshot. Needs system
+# libs (libpango / libpangoft2) installed in the image — see Dockerfile.
+weasyprint==68.0
+
 # --- dev / test ---
 pytest==9.0.3
 pytest-flask==1.3.0

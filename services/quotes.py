@@ -17,6 +17,11 @@ LEGAL_TVA_RATES: frozenset[Decimal] = frozenset(
 MAX_QUANTITY = Decimal("10000")
 MAX_UNIT_PRICE_HT = Decimal("100000")
 MAX_LINE_TOTAL_HT = Decimal("10000000")
+# Bound the per-line description so the PDF renderer can't be fed a
+# multi-MB string crafted to slow layout. Real menu items run a few
+# dozen chars; 1000 leaves headroom for verbose descriptions while
+# keeping the renderer's worst case tractable.
+MAX_DESCRIPTION_LEN = 1000
 
 
 def _parse_finite_decimal(raw, field: str) -> Decimal:
@@ -55,12 +60,17 @@ def lines_from_dicts(line_dicts: list[dict]) -> list[QuoteLine]:
             raise ValueError(
                 f"line {i}: tva_rate {tva_rate} not in {sorted(LEGAL_TVA_RATES)}"
             )
+        description = d.get("description") or None
+        if description is not None and len(description) > MAX_DESCRIPTION_LEN:
+            raise ValueError(
+                f"line {i}: description longer than {MAX_DESCRIPTION_LEN} chars"
+            )
 
         result.append(
             QuoteLine(
                 position=i,
                 section=str(d.get("section") or "principal")[:50],
-                description=d.get("description") or None,
+                description=description,
                 quantity=quantity,
                 unit_price_ht=unit_price_ht,
                 tva_rate=tva_rate,
@@ -93,6 +103,28 @@ def generate_quote_reference(session, caterer):
 def derive_invoice_reference(quote_reference):
     """Convert DEVIS-XXX to FAC-XXX."""
     return quote_reference.replace("DEVIS-", "FAC-", 1)
+
+
+def build_pdf_preview(quote, qr, caterer) -> dict:
+    """Build the `pdf_preview` dict consumed by `_pdf_preview.html`.
+
+    Same shape feeds the in-app modal (caterer request detail) and the
+    downloadable PDF (services/quote_pdf.render_quote_pdf), so both
+    surfaces stay visually aligned.
+    """
+    line_dicts = [ln.as_dict() for ln in quote.lines]
+    totals = calculate_quote_totals(
+        line_dicts,
+        qr.guest_count,
+        commission_rate=caterer.commission_rate,
+    )
+    lines_by_section: dict[str, list] = {}
+    for ln in quote.lines:
+        lines_by_section.setdefault(ln.section, []).append(ln)
+    return {
+        "lines_by_section": lines_by_section,
+        "totals": totals,
+    }
 
 
 DEFAULT_COMMISSION_RATE = Decimal("0.05")
