@@ -665,3 +665,60 @@ def test_post_to_detail_does_not_mark_read(client, login):
             s.commit()
         finally:
             s.close()
+
+
+def test_visiting_dashboard_marks_company_notifs_read(client, login):
+    """`company`-type notifs (membership approval) bounce to the
+    dashboard. Landing on /client/dashboard must clear them so the
+    bell stops surfacing the welcome notification."""
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import Notification, User
+    from services.notifications import create_notification
+
+    s = session_factory()
+    try:
+        alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+        create_notification(
+            s,
+            user_id=alice.id,
+            type="membership_approved",
+            title="Bienvenue !",
+            body="Test",
+            related_entity_type="company",
+            related_entity_id=alice.company_id,
+        )
+        s.commit()
+        notif_id = s.scalar(
+            select(Notification.id).where(
+                Notification.user_id == alice.id,
+                Notification.related_entity_type == "company",
+                Notification.is_read.is_(False),
+            )
+        )
+    finally:
+        s.close()
+
+    try:
+        login("alice@test.local")
+        r = client.get("/client/dashboard", follow_redirects=False)
+        assert r.status_code == 200
+
+        s = session_factory()
+        try:
+            notif = s.get(Notification, notif_id)
+            assert notif.is_read is True, (
+                "viewing the dashboard must clear company-type notifs"
+            )
+        finally:
+            s.close()
+    finally:
+        s = session_factory()
+        try:
+            s.execute(
+                Notification.__table__.delete().where(Notification.id == notif_id)
+            )
+            s.commit()
+        finally:
+            s.close()

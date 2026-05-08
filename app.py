@@ -273,12 +273,14 @@ def create_app():
 
         from services.notifications import (
             mark_read_by_type,
+            mark_read_for_entities,
             mark_read_for_entity,
         )
 
         args = request.view_args or {}
         db = get_db()
-        user_id = g.current_user.id
+        user = g.current_user
+        user_id = user.id
         touched = False
 
         try:
@@ -302,8 +304,10 @@ def create_app():
                             select(Quote.id).where(Quote.quote_request_id == rid)
                         )
                     )
-                    for qid in quote_ids:
-                        touched |= bool(mark_read_for_entity(db, user_id, "quote", qid))
+                    if quote_ids:
+                        touched |= bool(
+                            mark_read_for_entities(db, user_id, "quote", quote_ids)
+                        )
             elif endpoint in (
                 "client.order_detail",
                 "caterer.order_detail",
@@ -319,6 +323,7 @@ def create_app():
             elif endpoint in (
                 "client.message_thread",
                 "caterer.message_thread",
+                "admin.message_thread",
             ):
                 tid = args.get("thread_id")
                 if tid:
@@ -327,15 +332,28 @@ def create_app():
                     msg_ids = list(
                         db.scalars(select(Message.id).where(Message.thread_id == tid))
                     )
-                    for mid in msg_ids:
+                    if msg_ids:
                         touched |= bool(
-                            mark_read_for_entity(db, user_id, "message", mid)
+                            mark_read_for_entities(db, user_id, "message", msg_ids)
                         )
+            elif endpoint == "client.dashboard":
+                # `company`-type notifs (membership approval) resolve to
+                # the dashboard. Scope by the user's own company_id so
+                # the sweep stays narrow.
+                if user.company_id:
+                    touched |= bool(
+                        mark_read_for_entity(
+                            db, user_id, "company", user.company_id
+                        )
+                    )
             elif endpoint == "client.team":
                 # Pending-membership notifs (related_entity_type="user")
                 # all surface on the team page, regardless of which user
                 # is pending. URL has no entity_id, so sweep by type.
-                touched |= bool(mark_read_by_type(db, user_id, "user"))
+                # Only emitted to client_admins — gate explicitly to keep
+                # the sweep scoped to roles that actually receive them.
+                if user.role == UserRole.client_admin:
+                    touched |= bool(mark_read_by_type(db, user_id, "user"))
 
             if touched:
                 db.commit()

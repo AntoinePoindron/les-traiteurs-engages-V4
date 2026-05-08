@@ -265,3 +265,23 @@ def mark_read_by_type(session: Session, user_id, entity_type):
         .values(is_read=True)
     )
     return result.rowcount or 0
+
+
+def mark_read_for_entities(session: Session, user_id, entity_type, entity_ids):
+    """Bulk variant of `mark_read_for_entity` for a list of ids — one
+    UPDATE instead of N. Used when a single page surfaces multiple
+    related entities (e.g. all quotes attached to a request, all
+    messages in a thread)."""
+    if not user_id or not entity_type or not entity_ids:
+        return 0
+    result = session.execute(
+        update(Notification)
+        .where(
+            Notification.user_id == user_id,
+            Notification.is_read.is_(False),
+            Notification.related_entity_type == entity_type,
+            Notification.related_entity_id.in_(list(entity_ids)),
+        )
+        .values(is_read=True)
+    )
+    return result.rowcount or 0
