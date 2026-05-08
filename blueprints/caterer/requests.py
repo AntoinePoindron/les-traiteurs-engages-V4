@@ -34,6 +34,12 @@ from services.quotes import (
     lines_from_dicts,
 )
 
+# Hard cap on the number of quote lines accepted by the PDF renderer.
+# WeasyPrint is CPU-bound on layout; an authenticated caterer crafting a
+# pathological quote with thousands of lines could starve a worker. The
+# cap is well above any realistic catering quote (typical: 5–30 lines).
+_MAX_PDF_LINES = 500
+
 
 def _parse_line_dicts(raw: str) -> list[dict]:
     """Parse JSON quote lines and reject non-flat structures."""
@@ -488,6 +494,8 @@ def register(bp):
         )
         if not quote:
             abort(404)
+        if len(quote.lines) > _MAX_PDF_LINES:
+            abort(413)
 
         pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
         return Response(
