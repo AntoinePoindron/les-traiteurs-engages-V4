@@ -1,13 +1,14 @@
 import json
+from io import BytesIO
 
 from flask import (
-    Response,
     abort,
     flash,
     g,
     redirect,
     render_template,
     request as flask_request,
+    send_file,
     url_for,
 )
 from sqlalchemy import select
@@ -498,14 +499,11 @@ def register(bp):
             abort(413)
 
         pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
-        return Response(
-            pdf_bytes,
+        return send_file(
+            BytesIO(pdf_bytes),
             mimetype="application/pdf",
-            headers={
-                "Content-Disposition": (
-                    f'attachment; filename="devis-{quote.reference}.pdf"'
-                ),
-            },
+            as_attachment=True,
+            download_name=f"devis-{quote.reference}.pdf",
         )
 
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/send", methods=["POST"])
