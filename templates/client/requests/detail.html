@@ -226,15 +226,11 @@
            devis cohabitent dans la même carte, séparées par un liseré
            horizontal (`border-t border-soft`). Cohérent avec ce qu'on
            fait par exemple côté /client/orders/<id> où un order =
-           une carte. Le bouton "Envoyer un message" (icône cloche, à
-           droite du header traiteur) ouvre la modale `send_message_modal`
-           dès qu'un devis a été reçu — utile pour poser une question
-           avant d'accepter, autant pour le mode direct que pour le
+           une carte. Le bouton "Envoyer un message" (à droite du header
+           traiteur) ouvre la modale `send_message_modal` dès qu'un
+           devis a été reçu — utile pour poser une question avant
+           d'accepter, autant pour le mode direct que pour le
            comparateur 3 devis. #}
-        {# Le caterer_user est résolu à la volée (caterer.users[0]) ;
-           si le traiteur n'a pas encore de user actif, on cache le
-           bouton message — fallback graceful, pas d'erreur. #}
-        {% set caterer_user = quote.caterer.users[0] if quote.caterer.users else None %}
         {# Le label "Traiteur" est remplacé par le type de structure
            complet (ESAT / Entreprise Adaptée / Entreprise d'Insertion /
            Atelier et Chantier d'Insertion) dans le même style typo
@@ -276,7 +272,7 @@
                 {% endif %}
               </div>
             </a>
-            {% if caterer_user %}
+            {% if quote.caterer_user %}
             <button type="button" data-action="dialog-open"
                     data-target="send-message-quote-{{ quote.id }}"
                     class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1.5 btn-ghost-navy flex-shrink-0">
@@ -485,11 +481,10 @@
        message in a brand-new thread satisfies the VULN-04 gate.
        ============================================================ #}
     {% for quote in quotes %}
-      {% set caterer_user = quote.caterer.users[0] if quote.caterer.users else None %}
-      {% if caterer_user %}
+      {% if quote.caterer_user %}
       {{ send_message_modal(
            modal_id='send-message-quote-' ~ (quote.id|string),
-           recipient_user_id=caterer_user.id,
+           recipient_user_id=quote.caterer_user.id,
            recipient_name=quote.caterer.name,
            quote_request_id=qr.id,
            thread_endpoint='client.message_thread') }}

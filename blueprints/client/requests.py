@@ -408,6 +408,7 @@ def register(bp):
                 select(Quote)
                 .where(Quote.quote_request_id == request_id)
                 .order_by(Quote.created_at.asc())
+                .options(selectinload(Quote.caterer).selectinload(Caterer.users))
             )
             .scalars()
             .all()
@@ -416,6 +417,15 @@ def register(bp):
         # Same display_status logic as the list page so the header badge
         # uses a French, user-facing label instead of the raw enum value.
         qr.display_status = _derive_request_display_status(qr)
+
+        # Pick a deterministic, active user per caterer for the
+        # "Envoyer un message" button. Picking [0] off the relationship is
+        # order-undefined and could land on a deactivated account, so sort
+        # by created_at (oldest active = effectively the founding user).
+        for quote in quotes:
+            actives = [u for u in quote.caterer.users if u.is_active]
+            actives.sort(key=lambda u: (u.created_at, u.id))
+            quote.caterer_user = actives[0] if actives else None
 
         # Attach per-quote PDF preview data so the template can render a
         # read-only modal for "Voir le devis" without doing arithmetic in
