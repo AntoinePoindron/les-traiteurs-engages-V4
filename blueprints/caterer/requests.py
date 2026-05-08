@@ -17,6 +17,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from blueprints.middleware import login_required, role_required
 from blueprints.scoping import get_caterer_qrc, get_caterer_quote
 from database import get_db
+from extensions import limiter
 from forms.caterer import QuoteForm
 from models import (
     MEAL_TYPE_LABELS,
@@ -460,6 +461,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/pdf", methods=["GET"])
     @login_required
     @role_required("caterer")
+    @limiter.limit("20 per minute")
     def quote_pdf(qr_id, q_id):
         """Download the quote as a server-rendered PDF.
 
