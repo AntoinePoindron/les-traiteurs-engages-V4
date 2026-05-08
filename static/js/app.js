@@ -99,6 +99,17 @@
     if (fn) fn(el, ev);
   });
 
+  // Notifications dropdown: close on click outside the panel or its
+  // trigger. Runs after the toggle-hidden action above, so opening the
+  // dropdown via the bell isn't immediately undone by this handler.
+  document.addEventListener('click', function (ev) {
+    var dropdown = document.getElementById('notifications-modal');
+    if (!dropdown || dropdown.classList.contains('hidden')) return;
+    if (ev.target.closest('[data-target="notifications-modal"]')) return;
+    if (ev.target.closest('#notifications-modal')) return;
+    dropdown.classList.add('hidden');
+  });
+
   function initBackdropDismiss() {
     document.querySelectorAll('[data-backdrop-dismiss]').forEach(function (el) {
       if (el.__bdInit) return;
