@@ -263,6 +263,120 @@ def create_app():
                     user = None
             g.current_user = user
 
+    @app.before_request
+    def mark_notifications_read_on_entity_view():
+        """Clear bell-dropdown notifications whose related entity the
+        user has just landed on — irrespective of how they got there
+        (dashboard tile, list page, direct link, dropdown click).
+
+        Runs after `load_current_user` (registration order) so
+        `g.current_user` is set. GET-only: POSTs to the same URL are
+        actions, not "viewing".
+
+        Commits on its own because the typical detail handler is a
+        read and doesn't commit; without an explicit commit here the
+        notification update would be discarded at request teardown.
+        Failures are swallowed so a DB hiccup on marking-read can't
+        500 the user's main request — they'll just see the notif
+        again on the next page load.
+        """
+        if request.method != "GET":
+            return
+        if not g.get("current_user"):
+            return
+        endpoint = request.endpoint
+        if not endpoint:
+            return
+
+        from services.notifications import (
+            mark_read_by_type,
+            mark_read_for_entities,
+            mark_read_for_entity,
+        )
+
+        args = request.view_args or {}
+        db = get_db()
+        user = g.current_user
+        user_id = user.id
+        touched = False
+
+        try:
+            if endpoint in (
+                "client.request_detail",
+                "caterer.request_detail",
+                "admin.qualification_detail",
+            ):
+                rid = args.get("request_id") or args.get("qr_id")
+                if rid:
+                    touched |= bool(
+                        mark_read_for_entity(db, user_id, "quote_request", rid)
+                    )
+                    # Quote-related notifs bounce to the parent request URL
+                    # (see services.notifications.notification_target_url),
+                    # so visiting the request also clears those.
+                    from models import Quote
+
+                    quote_ids = list(
+                        db.scalars(
+                            select(Quote.id).where(Quote.quote_request_id == rid)
+                        )
+                    )
+                    if quote_ids:
+                        touched |= bool(
+                            mark_read_for_entities(db, user_id, "quote", quote_ids)
+                        )
+            elif endpoint in (
+                "client.order_detail",
+                "caterer.order_detail",
+                "admin.order_detail",
+            ):
+                oid = args.get("order_id")
+                if oid:
+                    touched |= bool(mark_read_for_entity(db, user_id, "order", oid))
+            elif endpoint == "admin.caterer_detail":
+                cid = args.get("caterer_id")
+                if cid:
+                    touched |= bool(mark_read_for_entity(db, user_id, "caterer", cid))
+            elif endpoint in (
+                "client.message_thread",
+                "caterer.message_thread",
+                "admin.message_thread",
+            ):
+                tid = args.get("thread_id")
+                if tid:
+                    from models import Message
+
+                    msg_ids = list(
+                        db.scalars(select(Message.id).where(Message.thread_id == tid))
+                    )
+                    if msg_ids:
+                        touched |= bool(
+                            mark_read_for_entities(db, user_id, "message", msg_ids)
+                        )
+            elif endpoint == "client.dashboard":
+                # `company`-type notifs (membership approval) resolve to
+                # the dashboard. Scope by the user's own company_id so
+                # the sweep stays narrow.
+                if user.company_id:
+                    touched |= bool(
+                        mark_read_for_entity(
+                            db, user_id, "company", user.company_id
+                        )
+                    )
+            elif endpoint == "client.team":
+                # Pending-membership notifs (related_entity_type="user")
+                # all surface on the team page, regardless of which user
+                # is pending. URL has no entity_id, so sweep by type.
+                # Only emitted to client_admins — gate explicitly to keep
+                # the sweep scoped to roles that actually receive them.
+                if user.role == UserRole.client_admin:
+                    touched |= bool(mark_read_by_type(db, user_id, "user"))
+
+            if touched:
+                db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+
     @app.teardown_appcontext
     def remove_session(exc=None):
         ScopedSession.remove()

@@ -429,3 +429,296 @@ def test_submit_quote_does_not_notify_on_4th_responder(session):
         )
     )
     assert after == before, "closed-out 4th submit must not notify the requester"
+
+
+# ---------------------------------------------------------------------------
+# Auto-mark-read on entity view — the bell dropdown drops items as soon
+# as the user lands on the related detail page, regardless of how they
+# got there (dashboard tile, list page, dropdown click, direct link).
+# ---------------------------------------------------------------------------
+
+
+def _seed_qr_for_alice(s):
+    """Create a minimal QuoteRequest owned by alice@test.local under
+    ACME, returning its id. Status is `sent_to_caterers` so the
+    /client/requests/<id> route renders without falling through to a
+    404 (request_detail allows any QR the user can see)."""
+    from sqlalchemy import select
+
+    from models import Company, QuoteRequest, QuoteRequestStatus, User
+
+    acme = s.scalar(select(Company).where(Company.siret == "12345678901234"))
+    alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+    qr = QuoteRequest(
+        company_id=acme.id,
+        user_id=alice.id,
+        guest_count=10,
+        status=QuoteRequestStatus.sent_to_caterers,
+        event_address="1 rue Test",
+        event_city="Paris",
+        event_zip_code="75001",
+        event_date=_dt.date.today() + _dt.timedelta(days=21),
+    )
+    s.add(qr)
+    s.flush()
+    return qr.id
+
+
+def test_visiting_request_detail_marks_quote_request_notifs_read(client, login):
+    """Hitting /client/requests/<id> (e.g. via dashboard tile or list
+    page) must mark the alice's quote_request notif for that QR as
+    read — so the bell dropdown stops showing it."""
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import Notification, User
+    from services.notifications import create_notification
+
+    s = session_factory()
+    try:
+        qr_id = _seed_qr_for_alice(s)
+        alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+        create_notification(
+            s,
+            user_id=alice.id,
+            type="quote_request_approved",
+            title="Demande approuvée",
+            body="Test",
+            related_entity_type="quote_request",
+            related_entity_id=qr_id,
+        )
+        s.commit()
+        notif_id = s.scalar(
+            select(Notification.id).where(
+                Notification.user_id == alice.id,
+                Notification.related_entity_id == qr_id,
+            )
+        )
+    finally:
+        s.close()
+
+    try:
+        login("alice@test.local")
+        r = client.get(f"/client/requests/{qr_id}", follow_redirects=False)
+        assert r.status_code == 200
+
+        s = session_factory()
+        try:
+            notif = s.get(Notification, notif_id)
+            assert notif.is_read is True, (
+                "viewing the request detail page must mark its notif read"
+            )
+        finally:
+            s.close()
+    finally:
+        s = session_factory()
+        try:
+            s.execute(
+                Notification.__table__.delete().where(Notification.id == notif_id)
+            )
+            s.commit()
+        finally:
+            s.close()
+
+
+def test_visiting_request_detail_also_clears_child_quote_notifs(client, login):
+    """Quote-type notifs bounce to the parent quote_request URL (see
+    services.notifications.notification_target_url), so visiting the
+    parent QR must also flip the child quote notifs to read."""
+    from decimal import Decimal as _D
+
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import (
+        Caterer,
+        Notification,
+        Quote,
+        QuoteRequestCaterer,
+        QuoteStatus,
+        User,
+    )
+    from services.notifications import create_notification
+
+    s = session_factory()
+    try:
+        qr_id = _seed_qr_for_alice(s)
+        alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+        caterer = s.scalar(select(Caterer).where(Caterer.siret == "98765432109876"))
+        # A quote needs a parent QRC row (QuoteRequestCaterer) for the
+        # request_detail page to render its listing block.
+        qrc = QuoteRequestCaterer(
+            quote_request_id=qr_id,
+            caterer_id=caterer.id,
+        )
+        s.add(qrc)
+        s.flush()
+        quote = Quote(
+            quote_request_id=qr_id,
+            caterer_id=caterer.id,
+            reference=f"TST-{uuid.uuid4().hex[:6].upper()}",
+            status=QuoteStatus.sent,
+            total_amount_ht=_D("100.00"),
+            valorisable_agefiph=_D("100.00"),
+        )
+        s.add(quote)
+        s.flush()
+        create_notification(
+            s,
+            user_id=alice.id,
+            type="quote_received",
+            title="Devis reçu",
+            body="Test",
+            related_entity_type="quote",
+            related_entity_id=quote.id,
+        )
+        s.commit()
+        notif_id = s.scalar(
+            select(Notification.id).where(
+                Notification.user_id == alice.id,
+                Notification.related_entity_id == quote.id,
+            )
+        )
+        quote_id = quote.id
+    finally:
+        s.close()
+
+    try:
+        login("alice@test.local")
+        r = client.get(f"/client/requests/{qr_id}", follow_redirects=False)
+        assert r.status_code == 200
+
+        s = session_factory()
+        try:
+            notif = s.get(Notification, notif_id)
+            assert notif.is_read is True, (
+                "child quote notif must be cleared when the parent QR page is viewed"
+            )
+        finally:
+            s.close()
+    finally:
+        s = session_factory()
+        try:
+            s.execute(
+                Notification.__table__.delete().where(Notification.id == notif_id)
+            )
+            s.execute(Quote.__table__.delete().where(Quote.id == quote_id))
+            s.commit()
+        finally:
+            s.close()
+
+
+def test_post_to_detail_does_not_mark_read(client, login):
+    """The auto-mark-read hook is GET-only — POSTs to the same URL are
+    actions, not 'viewing'. Use the request-edit POST as a vehicle:
+    even if it 4xxs (CSRF, validation), the notif must stay unread."""
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import Notification, User
+    from services.notifications import create_notification
+
+    s = session_factory()
+    try:
+        qr_id = _seed_qr_for_alice(s)
+        alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+        create_notification(
+            s,
+            user_id=alice.id,
+            type="quote_request_approved",
+            title="Demande approuvée",
+            body="Test",
+            related_entity_type="quote_request",
+            related_entity_id=qr_id,
+        )
+        s.commit()
+        notif_id = s.scalar(
+            select(Notification.id).where(
+                Notification.user_id == alice.id,
+                Notification.related_entity_id == qr_id,
+            )
+        )
+    finally:
+        s.close()
+
+    try:
+        login("alice@test.local")
+        # POST to a non-existent endpoint just to assert the hook's
+        # GET-only contract — we only care that the notif stays unread,
+        # not what the POST returns.
+        client.post(f"/client/requests/{qr_id}", data={})
+
+        s = session_factory()
+        try:
+            notif = s.get(Notification, notif_id)
+            assert notif.is_read is False, (
+                "POST to a detail URL must NOT auto-mark notifs read"
+            )
+        finally:
+            s.close()
+    finally:
+        s = session_factory()
+        try:
+            s.execute(
+                Notification.__table__.delete().where(Notification.id == notif_id)
+            )
+            s.commit()
+        finally:
+            s.close()
+
+
+def test_visiting_dashboard_marks_company_notifs_read(client, login):
+    """`company`-type notifs (membership approval) bounce to the
+    dashboard. Landing on /client/dashboard must clear them so the
+    bell stops surfacing the welcome notification."""
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import Notification, User
+    from services.notifications import create_notification
+
+    s = session_factory()
+    try:
+        alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+        create_notification(
+            s,
+            user_id=alice.id,
+            type="membership_approved",
+            title="Bienvenue !",
+            body="Test",
+            related_entity_type="company",
+            related_entity_id=alice.company_id,
+        )
+        s.commit()
+        notif_id = s.scalar(
+            select(Notification.id).where(
+                Notification.user_id == alice.id,
+                Notification.related_entity_type == "company",
+                Notification.is_read.is_(False),
+            )
+        )
+    finally:
+        s.close()
+
+    try:
+        login("alice@test.local")
+        r = client.get("/client/dashboard", follow_redirects=False)
+        assert r.status_code == 200
+
+        s = session_factory()
+        try:
+            notif = s.get(Notification, notif_id)
+            assert notif.is_read is True, (
+                "viewing the dashboard must clear company-type notifs"
+            )
+        finally:
+            s.close()
+    finally:
+        s = session_factory()
+        try:
+            s.execute(
+                Notification.__table__.delete().where(Notification.id == notif_id)
+            )
+            s.commit()
+        finally:
+            s.close()
