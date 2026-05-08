@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/send_message_modal.html" import send_message_modal %}
 {% from "components/status_badge.html" import status_badge %}
 {% from "components/structure_type_badge.html" import structure_type_label %}
 {% from "components/ui.html" import back_button %}
@@ -225,9 +226,11 @@
            devis cohabitent dans la même carte, séparées par un liseré
            horizontal (`border-t border-soft`). Cohérent avec ce qu'on
            fait par exemple côté /client/orders/<id> où un order =
-           une carte. Pas de bouton "Envoyer un message" : depuis une
-           demande on ne peut pas encore écrire au traiteur (la
-           messagerie démarre une fois le devis accepté → /orders/<id>). #}
+           une carte. Le bouton "Envoyer un message" (à droite du header
+           traiteur) n'apparaît que sur les devis au statut `sent` —
+           utile pour poser une question avant d'accepter. Une fois
+           accepté c'est /client/orders/<id> qui prend le relais ;
+           refusé/expiré il n'y a plus de raison de relancer. #}
         {# Le label "Traiteur" est remplacé par le type de structure
            complet (ESAT / Entreprise Adaptée / Entreprise d'Insertion /
            Atelier et Chantier d'Insertion) dans le même style typo
@@ -247,25 +250,37 @@
           </div>
 
           {# Section haute : infos traiteur (cliquable, fond cream au
-             hover pour signaler l'affordance vers la fiche publique). #}
-          <a href="{{ url_for('client.caterer_detail', caterer_id=quote.caterer.id) }}"
-             class="flex items-center gap-3 -mx-2 px-2 -my-1 py-1 rounded-lg hover:bg-cream transition-colors">
-            {% if quote.caterer.logo_url %}
-            <img src="{{ quote.caterer.logo_url }}" alt="Logo {{ quote.caterer.name }}"
-                 class="w-12 h-12 rounded-lg object-contain p-1 bg-cream">
-            {% else %}
-            <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-navy-soft" style="flex-shrink:0;">
-              <i data-lucide="chef-hat" class="w-5 h-5 text-navy"></i>
-            </div>
-            {% endif %}
-            <div class="flex-1 min-w-0">
-              <p class="text-mute font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">{{ structure_type_label(quote.caterer.structure_type) }}</p>
-              <p class="font-display font-bold text-base text-text truncate">{{ quote.caterer.name }}</p>
-              {% if quote.caterer.city %}
-              <p class="text-xs text-mute truncate">{{ quote.caterer.city }}</p>
+             hover pour signaler l'affordance vers la fiche publique).
+             Le bouton "Envoyer un message" est un sibling du <a> pour
+             ne pas piéger le click utilisateur dans une nav non voulue. #}
+          <div class="flex items-center gap-3">
+            <a href="{{ url_for('client.caterer_detail', caterer_id=quote.caterer.id) }}"
+               class="flex items-center gap-3 flex-1 min-w-0 -mx-2 px-2 -my-1 py-1 rounded-lg hover:bg-cream transition-colors">
+              {% if quote.caterer.logo_url %}
+              <img src="{{ quote.caterer.logo_url }}" alt="Logo {{ quote.caterer.name }}"
+                   class="w-12 h-12 rounded-lg object-contain p-1 bg-cream">
+              {% else %}
+              <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-navy-soft" style="flex-shrink:0;">
+                <i data-lucide="chef-hat" class="w-5 h-5 text-navy"></i>
+              </div>
               {% endif %}
-            </div>
-          </a>
+              <div class="flex-1 min-w-0">
+                <p class="text-mute font-bold uppercase" style="font-size:10px;letter-spacing:0.06em;">{{ structure_type_label(quote.caterer.structure_type) }}</p>
+                <p class="font-display font-bold text-base text-text truncate">{{ quote.caterer.name }}</p>
+                {% if quote.caterer.city %}
+                <p class="text-xs text-mute truncate">{{ quote.caterer.city }}</p>
+                {% endif %}
+              </div>
+            </a>
+            {% if quote.status == QuoteStatus.sent and quote.caterer_user %}
+            <button type="button" data-action="dialog-open"
+                    data-target="send-message-quote-{{ quote.id }}"
+                    class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1.5 btn-ghost-navy flex-shrink-0">
+              <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+              Message
+            </button>
+            {% endif %}
+          </div>
 
           {# Liseré séparant infos traiteur (haut) des infos devis (bas).
              mt-3 pt-3 (au lieu de mt-6 pt-6) — espace plus serré sous
@@ -456,6 +471,24 @@
           </div>
         </div>
       </div>
+      {% endif %}
+    {% endfor %}
+
+    {# ============================================================
+       Per-quote "Envoyer un message" modals — rendus uniquement pour
+       les devis encore au statut `sent` (mêmes conditions que le
+       bouton ci-dessus). Posts to /api/messages with the
+       quote_request_id so the first message in a brand-new thread
+       satisfies the VULN-04 gate.
+       ============================================================ #}
+    {% for quote in quotes %}
+      {% if quote.status == QuoteStatus.sent and quote.caterer_user %}
+      {{ send_message_modal(
+           modal_id='send-message-quote-' ~ (quote.id|string),
+           recipient_user_id=quote.caterer_user.id,
+           recipient_name=quote.caterer.name,
+           quote_request_id=qr.id,
+           thread_endpoint='client.message_thread') }}
       {% endif %}
     {% endfor %}
 
