@@ -228,11 +228,6 @@ def signup():
             return render_template("auth/signup.html")
 
         if role == "client_admin":
-            company_name = request.form.get("company_name", "").strip()
-            if not company_name:
-                flash("Le nom de l'entreprise est obligatoire.", "error")
-                return render_template("auth/signup.html")
-
             if existing_company:
                 user = User(
                     email=email,
