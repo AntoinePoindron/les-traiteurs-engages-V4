@@ -5,8 +5,10 @@ Pulls the same `_pdf_preview.html` partial that drives the in-app
 screen, byte-for-byte content-wise.
 
 The route handler (blueprints/caterer/requests.py::quote_pdf) only
-needs to call `render_quote_pdf(quote)` and stream the bytes back
-with `Content-Type: application/pdf`.
+needs to call `render_quote_pdf(quote, qr, caterer)` and stream the
+bytes back with `Content-Type: application/pdf`. It imports this
+module lazily so WeasyPrint's heavy native-binding import (Cairo,
+Pango) only happens on a PDF hit, not at app startup.
 """
 
 from __future__ import annotations

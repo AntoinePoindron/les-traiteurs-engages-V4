@@ -460,6 +460,9 @@ def register(bp):
         `_pdf_preview.html` partial as the in-app modal so the file
         looks identical to what was on screen.
         """
+        # Lazy import: WeasyPrint pulls Cairo/Pango bindings at import,
+        # which adds noticeable latency to a cold start. Keep it out of
+        # the module-level import graph; pay the cost only on PDF hits.
         from services.quote_pdf import render_quote_pdf
 
         caterer = g.current_user.caterer
