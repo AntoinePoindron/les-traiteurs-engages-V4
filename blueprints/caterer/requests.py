@@ -343,9 +343,7 @@ def register(bp):
             email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis enregistre et envoye au client.", "success")
         elif action == "draft_and_pdf":
-            return redirect(
-                url_for("caterer.quote_pdf", qr_id=qr_id, q_id=quote.id)
-            )
+            return redirect(url_for("caterer.quote_pdf", qr_id=qr_id, q_id=quote.id))
         else:
             flash("Devis enregistre en brouillon.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
@@ -454,9 +452,7 @@ def register(bp):
             email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis mis a jour et envoye au client.", "success")
         elif action == "draft_and_pdf":
-            return redirect(
-                url_for("caterer.quote_pdf", qr_id=qr_id, q_id=quote.id)
-            )
+            return redirect(url_for("caterer.quote_pdf", qr_id=qr_id, q_id=quote.id))
         else:
             flash("Devis mis a jour.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
