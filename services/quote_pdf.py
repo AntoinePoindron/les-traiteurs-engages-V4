@@ -18,9 +18,24 @@ import os
 
 from flask import current_app, render_template
 from weasyprint import CSS, HTML
+from weasyprint.urls import default_url_fetcher
 
 from models import MEAL_TYPE_LABELS
 from services.quotes import build_pdf_preview
+
+
+# Schemes that have no business appearing during a quote PDF render. We
+# don't fetch anything from the network — the HTML is built from a
+# Jinja-autoescaped template (no `|safe`) and the stylesheets are
+# pre-loaded from disk. Anything trying to reach out is either misuse
+# or an injection — fail loud rather than SSRF silently.
+_BLOCKED_SCHEMES = ("http://", "https://", "ftp://", "ftps://")
+
+
+def _safe_fetch(url):
+    if url.startswith(_BLOCKED_SCHEMES):
+        raise ValueError(f"PDF render refused network fetch: {url!r}")
+    return default_url_fetcher(url)
 
 
 @functools.cache
@@ -52,4 +67,6 @@ def render_quote_pdf(quote, qr, caterer) -> bytes:
         pdf_preview=pdf_preview,
         meal_type_labels=MEAL_TYPE_LABELS,
     )
-    return HTML(string=html_str).write_pdf(stylesheets=list(_stylesheets()))
+    return HTML(string=html_str, url_fetcher=_safe_fetch).write_pdf(
+        stylesheets=list(_stylesheets())
+    )
