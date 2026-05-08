@@ -227,10 +227,10 @@
            horizontal (`border-t border-soft`). Cohérent avec ce qu'on
            fait par exemple côté /client/orders/<id> où un order =
            une carte. Le bouton "Envoyer un message" (à droite du header
-           traiteur) ouvre la modale `send_message_modal` dès qu'un
-           devis a été reçu — utile pour poser une question avant
-           d'accepter, autant pour le mode direct que pour le
-           comparateur 3 devis. #}
+           traiteur) n'apparaît que sur les devis au statut `sent` —
+           utile pour poser une question avant d'accepter. Une fois
+           accepté c'est /client/orders/<id> qui prend le relais ;
+           refusé/expiré il n'y a plus de raison de relancer. #}
         {# Le label "Traiteur" est remplacé par le type de structure
            complet (ESAT / Entreprise Adaptée / Entreprise d'Insertion /
            Atelier et Chantier d'Insertion) dans le même style typo
@@ -272,7 +272,7 @@
                 {% endif %}
               </div>
             </a>
-            {% if quote.caterer_user %}
+            {% if quote.status == QuoteStatus.sent and quote.caterer_user %}
             <button type="button" data-action="dialog-open"
                     data-target="send-message-quote-{{ quote.id }}"
                     class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1.5 btn-ghost-navy flex-shrink-0">
@@ -475,13 +475,14 @@
     {% endfor %}
 
     {# ============================================================
-       Per-quote "Envoyer un message" modals.
-       One <dialog> per quote whose caterer has a contactable user.
-       Posts to /api/messages with the quote_request_id so the first
-       message in a brand-new thread satisfies the VULN-04 gate.
+       Per-quote "Envoyer un message" modals — rendus uniquement pour
+       les devis encore au statut `sent` (mêmes conditions que le
+       bouton ci-dessus). Posts to /api/messages with the
+       quote_request_id so the first message in a brand-new thread
+       satisfies the VULN-04 gate.
        ============================================================ #}
     {% for quote in quotes %}
-      {% if quote.caterer_user %}
+      {% if quote.status == QuoteStatus.sent and quote.caterer_user %}
       {{ send_message_modal(
            modal_id='send-message-quote-' ~ (quote.id|string),
            recipient_user_id=quote.caterer_user.id,
