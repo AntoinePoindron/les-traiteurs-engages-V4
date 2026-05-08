@@ -291,6 +291,13 @@ def send_message():
     body = (data.get("body") or "").strip()
     if not body:
         return jsonify({"error": "Le message ne peut pas etre vide."}), 400
+    # Mirrors the textarea maxlength in the send_message_modal macro.
+    # Without a server-side cap, a curl client could shove arbitrary
+    # payloads at us — keep the two limits in sync if either changes.
+    if len(body) > 5000:
+        return jsonify(
+            {"error": "Le message est trop long (5000 caracteres max)."}
+        ), 400
 
     order_id = None
     if data.get("order_id"):
