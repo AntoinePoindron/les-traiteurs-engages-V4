@@ -17,6 +17,11 @@ LEGAL_TVA_RATES: frozenset[Decimal] = frozenset(
 MAX_QUANTITY = Decimal("10000")
 MAX_UNIT_PRICE_HT = Decimal("100000")
 MAX_LINE_TOTAL_HT = Decimal("10000000")
+# Bound the per-line description so the PDF renderer can't be fed a
+# multi-MB string crafted to slow layout. Real menu items run a few
+# dozen chars; 1000 leaves headroom for verbose descriptions while
+# keeping the renderer's worst case tractable.
+MAX_DESCRIPTION_LEN = 1000
 
 
 def _parse_finite_decimal(raw, field: str) -> Decimal:
@@ -55,12 +60,17 @@ def lines_from_dicts(line_dicts: list[dict]) -> list[QuoteLine]:
             raise ValueError(
                 f"line {i}: tva_rate {tva_rate} not in {sorted(LEGAL_TVA_RATES)}"
             )
+        description = d.get("description") or None
+        if description is not None and len(description) > MAX_DESCRIPTION_LEN:
+            raise ValueError(
+                f"line {i}: description longer than {MAX_DESCRIPTION_LEN} chars"
+            )
 
         result.append(
             QuoteLine(
                 position=i,
                 section=str(d.get("section") or "principal")[:50],
-                description=d.get("description") or None,
+                description=description,
                 quantity=quantity,
                 unit_price_ht=unit_price_ht,
                 tva_rate=tva_rate,
