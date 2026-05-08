@@ -13,15 +13,11 @@ from __future__ import annotations
 
 import os
 
-from flask import render_template
+from flask import current_app, render_template
 from weasyprint import CSS, HTML
 
 from models import MEAL_TYPE_LABELS
 from services.quotes import build_pdf_preview
-
-
-_HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_STATIC_CSS_DIR = os.path.join(_HERE, "static", "css")
 
 
 def _stylesheets() -> list[CSS]:
@@ -34,9 +30,10 @@ def _stylesheets() -> list[CSS]:
     deadlock; on a multi-worker prod dyno it's a wasted hop. Reading
     from disk skips both problems.
     """
+    css_dir = os.path.join(current_app.static_folder, "css")
     return [
-        CSS(filename=os.path.join(_STATIC_CSS_DIR, "tailwind.css")),
-        CSS(filename=os.path.join(_STATIC_CSS_DIR, "app.css")),
+        CSS(filename=os.path.join(css_dir, "tailwind.css")),
+        CSS(filename=os.path.join(css_dir, "app.css")),
     ]
 
 
