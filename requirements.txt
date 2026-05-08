@@ -41,7 +41,7 @@ pikepdf==9.7.0
 # Quote download : HTML + CSS → PDF for the caterer's "Télécharger en PDF"
 # action. Replaces the previous window.print() screenshot. Needs system
 # libs (libpango / libpangoft2) installed in the image — see Dockerfile.
-weasyprint==65.0
+weasyprint==68.0
 
 # --- dev / test ---
 pytest==9.0.3
