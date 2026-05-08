@@ -10,19 +10,19 @@
 (function () {
   'use strict';
 
-  function findThreadEndpointTemplate(modalId) {
-    // Each <dialog> carries the Flask endpoint name it should resolve
-    // to (e.g. "client.message_thread") on a data-attribute. Server-
-    // rendered url_for would need a thread_id we don't have at render
-    // time, so we build the URL client-side: every blueprint follows
-    // /<prefix>/messages/<thread_id>, and the prefix is the bit before
-    // the dot. Hand-rolling this keeps the JS dependency-free.
+  // Sentinel UUID baked into data-thread-url-template by the Jinja
+  // macro: server-side `url_for` builds the full URL with this value
+  // standing in for the real thread_id, and we swap it client-side
+  // once the API returns. Keeps URL construction owned by Flask, so
+  // route renames flow through automatically.
+  var THREAD_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
+
+  function buildThreadUrl(modalId, threadId) {
     var dialog = document.getElementById(modalId);
     if (!dialog) return null;
-    var endpoint = dialog.dataset.threadEndpoint;
-    if (!endpoint) return null;
-    var prefix = endpoint.split('.')[0];
-    return '/' + prefix + '/messages/';
+    var template = dialog.dataset.threadUrlTemplate;
+    if (!template) return null;
+    return template.replace(THREAD_ID_PLACEHOLDER, threadId);
   }
 
   function showError(form, msg) {
@@ -49,8 +49,8 @@
 
     if (threadId) {
       var link = dialog.querySelector('[data-modal-thread-link]');
-      var base = findThreadEndpointTemplate(modalId);
-      if (link && base) link.href = base + threadId;
+      var url = buildThreadUrl(modalId, threadId);
+      if (link && url) link.href = url;
     }
     if (window.lucide) lucide.createIcons();
   }
@@ -147,7 +147,7 @@
       .querySelectorAll('[data-send-message-form]')
       .forEach(bindForm);
     document
-      .querySelectorAll('dialog[data-thread-endpoint]')
+      .querySelectorAll('dialog[data-thread-url-template]')
       .forEach(bindCloseReset);
   });
 })();
