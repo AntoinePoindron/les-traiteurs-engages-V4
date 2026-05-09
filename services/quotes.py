@@ -134,7 +134,7 @@ def calculate_quote_totals(details, guest_count, commission_rate=None):
     """Compute all totals from line items as Decimals.
 
     Callers write the relevant fields onto Quote columns
-    (`total_amount_ht`, `amount_per_person`, `valorisable_agefiph`).
+    (`total_amount_ht`, `amount_per_person`).
     Templates that need richer breakdowns (per-section, per-TVA-rate) call
     this helper at render time — there is no persisted cache.
 
@@ -188,9 +188,6 @@ def calculate_quote_totals(details, guest_count, commission_rate=None):
         total_ttc / Decimal(str(guest_count)) if guest_count else Decimal("0")
     )
 
-    # AGEFIPH: total HT is valorisable for ESAT/EA structures
-    valorisable_agefiph = total_ht
-
     return {
         "section_totals": {k: v.quantize(CENT) for k, v in section_totals.items()},
         "tva_totals": {
@@ -204,5 +201,4 @@ def calculate_quote_totals(details, guest_count, commission_rate=None):
         "platform_fee_ht": platform_fee_ht.quantize(CENT),
         "platform_fee_tva": platform_fee_tva.quantize(CENT),
         "platform_fee_ttc": platform_fee_ttc.quantize(CENT),
-        "valorisable_agefiph": valorisable_agefiph.quantize(CENT),
     }
