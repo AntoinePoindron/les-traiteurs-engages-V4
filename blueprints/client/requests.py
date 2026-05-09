@@ -582,6 +582,11 @@ def register(bp):
             )
             .where(Quote.id == q_id)
             .where(Quote.quote_request_id == request_id)
+            # Drafts are caterer-only — refuse to serve a brouillon PDF
+            # to the client even if they guess the URL. Same gate as
+            # the request-detail listing: only sent / accepted / refused
+            # / expired ever reach the client side.
+            .where(Quote.status != QuoteStatus.draft)
         )
         # Company-scope check: 404 instead of 403 so we don't leak the
         # existence of a quote outside the viewer's perimeter.
