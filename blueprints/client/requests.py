@@ -1,9 +1,16 @@
 import math
 import uuid
+from io import BytesIO
 
-from flask import abort, flash, g, redirect, render_template, request, url_for
+from flask import abort, flash, g, redirect, render_template, request, send_file, url_for
 from sqlalchemy import String, and_, cast, func, or_, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
+
+
+# Mirror of the cap on caterer/requests.py: refuse to render a quote
+# whose line items list is implausibly long. Stops a malicious or
+# corrupted row from saturating the WeasyPrint worker.
+_MAX_PDF_LINES = 500
 
 from blueprints.client._helpers import (
     DIETARY_FLAGS,
@@ -541,6 +548,55 @@ def register(bp):
 
         flash("Devis refuse.", "info")
         return redirect(url_for("client.request_detail", request_id=request_id))
+
+    @bp.route(
+        "/requests/<uuid:request_id>/quote/<uuid:q_id>/pdf", methods=["GET"]
+    )
+    @login_required
+    @role_required("client_admin", "client_user")
+    @limiter.limit("20 per minute")
+    def quote_pdf(request_id, q_id):
+        """Download a received quote as a server-rendered PDF.
+
+        Mirrors `caterer.quote_pdf` but the scope check goes the other
+        way: the quote must belong to a request the viewer's company
+        owns. Reuses `services.quote_pdf.render_quote_pdf` so the file
+        looks identical to what the client sees in the in-app preview
+        modal (same template, same totals).
+        """
+        # Lazy import — WeasyPrint pulls Cairo/Pango bindings at import
+        # time. Same rationale as caterer.quote_pdf.
+        from services.quote_pdf import render_quote_pdf
+
+        user = g.current_user
+        db = get_db()
+        quote = db.scalar(
+            select(Quote)
+            .options(
+                selectinload(Quote.lines),
+                joinedload(Quote.caterer),
+                joinedload(Quote.quote_request).options(
+                    joinedload(QuoteRequest.company),
+                    joinedload(QuoteRequest.user),
+                ),
+            )
+            .where(Quote.id == q_id)
+            .where(Quote.quote_request_id == request_id)
+        )
+        # Company-scope check: 404 instead of 403 so we don't leak the
+        # existence of a quote outside the viewer's perimeter.
+        if not quote or quote.quote_request.company_id != user.company_id:
+            abort(404)
+        if len(quote.lines) > _MAX_PDF_LINES:
+            abort(413)
+
+        pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"devis-{quote.reference}.pdf",
+        )
 
     @bp.route("/requests/<uuid:request_id>/edit", methods=["GET"])
     @login_required
