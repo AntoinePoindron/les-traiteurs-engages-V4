@@ -106,6 +106,16 @@ def register(bp):
             db, order=order, viewer=user
         )
 
+        # Powers the "Devis" button + preview modal on this page —
+        # same pdf_preview dict the request-detail modal feeds on.
+        from services.quotes import build_pdf_preview
+
+        pdf_preview = (
+            build_pdf_preview(order.quote, order.quote.quote_request, caterer)
+            if order.quote.lines
+            else None
+        )
+
         return render_template(
             "client/orders/detail.html",
             user=user,
@@ -114,6 +124,8 @@ def register(bp):
             caterer_user=caterer_user,
             existing_review=existing_review,
             review_form_visible=review_form_visible,
+            pdf_preview=pdf_preview,
+            meal_type_labels=MEAL_TYPE_LABELS,
         )
 
     @bp.route("/orders/<uuid:order_id>/review", methods=["POST"])

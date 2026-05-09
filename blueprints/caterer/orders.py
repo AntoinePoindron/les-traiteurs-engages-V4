@@ -5,7 +5,7 @@ from blueprints.middleware import login_required, role_required
 from blueprints.scoping import get_caterer_order
 from database import get_db
 from extensions import limiter
-from models import Order, OrderStatus, Quote
+from models import MEAL_TYPE_LABELS, Order, OrderStatus, Quote
 from services import workflow
 
 
@@ -75,8 +75,23 @@ def register(bp):
         _ = order.quote.quote_request.company
         _ = order.quote.quote_request.user
         _ = order.payments
+        # Powers the "Devis" button + preview modal on this page —
+        # same pdf_preview dict the request-detail modal feeds on.
+        from services.quotes import build_pdf_preview
+
+        pdf_preview = (
+            build_pdf_preview(
+                order.quote, order.quote.quote_request, order.quote.caterer
+            )
+            if order.quote.lines
+            else None
+        )
         return render_template(
-            "caterer/orders/detail.html", user=g.current_user, order=order
+            "caterer/orders/detail.html",
+            user=g.current_user,
+            order=order,
+            pdf_preview=pdf_preview,
+            meal_type_labels=MEAL_TYPE_LABELS,
         )
 
     @bp.route("/orders/<uuid:order_id>/deliver", methods=["POST"])

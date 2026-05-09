@@ -1,4 +1,5 @@
 import datetime
+from io import BytesIO
 
 from flask import (
     Blueprint,
@@ -8,15 +9,23 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     url_for,
 )
 from sqlalchemy import func, select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
+
+
+# Mirror of the cap on caterer/client routes — refuses to render a
+# quote whose line items list is implausibly long. Stops a malicious
+# row from saturating the WeasyPrint worker.
+_MAX_PDF_LINES = 500
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
 from forms.caterer import AdminMessageForm, RejectionForm
 from models import (
+    MEAL_TYPE_LABELS,
     Caterer,
     Company,
     CompanyEmployee,
@@ -624,10 +633,66 @@ def order_detail(order_id):
     _ = order.quote.quote_request.company
     _ = order.quote.caterer
     _ = order.payments
+    # Powers the "Devis" button + preview modal on this page —
+    # same pdf_preview dict the request-detail modal feeds on.
+    from services.quotes import build_pdf_preview
+
+    pdf_preview = (
+        build_pdf_preview(
+            order.quote, order.quote.quote_request, order.quote.caterer
+        )
+        if order.quote.lines
+        else None
+    )
     return render_template(
         "admin/orders/detail.html",
         user=g.current_user,
         order=order,
+        pdf_preview=pdf_preview,
+        meal_type_labels=MEAL_TYPE_LABELS,
+    )
+
+
+@admin_bp.route("/quotes/<uuid:q_id>/pdf", methods=["GET"])
+@login_required
+@role_required("super_admin")
+def quote_pdf(q_id):
+    """Download any quote as a server-rendered PDF (admin observer view).
+
+    Mirrors `caterer.quote_pdf` and `client.quote_pdf` but with no
+    company- or caterer-scope check — super_admin sees every quote on
+    the platform. The PDF reuses the same `_pdf_preview.html` partial
+    as the in-app modals so the file is byte-for-byte aligned with
+    what either side sees on screen.
+    """
+    # Lazy import — WeasyPrint pulls Cairo/Pango bindings at import
+    # time. Same rationale as the other quote_pdf routes.
+    from services.quote_pdf import render_quote_pdf
+
+    db = get_db()
+    quote = db.scalar(
+        select(Quote)
+        .options(
+            selectinload(Quote.lines),
+            joinedload(Quote.caterer),
+            joinedload(Quote.quote_request).options(
+                joinedload(QuoteRequest.company),
+                joinedload(QuoteRequest.user),
+            ),
+        )
+        .where(Quote.id == q_id)
+    )
+    if not quote:
+        abort(404)
+    if len(quote.lines) > _MAX_PDF_LINES:
+        abort(413)
+
+    pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
+    return send_file(
+        BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"devis-{quote.reference}.pdf",
     )
 
 
