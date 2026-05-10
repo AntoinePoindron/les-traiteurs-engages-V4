@@ -1,4 +1,5 @@
 import datetime
+import logging
 from io import BytesIO
 
 from flask import (
@@ -15,14 +16,9 @@ from flask import (
 from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload, selectinload
 
-
-# Mirror of the cap on caterer/client routes — refuses to render a
-# quote whose line items list is implausibly long. Stops a malicious
-# row from saturating the WeasyPrint worker.
-_MAX_PDF_LINES = 500
-
 from blueprints.middleware import login_required, role_required
 from database import get_db
+from extensions import limiter
 from forms.caterer import AdminMessageForm, RejectionForm
 from models import (
     MEAL_TYPE_LABELS,
@@ -51,7 +47,15 @@ from services.notifications import (
     notify_users,
 )
 from services.matching import find_matching_caterers
+from services.quotes import build_pdf_preview
 from blueprints._notifications import register as _register_notifications
+
+logger = logging.getLogger(__name__)
+
+# Mirror of the cap on caterer/client routes — refuses to render a
+# quote whose line items list is implausibly long. Stops a malicious
+# row from saturating the WeasyPrint worker.
+_MAX_PDF_LINES = 500
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -625,22 +629,22 @@ def orders_list():
 @role_required("super_admin")
 def order_detail(order_id):
     db = get_db()
-    order = db.get(Order, order_id)
+    order = db.scalar(
+        select(Order)
+        .options(
+            joinedload(Order.quote).options(
+                selectinload(Quote.lines),
+                joinedload(Quote.caterer),
+                joinedload(Quote.quote_request).joinedload(QuoteRequest.company),
+            ),
+            selectinload(Order.payments),
+        )
+        .where(Order.id == order_id)
+    )
     if not order:
         abort(404)
-    _ = order.quote
-    _ = order.quote.quote_request
-    _ = order.quote.quote_request.company
-    _ = order.quote.caterer
-    _ = order.payments
-    # Powers the "Devis" button + preview modal on this page —
-    # same pdf_preview dict the request-detail modal feeds on.
-    from services.quotes import build_pdf_preview
-
     pdf_preview = (
-        build_pdf_preview(
-            order.quote, order.quote.quote_request, order.quote.caterer
-        )
+        build_pdf_preview(order.quote, order.quote.quote_request, order.quote.caterer)
         if order.quote.lines
         else None
     )
@@ -656,6 +660,7 @@ def order_detail(order_id):
 @admin_bp.route("/quotes/<uuid:q_id>/pdf", methods=["GET"])
 @login_required
 @role_required("super_admin")
+@limiter.limit("20 per minute")
 def quote_pdf(q_id):
     """Download any quote as a server-rendered PDF (admin observer view).
 
@@ -688,6 +693,13 @@ def quote_pdf(q_id):
         abort(413)
 
     pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
+    logger.info(
+        "quote_pdf_downloaded admin_user_id=%s quote_id=%s reference=%s lines=%d",
+        g.current_user.id,
+        quote.id,
+        quote.reference,
+        len(quote.lines),
+    )
     return send_file(
         BytesIO(pdf_bytes),
         mimetype="application/pdf",
