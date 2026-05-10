@@ -406,13 +406,14 @@ def register(bp):
         # Drafts are caterer-only — they're work-in-progress quotes the
         # caterer hasn't sent yet. Surfacing them on the client side
         # leaks pricing + caterer identity before the caterer is ready
-        # to commit. Filter at the DB level (not in the template) so
-        # the row never reaches a Jinja context.
+        # to commit. Allow-list rather than `!= draft` so a future
+        # status doesn't leak by default — same gate as the dashboard
+        # helpers and the client.quote_pdf route.
         quotes = (
             db.execute(
                 select(Quote)
                 .where(Quote.quote_request_id == request_id)
-                .where(Quote.status != QuoteStatus.draft)
+                .where(Quote.status.in_(_QUOTE_RECEIVED_STATUSES))
                 .order_by(Quote.created_at.asc())
             )
             .scalars()
