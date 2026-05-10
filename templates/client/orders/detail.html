@@ -3,6 +3,7 @@
 {% from "components/structure_type_badge.html" import structure_type_label %}
 {% from "components/ui.html" import back_button %}
 {% from "components/send_message_modal.html" import send_message_modal %}
+{% from "components/_order_quote_preview_modal.html" import order_quote_preview_modal %}
 
 {% block title %}Commande - Les Traiteurs Engages{% endblock %}
 
@@ -61,9 +62,18 @@
        duplicate it. Kept the "Devis accepté" card and gave it the full
        width now that it's the sole occupant. #}
     <div class="bg-white rounded-lg p-6 mb-6">
-      <div class="flex items-center gap-2 mb-4">
-        <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
-        <h3 class="font-display font-bold text-sm text-text">Devis accepte</h3>
+      <div class="flex items-center justify-between gap-2 mb-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="file-text" class="w-4 h-4 text-navy"></i>
+          <h3 class="font-display font-bold text-sm text-text">Devis accepte</h3>
+        </div>
+        {% if pdf_preview %}
+        <button type="button" data-action="dialog-open" data-target="order-quote-preview-modal"
+                class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1.5 btn-ghost-navy">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+          Devis
+        </button>
+        {% endif %}
       </div>
       <div class="space-y-2 text-sm">
         <div class="flex justify-between">
@@ -78,12 +88,6 @@
         <div class="flex justify-between">
           <span class="text-xs text-mute">Par personne</span>
           <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.amount_per_person | float) }} EUR</span>
-        </div>
-        {% endif %}
-        {% if order.quote.valorisable_agefiph %}
-        <div class="flex justify-between">
-          <span class="text-xs text-mute">Valorisable AGEFIPH</span>
-          <span class="text-xs font-bold text-navy">{{ "%.2f" | format(order.quote.valorisable_agefiph | float) }} EUR</span>
         </div>
         {% endif %}
       </div>
@@ -311,6 +315,11 @@
     </div>{# /.split-detail #}
 
 </main>
+
+{% if pdf_preview %}
+{{ order_quote_preview_modal(order, url_for('client.quote_pdf', request_id=order.quote.quote_request_id, q_id=order.quote.id)) }}
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}

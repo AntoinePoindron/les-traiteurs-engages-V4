@@ -302,7 +302,6 @@ def register(bp):
             reference=reference,
             total_amount_ht=totals["total_ht"],
             amount_per_person=totals["amount_per_person"],
-            valorisable_agefiph=totals["valorisable_agefiph"],
             notes=form.notes.data or "",
             valid_until=form.valid_until.data,
             status=QuoteStatus.draft,
@@ -414,7 +413,6 @@ def register(bp):
         quote.lines = new_lines
         quote.total_amount_ht = totals["total_ht"]
         quote.amount_per_person = totals["amount_per_person"]
-        quote.valorisable_agefiph = totals["valorisable_agefiph"]
         quote.notes = form.notes.data or ""
         quote.valid_until = (
             form.valid_until.data if form.valid_until.data else quote.valid_until

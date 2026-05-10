@@ -1,12 +1,14 @@
 from flask import abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.middleware import login_required, role_required
 from blueprints.scoping import get_caterer_order
 from database import get_db
 from extensions import limiter
-from models import Order, OrderStatus, Quote
+from models import MEAL_TYPE_LABELS, Order, OrderStatus, Quote, QuoteRequest
 from services import workflow
+from services.quotes import build_pdf_preview
 
 
 # Filter tabs visible on /caterer/orders. Keys map to ?status= URL params,
@@ -69,14 +71,34 @@ def register(bp):
     @role_required("caterer")
     def order_detail(order_id):
         caterer = g.current_user.caterer
-        order = get_caterer_order(order_id, caterer.id)
-        _ = order.quote
-        _ = order.quote.quote_request
-        _ = order.quote.quote_request.company
-        _ = order.quote.quote_request.user
-        _ = order.payments
+        order = get_caterer_order(
+            order_id,
+            caterer.id,
+            options=[
+                joinedload(Order.quote).options(
+                    selectinload(Quote.lines),
+                    joinedload(Quote.caterer),
+                    joinedload(Quote.quote_request).options(
+                        joinedload(QuoteRequest.company),
+                        joinedload(QuoteRequest.user),
+                    ),
+                ),
+                selectinload(Order.payments),
+            ],
+        )
+        pdf_preview = (
+            build_pdf_preview(
+                order.quote, order.quote.quote_request, order.quote.caterer
+            )
+            if order.quote.lines
+            else None
+        )
         return render_template(
-            "caterer/orders/detail.html", user=g.current_user, order=order
+            "caterer/orders/detail.html",
+            user=g.current_user,
+            order=order,
+            pdf_preview=pdf_preview,
+            meal_type_labels=MEAL_TYPE_LABELS,
         )
 
     @bp.route("/orders/<uuid:order_id>/deliver", methods=["POST"])

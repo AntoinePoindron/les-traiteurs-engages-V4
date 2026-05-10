@@ -290,7 +290,6 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
         amount_ht=total_ht,
         tva_rate=avg_tva_rate,
         amount_ttc=totals["total_ttc"],
-        valorisable_agefiph=totals["valorisable_agefiph"],
         esat_mention=f"Structure {caterer.structure_type}"
         if caterer.structure_type
         else None,

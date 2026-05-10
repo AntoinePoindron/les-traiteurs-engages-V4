@@ -21,9 +21,6 @@
       <p class="text-sm font-medium text-black">{{ qr.company.name }}</p>
       <p class="text-xs mt-1 text-mute">SIRET : {{ qr.company.siret }}</p>
       {% if qr.company.city %}<p class="text-xs text-mute">{{ qr.company.city }}</p>{% endif %}
-      {% if qr.company.oeth_eligible %}
-      <span class="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">OETH</span>
-      {% endif %}
     </div>
 
     <div class="bg-white rounded-lg p-6">

@@ -288,12 +288,6 @@
                 {% if quote.amount_per_person %}{{ "%.2f" | format(quote.amount_per_person | float) }} EUR{% else %}-{% endif %}
               </dd>
             </div>
-            <div class="flex items-center justify-between">
-              <dt class="text-mute">AGEFIPH</dt>
-              <dd class="font-bold text-text">
-                {% if quote.valorisable_agefiph %}{{ "%.2f" | format(quote.valorisable_agefiph | float) }} EUR{% else %}-{% endif %}
-              </dd>
-            </div>
           </dl>
 
           {% if quote.notes %}

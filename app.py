@@ -359,9 +359,7 @@ def create_app():
                 # the sweep stays narrow.
                 if user.company_id:
                     touched |= bool(
-                        mark_read_for_entity(
-                            db, user_id, "company", user.company_id
-                        )
+                        mark_read_for_entity(db, user_id, "company", user.company_id)
                     )
             elif endpoint == "client.team":
                 # Pending-membership notifs (related_entity_type="user")
