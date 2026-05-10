@@ -165,8 +165,6 @@ class Company(Base):
     address: Mapped[str | None] = mapped_column(String(500))
     city: Mapped[str | None] = mapped_column(String(255))
     zip_code: Mapped[str | None] = mapped_column(String(10))
-    oeth_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
-    budget_annual: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     logo_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()
@@ -428,7 +426,6 @@ class Quote(Base):
     reference: Mapped[str] = mapped_column(String(50), unique=True)
     total_amount_ht: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     amount_per_person: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
-    valorisable_agefiph: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     notes: Mapped[str | None] = mapped_column(Text)
     valid_until: Mapped[datetime.date | None] = mapped_column(Date)
     status: Mapped[QuoteStatus] = mapped_column(String(20), default=QuoteStatus.draft)
@@ -524,7 +521,6 @@ class Invoice(Base):
     amount_ht: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     tva_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
     amount_ttc: Mapped[Decimal] = mapped_column(Numeric(12, 2))
-    valorisable_agefiph: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     esat_mention: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()

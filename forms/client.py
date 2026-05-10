@@ -149,8 +149,6 @@ class CompanySettingsForm(FlaskForm):
     address = StringField(validators=[Optional(), Length(max=500)])
     city = StringField(validators=[Optional(), Length(max=255)])
     zip_code = StringField(validators=[Optional(), Length(max=10)])
-    oeth_eligible = BooleanField()
-    budget_annual = DecimalField(places=2, validators=[Optional(), NumberRange(min=0)])
     # logo file is read via request.files (WTForms FileField is overkill for a single optional logo)
 
 

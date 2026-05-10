@@ -62,8 +62,6 @@ def register(bp):
             company.address = (form.address.data or "").strip() or None
             company.city = (form.city.data or "").strip() or None
             company.zip_code = (form.zip_code.data or "").strip() or None
-            company.oeth_eligible = form.oeth_eligible.data
-            company.budget_annual = form.budget_annual.data
             db.commit()
             flash("Parametres mis a jour.", "success")
             return redirect(url_for("client.settings"))

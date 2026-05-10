@@ -80,12 +80,6 @@
           <span class="text-xs font-bold text-text">{{ "%.2f" | format(order.quote.amount_per_person | float) }} EUR</span>
         </div>
         {% endif %}
-        {% if order.quote.valorisable_agefiph %}
-        <div class="flex justify-between">
-          <span class="text-xs text-mute">Valorisable AGEFIPH</span>
-          <span class="text-xs font-bold text-navy">{{ "%.2f" | format(order.quote.valorisable_agefiph | float) }} EUR</span>
-        </div>
-        {% endif %}
       </div>
     </div>
 

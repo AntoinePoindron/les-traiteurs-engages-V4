@@ -37,7 +37,6 @@ def test_empty_lines_returns_zeros():
     assert t["platform_fee_ht"] == Decimal("0.00")
     assert t["platform_fee_tva"] == Decimal("0.00")
     assert t["platform_fee_ttc"] == Decimal("0.00")
-    assert t["valorisable_agefiph"] == Decimal("0.00")
 
 
 def test_single_line_basic_math():
@@ -140,19 +139,6 @@ def test_platform_fee_independent_of_line_tva_rates():
 
 
 # ---------------------------------------------------------------------------
-# AGEFIPH
-# ---------------------------------------------------------------------------
-
-
-def test_valorisable_agefiph_equals_total_ht():
-    t = calculate_quote_totals(
-        [_line(quantity=10, unit_price_ht=75, tva_rate=10)],
-        guest_count=10,
-    )
-    assert t["valorisable_agefiph"] == t["total_ht"] == Decimal("750.00")
-
-
-# ---------------------------------------------------------------------------
 # Decimal precision — catches any sneaky float arithmetic
 # ---------------------------------------------------------------------------
 
@@ -186,7 +172,6 @@ def test_returned_values_are_decimal_not_float():
         "platform_fee_ht",
         "platform_fee_tva",
         "platform_fee_ttc",
-        "valorisable_agefiph",
     ):
         assert isinstance(t[key], Decimal), (
             f"{key} should be Decimal, got {type(t[key])}"
