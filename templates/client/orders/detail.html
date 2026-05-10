@@ -3,6 +3,7 @@
 {% from "components/structure_type_badge.html" import structure_type_label %}
 {% from "components/ui.html" import back_button %}
 {% from "components/send_message_modal.html" import send_message_modal %}
+{% from "components/_order_quote_preview_modal.html" import order_quote_preview_modal %}
 
 {% block title %}Commande - Les Traiteurs Engages{% endblock %}
 
@@ -315,43 +316,8 @@
 
 </main>
 
-{# ============================================================
-   Quote preview modal — opened by the "Devis" button on the
-   "Devis accepte" card. Same shape as the per-quote modal on
-   /client/requests/<id>; download routes through client.quote_pdf
-   for company-scope access control.
-   ============================================================ #}
 {% if pdf_preview %}
-<div id="order-quote-preview-modal"
-     class="hidden fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
-     style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
-  <div class="bg-white rounded-lg w-full my-8 flex flex-col" style="max-width:800px;max-height:90vh;">
-    <div class="flex items-start justify-between gap-4 p-6 border-b border-soft flex-shrink-0">
-      <div>
-        <h2 class="font-display font-bold text-xl text-text">Aperçu du devis</h2>
-        <p class="text-sm mt-1 text-mute">Réf. {{ order.quote.reference }}</p>
-      </div>
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <a href="{{ url_for('client.quote_pdf', request_id=order.quote.quote_request_id, q_id=order.quote.id) }}"
-           class="inline-flex items-center gap-1.5 rounded-full text-xs font-bold px-3 py-2 btn-ghost-navy no-underline">
-          <i data-lucide="download" class="w-3.5 h-3.5"></i>
-          Télécharger
-        </a>
-        <button type="button" data-action="dialog-close" data-target="order-quote-preview-modal"
-                class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-cream transition-colors">
-          <i data-lucide="x" class="w-5 h-5 text-text"></i>
-        </button>
-      </div>
-    </div>
-    <div class="flex-1 overflow-y-auto p-6">
-      <div class="bg-white rounded-lg border border-soft p-8">
-        {% with quote=order.quote, caterer=order.quote.caterer, qr=order.quote.quote_request %}
-        {% include "caterer/quotes/_pdf_preview.html" %}
-        {% endwith %}
-      </div>
-    </div>
-  </div>
-</div>
+{{ order_quote_preview_modal(order, url_for('client.quote_pdf', request_id=order.quote.quote_request_id, q_id=order.quote.id)) }}
 {% endif %}
 
 {% endblock %}
