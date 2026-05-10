@@ -1,3 +1,4 @@
+import logging
 import math
 import uuid
 from io import BytesIO
@@ -5,12 +6,6 @@ from io import BytesIO
 from flask import abort, flash, g, redirect, render_template, request, send_file, url_for
 from sqlalchemy import String, and_, cast, func, or_, select
 from sqlalchemy.orm import joinedload, selectinload
-
-
-# Mirror of the cap on caterer/requests.py: refuse to render a quote
-# whose line items list is implausibly long. Stops a malicious or
-# corrupted row from saturating the WeasyPrint worker.
-_MAX_PDF_LINES = 500
 
 from blueprints.client._helpers import (
     DIETARY_FLAGS,
@@ -46,6 +41,8 @@ from services.notifications import (
 )
 from services.quotes import calculate_quote_totals
 
+logger = logging.getLogger(__name__)
+
 
 # Filter tabs visible on /client/requests. Each tab maps to one of the
 # values _derive_request_display_status() returns (or "all").
@@ -65,6 +62,11 @@ _QUOTE_RECEIVED_STATUSES = (
     QuoteStatus.refused,
     QuoteStatus.expired,
 )
+
+# Mirror of the cap on caterer/requests.py: refuse to render a quote
+# whose line items list is implausibly long. Stops a malicious or
+# corrupted row from saturating the WeasyPrint worker.
+_MAX_PDF_LINES = 500
 
 
 def _derive_request_display_status(qr):
@@ -583,10 +585,10 @@ def register(bp):
             .where(Quote.id == q_id)
             .where(Quote.quote_request_id == request_id)
             # Drafts are caterer-only — refuse to serve a brouillon PDF
-            # to the client even if they guess the URL. Same gate as
-            # the request-detail listing: only sent / accepted / refused
-            # / expired ever reach the client side.
-            .where(Quote.status != QuoteStatus.draft)
+            # to the client even if they guess the URL. Allow-list
+            # rather than `!= draft` so a future status doesn't leak by
+            # default.
+            .where(Quote.status.in_(_QUOTE_RECEIVED_STATUSES))
         )
         # Company-scope check: 404 instead of 403 so we don't leak the
         # existence of a quote outside the viewer's perimeter.
@@ -596,6 +598,14 @@ def register(bp):
             abort(413)
 
         pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
+        logger.info(
+            "quote_pdf_downloaded company_id=%s user_id=%s quote_id=%s reference=%s lines=%d",
+            user.company_id,
+            user.id,
+            quote.id,
+            quote.reference,
+            len(quote.lines),
+        )
         return send_file(
             BytesIO(pdf_bytes),
             mimetype="application/pdf",
