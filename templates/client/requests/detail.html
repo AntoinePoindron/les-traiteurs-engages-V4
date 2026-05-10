@@ -435,11 +435,22 @@
               <h2 class="font-display font-bold text-xl text-text">Aperçu du devis</h2>
               <p class="text-sm mt-1 text-mute">Réf. {{ quote.reference }}</p>
             </div>
-            <button type="button" data-action="close-quote-pdf"
-                    data-target="quote-pdf-modal-{{ quote.id }}"
-                    class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-cream transition-colors flex-shrink-0">
-              <i data-lucide="x" class="w-5 h-5 text-text"></i>
-            </button>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              {# Server-rendered PDF — identical content to this preview
+                 (same _pdf_preview.html partial). Goes through the
+                 client.quote_pdf route which company-scopes the
+                 access and reuses services.quote_pdf.render_quote_pdf. #}
+              <a href="{{ url_for('client.quote_pdf', request_id=qr.id, q_id=quote.id) }}"
+                 class="inline-flex items-center gap-1.5 rounded-full text-xs font-bold px-3 py-2 btn-ghost-navy no-underline">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                Télécharger
+              </a>
+              <button type="button" data-action="close-quote-pdf"
+                      data-target="quote-pdf-modal-{{ quote.id }}"
+                      class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-cream transition-colors">
+                <i data-lucide="x" class="w-5 h-5 text-text"></i>
+              </button>
+            </div>
           </div>
           <div class="flex-1 overflow-y-auto p-6">
             <div class="bg-white rounded-lg border border-soft p-8">

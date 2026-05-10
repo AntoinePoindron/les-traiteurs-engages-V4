@@ -400,10 +400,19 @@
         <h2 class="font-display font-bold text-xl text-text">Aperçu du devis</h2>
         <p class="text-sm mt-1 text-mute">Réf. {{ existing_quote.reference }}</p>
       </div>
-      <button type="button" data-action="close-pdf-preview"
-              class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-cream transition-colors flex-shrink-0">
-        <i data-lucide="x" class="w-5 h-5 text-text"></i>
-      </button>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        {# Server-rendered PDF download — same _pdf_preview.html
+           partial as the modal so the file matches what's on screen. #}
+        <a href="{{ url_for('caterer.quote_pdf', qr_id=qr.id, q_id=existing_quote.id) }}"
+           class="inline-flex items-center gap-1.5 rounded-full text-xs font-bold px-3 py-2 btn-ghost-navy no-underline">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          Télécharger
+        </a>
+        <button type="button" data-action="close-pdf-preview"
+                class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-cream transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-text"></i>
+        </button>
+      </div>
     </div>
 
     <div class="flex-1 overflow-y-auto p-6">
