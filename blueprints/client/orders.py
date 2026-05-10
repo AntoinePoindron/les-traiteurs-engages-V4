@@ -1,5 +1,6 @@
 from flask import abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.client._helpers import ORDER_STATUS_LABELS
 from blueprints.middleware import login_required, role_required
@@ -8,6 +9,7 @@ from database import get_db
 from extensions import limiter
 from models import (
     MEAL_TYPE_LABELS,
+    Caterer,
     CatererReview,
     Order,
     OrderStatus,
@@ -15,6 +17,7 @@ from models import (
     QuoteRequest,
 )
 from services import reviews as reviews_service
+from services.quotes import build_pdf_preview
 
 
 # Filter tabs visible on /client/orders. Keys map to ?status= URL params,
@@ -88,7 +91,17 @@ def register(bp):
     def order_detail(order_id):
         user = g.current_user
         db = get_db()
-        order = get_company_order(order_id, user)
+        order = get_company_order(
+            order_id,
+            user,
+            options=[
+                joinedload(Order.quote).options(
+                    selectinload(Quote.lines),
+                    joinedload(Quote.caterer).selectinload(Caterer.users),
+                    joinedload(Quote.quote_request),
+                ),
+            ],
+        )
 
         caterer = order.quote.caterer
         # `caterer_user` drives the "Envoyer un message" modal in the
@@ -105,10 +118,6 @@ def register(bp):
         review_form_visible = existing_review is None and reviews_service.can_review(
             db, order=order, viewer=user
         )
-
-        # Powers the "Devis" button + preview modal on this page —
-        # same pdf_preview dict the request-detail modal feeds on.
-        from services.quotes import build_pdf_preview
 
         pdf_preview = (
             build_pdf_preview(order.quote, order.quote.quote_request, caterer)
