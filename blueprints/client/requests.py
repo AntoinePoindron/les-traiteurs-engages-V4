@@ -3,7 +3,16 @@ import math
 import uuid
 from io import BytesIO
 
-from flask import abort, flash, g, redirect, render_template, request, send_file, url_for
+from flask import (
+    abort,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 from sqlalchemy import String, and_, cast, func, or_, select
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -551,9 +560,7 @@ def register(bp):
         flash("Devis refuse.", "info")
         return redirect(url_for("client.request_detail", request_id=request_id))
 
-    @bp.route(
-        "/requests/<uuid:request_id>/quote/<uuid:q_id>/pdf", methods=["GET"]
-    )
+    @bp.route("/requests/<uuid:request_id>/quote/<uuid:q_id>/pdf", methods=["GET"])
     @login_required
     @role_required("client_admin", "client_user")
     @limiter.limit("20 per minute")
