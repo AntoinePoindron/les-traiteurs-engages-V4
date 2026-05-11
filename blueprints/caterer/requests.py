@@ -467,10 +467,10 @@ def register(bp):
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
 
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/pdf", methods=["GET"])
+    @limiter.limit("20 per minute")
     @login_required
     @role_required("caterer")
     @validated_caterer_required
-    @limiter.limit("20 per minute")
     def quote_pdf(qr_id, q_id):
         """Download the quote as a server-rendered PDF.
 

@@ -2,6 +2,8 @@ from functools import wraps
 
 from flask import abort, flash, g, redirect, url_for
 
+from models import UserRole
+
 
 def login_required(f):
     @wraps(f)
@@ -43,7 +45,7 @@ def validated_caterer_required(f):
         if user is None:
             flash("Veuillez vous connecter pour acceder a cette page.", "error")
             return redirect(url_for("auth.login"))
-        if user.role != "caterer":
+        if user.role != UserRole.caterer:
             return f(*args, **kwargs)
         caterer = user.caterer
         if caterer is None or not caterer.is_validated:
