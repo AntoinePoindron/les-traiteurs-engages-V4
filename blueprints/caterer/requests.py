@@ -15,7 +15,11 @@ from flask import (
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload
 
-from blueprints.middleware import login_required, role_required
+from blueprints.middleware import (
+    login_required,
+    role_required,
+    validated_caterer_required,
+)
 from blueprints.scoping import get_caterer_qrc, get_caterer_quote
 from database import get_db
 from extensions import limiter
@@ -118,6 +122,7 @@ def register(bp):
     @bp.route("/requests")
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def requests_list():
         caterer = g.current_user.caterer
         status_filter = flask_request.args.get("status") or "all"
@@ -153,6 +158,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>")
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def request_detail(qr_id):
         caterer = g.current_user.caterer
         db = get_db()
@@ -199,6 +205,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/reject", methods=["POST"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def request_reject(qr_id):
         """Caterer declines a request before sending any quote.
 
@@ -225,6 +232,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote/new", methods=["GET"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_new(qr_id):
         caterer = g.current_user.caterer
         db = get_db()
@@ -259,6 +267,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote", methods=["POST"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_create(qr_id):
         caterer = g.current_user.caterer
         db = get_db()
@@ -350,6 +359,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/edit", methods=["GET"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_edit(qr_id, q_id):
         caterer = g.current_user.caterer
         quote = get_caterer_quote(qr_id, q_id, caterer.id)
@@ -370,6 +380,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/edit", methods=["POST"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_update(qr_id, q_id):
         caterer = g.current_user.caterer
         db = get_db()
@@ -458,6 +469,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/pdf", methods=["GET"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     @limiter.limit("20 per minute")
     def quote_pdf(qr_id, q_id):
         """Download the quote as a server-rendered PDF.
@@ -515,6 +527,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/send", methods=["POST"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_send(qr_id, q_id):
         caterer = g.current_user.caterer
         db = get_db()

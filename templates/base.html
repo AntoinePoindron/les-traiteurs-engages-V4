@@ -112,6 +112,8 @@
         {% endif %}
 
         {% elif g.current_user.role == UserRole.caterer %}
+        {% set caterer_is_validated = g.current_user.caterer and g.current_user.caterer.is_validated %}
+        {% if caterer_is_validated %}
         <a href="{{ url_for('caterer.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
           <span>Tableau de bord</span>
@@ -124,6 +126,12 @@
           <i data-lucide="shopping-bag" class="w-5 h-5 flex-shrink-0"></i>
           <span>Mes commandes</span>
         </a>
+        {% else %}
+        <a href="{{ url_for('caterer.pending_validation') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="pending">
+          <i data-lucide="clock" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Compte en attente</span>
+        </a>
+        {% endif %}
         <a href="{{ url_for('caterer.profile') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="profile">
           <i data-lucide="user" class="w-5 h-5 flex-shrink-0"></i>
           <span>Mon profil</span>
@@ -136,10 +144,12 @@
           <i data-lucide="banknote" class="w-5 h-5 flex-shrink-0"></i>
           <span>Paiements</span>
         </a>
+        {% if caterer_is_validated %}
         <a href="{{ url_for('caterer.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="messages">
           <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
           <span>Messagerie</span>
         </a>
+        {% endif %}
 
         {% elif g.current_user.role == UserRole.super_admin %}
         <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">

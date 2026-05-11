@@ -28,3 +28,26 @@ def role_required(*roles):
         return decorated
 
     return decorator
+
+
+def validated_caterer_required(f):
+    """Block caterers whose account has not been validated by a super_admin.
+
+    No-op for other roles, so this decorator is safe to apply to shared
+    blueprints (e.g. `_messages.py`) that serve both client and caterer.
+    """
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = g.get("current_user")
+        if user is None:
+            flash("Veuillez vous connecter pour acceder a cette page.", "error")
+            return redirect(url_for("auth.login"))
+        if user.role != "caterer":
+            return f(*args, **kwargs)
+        caterer = user.caterer
+        if caterer is None or not caterer.is_validated:
+            return redirect(url_for("caterer.pending_validation"))
+        return f(*args, **kwargs)
+
+    return decorated
