@@ -206,10 +206,9 @@ class Caterer(DietaryMixin, Base):
     )
     logo_url: Mapped[str | None] = mapped_column(String(500))
     delivery_radius_km: Mapped[int | None] = mapped_column(Integer)
-    service_config: Mapped[dict | None] = mapped_column(JSON)
-    # Catalog metadata: drives the /client/search filters and listing.
-    # service_offerings is a list of slug strings — see SERVICE_OFFERING_LABELS
-    # below for the canonical (slug, label) pairs.
+    # Catalog metadata: drives the /client/search filters, listing, and
+    # the workflow's _service_compatible check. List of slug strings —
+    # see SERVICE_OFFERING_LABELS for the canonical (slug, label) pairs.
     service_offerings: Mapped[list | None] = mapped_column(JSON)
     # Per-offering specs: {slug: {capacity_min, capacity_max,
     # price_per_person_min, total_min, min_advance_days}}. The legacy

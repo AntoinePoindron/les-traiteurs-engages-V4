@@ -84,11 +84,15 @@ def _dietary_compatible(request, caterer):
 
 
 def _service_compatible(request, caterer):
-    if not request.meal_type or not caterer.service_config:
+    # No declared offerings → don't penalise the caterer (legacy fiches
+    # may not have filled their catalog yet); same with a request that
+    # doesn't pin a meal_type. Otherwise the caterer matches iff the
+    # request's meal_type slug appears in their published offerings.
+    if not request.meal_type or not caterer.service_offerings:
         return True
     meal = (
         request.meal_type.value
         if hasattr(request.meal_type, "value")
         else request.meal_type
     )
-    return caterer.service_config.get(meal, False)
+    return meal in caterer.service_offerings
