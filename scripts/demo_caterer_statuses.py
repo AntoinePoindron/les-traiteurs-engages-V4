@@ -132,7 +132,7 @@ def main():
         qr_new = QuoteRequest(
             **common,
             status=QuoteRequestStatus.sent_to_caterers,
-            meal_type=MealType.dejeuner,
+            meal_type=MealType.plateaux_repas,
             event_date=today + datetime.timedelta(days=20),
             guest_count=25,
             budget_global=Decimal("1250"),
@@ -147,7 +147,7 @@ def main():
         qr_sent = QuoteRequest(
             **common,
             status=QuoteRequestStatus.sent_to_caterers,
-            meal_type=MealType.cocktail,
+            meal_type=MealType.cocktail_dinatoire,
             event_date=today + datetime.timedelta(days=35),
             guest_count=40,
             budget_global=Decimal("2000"),
@@ -177,7 +177,7 @@ def main():
         qr_accepted = QuoteRequest(
             **common,
             status=QuoteRequestStatus.completed,
-            meal_type=MealType.diner,
+            meal_type=MealType.cocktail_dinatoire,
             event_date=today + datetime.timedelta(days=45),
             guest_count=30,
             budget_global=Decimal("1800"),

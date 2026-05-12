@@ -21,6 +21,7 @@ from models import (
     Company,
     CompanyEmployee,
     CompanyService,
+    MEAL_TYPE_LABELS,
     Notification,
     Order,
     OrderStatus,
@@ -526,15 +527,12 @@ def stats():
         .group_by(QuoteRequest.meal_type)
         .order_by(func.count(QuoteRequest.id).desc())
     ).all()
-    meal_labels = {
-        "dejeuner": "Dejeuner",
-        "diner": "Diner",
-        "cocktail": "Cocktail",
-        "petit_dejeuner": "Petit-dejeuner",
-        "autre": "Autre",
-    }
+    # Slug → label via the canonical MEAL_TYPE_LABELS dict so the
+    # stats page stays in sync with whatever the wizard / caterer
+    # profile actually offers.
+    meal_slug_to_label = {m.value: label for m, label in MEAL_TYPE_LABELS.items()}
     meal_data = [
-        {"type": meal_labels.get(r.meal_type, r.meal_type), "count": r.cnt}
+        {"type": meal_slug_to_label.get(r.meal_type, r.meal_type), "count": r.cnt}
         for r in meal_rows
     ]
 
