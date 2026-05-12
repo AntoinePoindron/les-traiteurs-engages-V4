@@ -44,6 +44,12 @@ api_bp = Blueprint("api", __name__, url_prefix="/api")
 # `invoice.payment_failed` can arrive after `invoice.paid`.
 _TERMINAL_PAID_STATES = {PaymentStatus.succeeded, PaymentStatus.refunded}
 
+# Hard cap on message body length. Matches the HTML maxlength on the
+# send-message modal so the API doesn't accept payloads the UI can't
+# produce; the DB column is TEXT so this is enforced here, not at the
+# schema level.
+MESSAGE_BODY_MAX = 5000
+
 
 @api_bp.route("/webhooks/stripe", methods=["POST"])
 @csrf.exempt
@@ -291,6 +297,10 @@ def send_message():
     body = (data.get("body") or "").strip()
     if not body:
         return jsonify({"error": "Le message ne peut pas etre vide."}), 400
+    if len(body) > MESSAGE_BODY_MAX:
+        return jsonify(
+            {"error": f"Le message ne peut pas depasser {MESSAGE_BODY_MAX} caracteres."}
+        ), 400
 
     order_id = None
     if data.get("order_id"):
