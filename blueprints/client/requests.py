@@ -586,6 +586,12 @@ def register(bp):
 
         user = g.current_user
         db = get_db()
+        # Gate scope via get_company_request: applies company_id AND
+        # own_requests_filter (a client_user only sees QRs they
+        # themselves created — a colleague's QR is out of scope, same
+        # rule as the page detail). 404 keeps the existence of an
+        # off-scope QR opaque.
+        qr = get_company_request(request_id, user)
         quote = db.scalar(
             select(Quote)
             .options(
@@ -597,16 +603,14 @@ def register(bp):
                 ),
             )
             .where(Quote.id == q_id)
-            .where(Quote.quote_request_id == request_id)
+            .where(Quote.quote_request_id == qr.id)
             # Drafts are caterer-only — refuse to serve a brouillon PDF
             # to the client even if they guess the URL. Allow-list
             # rather than `!= draft` so a future status doesn't leak by
             # default.
             .where(Quote.status.in_(_QUOTE_RECEIVED_STATUSES))
         )
-        # Company-scope check: 404 instead of 403 so we don't leak the
-        # existence of a quote outside the viewer's perimeter.
-        if not quote or quote.quote_request.company_id != user.company_id:
+        if not quote:
             abort(404)
         if len(quote.lines) > _MAX_PDF_LINES:
             abort(413)

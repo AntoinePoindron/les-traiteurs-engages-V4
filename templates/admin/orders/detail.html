@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
+{% from "components/_order_quote_preview_modal.html" import order_quote_preview_modal %}
 
 {% block title %}Commande - Admin{% endblock %}
 
@@ -105,7 +106,16 @@
   </div>
 
   <div class="bg-white rounded-lg p-6">
-    <h2 class="font-display font-bold text-xl mb-4 text-text">Montants</h2>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-display font-bold text-xl text-text">Montants</h2>
+      {% if pdf_preview %}
+      <button type="button" data-action="dialog-open" data-target="order-quote-preview-modal"
+              class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1.5 btn-ghost-navy">
+        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+        Devis
+      </button>
+      {% endif %}
+    </div>
     <dl class="space-y-3">
       <div class="flex justify-between">
         <dt class="text-sm text-mute">Total HT</dt>
@@ -146,4 +156,10 @@
   </div>
   {% endif %}
 </div>
+
+{# Admin observer view — admin.quote_pdf serves any quote without
+   scope check, so the download URL needs no extra context. #}
+{% if pdf_preview %}
+{{ order_quote_preview_modal(order, url_for('admin.quote_pdf', q_id=order.quote.id)) }}
+{% endif %}
 {% endblock %}

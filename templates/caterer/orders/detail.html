@@ -2,6 +2,7 @@
 {% from "components/status_badge.html" import status_badge %}
 {% from "components/ui.html" import back_button, contact_card %}
 {% from "components/send_message_modal.html" import send_message_modal %}
+{% from "components/_order_quote_preview_modal.html" import order_quote_preview_modal %}
 
 {% block title %}Commande - Les Traiteurs Engages{% endblock %}
 
@@ -108,7 +109,16 @@
 
     {% if order.quote.lines %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-xl mb-4 text-text">Detail du devis</h2>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-display font-bold text-xl text-text">Detail du devis</h2>
+        {% if pdf_preview %}
+        <button type="button" data-action="dialog-open" data-target="order-quote-preview-modal"
+                class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1.5 btn-ghost-navy">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+          Devis
+        </button>
+        {% endif %}
+      </div>
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-soft">
@@ -227,5 +237,9 @@
   </div>
 
 </div>
+
+{% if pdf_preview %}
+{{ order_quote_preview_modal(order, url_for('caterer.quote_pdf', qr_id=order.quote.quote_request_id, q_id=order.quote.id)) }}
+{% endif %}
 
 {% endblock %}
