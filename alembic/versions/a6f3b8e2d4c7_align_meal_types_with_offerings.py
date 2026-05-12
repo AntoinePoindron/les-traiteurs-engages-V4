@@ -99,7 +99,9 @@ def upgrade() -> None:
     # 1. Remap quote_requests.meal_type values in-place.
     for legacy, new in _QR_FORWARD.items():
         conn.execute(
-            text("UPDATE quote_requests SET meal_type = :new WHERE meal_type = :legacy"),
+            text(
+                "UPDATE quote_requests SET meal_type = :new WHERE meal_type = :legacy"
+            ),
             {"new": new, "legacy": legacy},
         )
     conn.execute(
@@ -140,7 +142,9 @@ def downgrade() -> None:
     }
     for new, legacy in reverse.items():
         conn.execute(
-            text("UPDATE quote_requests SET meal_type = :legacy WHERE meal_type = :new"),
+            text(
+                "UPDATE quote_requests SET meal_type = :legacy WHERE meal_type = :new"
+            ),
             {"legacy": legacy, "new": new},
         )
 
