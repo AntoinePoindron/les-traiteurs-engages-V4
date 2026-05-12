@@ -2,7 +2,11 @@ from flask import abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload
 
-from blueprints.middleware import login_required, role_required
+from blueprints.middleware import (
+    login_required,
+    role_required,
+    validated_caterer_required,
+)
 from blueprints.scoping import get_caterer_order
 from database import get_db
 from extensions import limiter
@@ -38,6 +42,7 @@ def register(bp):
     @bp.route("/orders")
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def orders_list():
         caterer = g.current_user.caterer
         db = get_db()
@@ -69,6 +74,7 @@ def register(bp):
     @bp.route("/orders/<uuid:order_id>")
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def order_detail(order_id):
         caterer = g.current_user.caterer
         order = get_caterer_order(
@@ -105,6 +111,7 @@ def register(bp):
     @limiter.limit("10 per minute")
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def order_deliver(order_id):
         caterer = g.current_user.caterer
         db = get_db()

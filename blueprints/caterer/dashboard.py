@@ -1,10 +1,14 @@
 from datetime import date
 
-from flask import g, render_template
+from flask import g, redirect, render_template, url_for
 from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
-from blueprints.middleware import login_required, role_required
+from blueprints.middleware import (
+    login_required,
+    role_required,
+    validated_caterer_required,
+)
 from database import get_db
 from models import (
     MEAL_TYPE_LABELS,
@@ -21,9 +25,19 @@ from models import (
 
 
 def register(bp):
+    @bp.route("/pending")
+    @login_required
+    @role_required("caterer")
+    def pending_validation():
+        caterer = g.current_user.caterer
+        if caterer is not None and caterer.is_validated:
+            return redirect(url_for("caterer.dashboard"))
+        return render_template("caterer/pending.html", user=g.current_user)
+
     @bp.route("/dashboard")
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def dashboard():
         caterer = g.current_user.caterer
         db = get_db()

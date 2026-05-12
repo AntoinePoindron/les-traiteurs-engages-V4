@@ -7,7 +7,11 @@ view is paginated and lives in blueprints/admin.py separately.
 
 from flask import abort, g, render_template
 
-from blueprints.middleware import login_required, role_required
+from blueprints.middleware import (
+    login_required,
+    role_required,
+    validated_caterer_required,
+)
 from database import get_db
 from models import UserRole
 from services.messagerie import active_thread_context, threads_for_viewer
@@ -31,6 +35,7 @@ def register(bp, *, roles):
     @bp.route("/messages")
     @login_required
     @role_required(*roles)
+    @validated_caterer_required
     def messages():
         user = g.current_user
         db = get_db()
@@ -49,6 +54,7 @@ def register(bp, *, roles):
     @bp.route("/messages/<uuid:thread_id>")
     @login_required
     @role_required(*roles)
+    @validated_caterer_required
     def message_thread(thread_id):
         user = g.current_user
         db = get_db()

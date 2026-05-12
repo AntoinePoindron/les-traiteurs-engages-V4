@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Compte en attente de validation - Les Traiteurs Engages{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <div class="bg-white rounded-lg p-8">
+    <div class="flex items-start gap-4 mb-6">
+      <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-warning-soft" style="flex-shrink:0;">
+        <i data-lucide="clock" class="w-6 h-6 text-warning"></i>
+      </div>
+      <div>
+        <h1 class="font-display font-bold text-2xl text-black">Compte en attente de validation</h1>
+        <p class="text-sm mt-1 text-mute">Bonjour {{ user.first_name }}, votre inscription est bien enregistree.</p>
+      </div>
+    </div>
+
+    <p class="text-sm mb-4 text-text">
+      Notre equipe verifie actuellement les informations de
+      <strong>{{ user.caterer.name if user.caterer else 'votre etablissement' }}</strong>.
+      Vous recevrez un email des qu'un super administrateur aura valide votre compte. Tant que
+      cette validation n'est pas effectuee, vous ne pouvez pas recevoir de demandes ni envoyer
+      de devis.
+    </p>
+
+    <p class="text-sm mb-6 text-text">
+      Pour gagner du temps, vous pouvez deja completer votre profil et connecter votre compte
+      Stripe pendant que la verification est en cours.
+    </p>
+
+    <div class="flex flex-wrap gap-3">
+      <a href="{{ url_for('caterer.profile') }}"
+         class="rounded-full text-white text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors bg-navy">
+        <i data-lucide="user" class="w-4 h-4"></i>
+        Completer mon profil
+      </a>
+      <a href="{{ url_for('caterer.stripe_status') }}"
+         class="rounded-full text-navy text-sm font-bold px-4 py-2.5 inline-flex items-center gap-2 transition-colors bg-cream">
+        <i data-lucide="credit-card" class="w-4 h-4"></i>
+        Connecter Stripe
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
