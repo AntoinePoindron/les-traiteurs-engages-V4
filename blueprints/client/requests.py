@@ -688,6 +688,7 @@ def register(bp):
                 user=user,
                 qr=qr,
                 services=services,
+                meal_type_options=_meal_type_options(),
             ), 400
 
         qr.company_service_id = own_service_id(db, user, form.company_service_id.data)
