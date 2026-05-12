@@ -393,11 +393,14 @@ def register(bp):
         db = get_db()
         qr = get_company_request(request_id, user)
 
+        # Order by id so qrcs[0] is deterministic — the model has no
+        # created_at, and the template indexes into qrcs in direct mode
+        # to render the pending-caterer card.
         qrcs = (
             db.execute(
-                select(QuoteRequestCaterer).where(
-                    QuoteRequestCaterer.quote_request_id == request_id
-                )
+                select(QuoteRequestCaterer)
+                .where(QuoteRequestCaterer.quote_request_id == request_id)
+                .order_by(QuoteRequestCaterer.id)
             )
             .scalars()
             .all()
