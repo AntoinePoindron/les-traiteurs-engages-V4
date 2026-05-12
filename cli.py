@@ -229,8 +229,9 @@ def migrate_uploads_to_s3(dry_run: bool, verbose: bool):
             if _is_legacy_fs_url(c.logo_url):
                 fs_path, s3_key, new_url = _legacy_url_to_paths(c.logo_url)
                 if not os.path.isfile(fs_path):
+                    action = "would null column" if dry_run else "nulling column"
                     click.echo(
-                        f"  ! [{c.id}] logo file missing: {fs_path} — nulling column",
+                        f"  ! [{c.id}] logo file missing: {fs_path} — {action}",
                         err=True,
                     )
                     missing += 1
@@ -277,12 +278,20 @@ def migrate_uploads_to_s3(dry_run: bool, verbose: bool):
                         continue
                     fs_path, s3_key, new_url = _legacy_url_to_paths(url)
                     if not os.path.isfile(fs_path):
+                        action = "would drop" if dry_run else "dropping"
                         click.echo(
-                            f"  ! [{c.id}] photo file missing: {fs_path} — dropping",
+                            f"  ! [{c.id}] photo file missing: {fs_path} — {action}",
                             err=True,
                         )
                         missing += 1
-                        changed = True
+                        if not dry_run:
+                            changed = True
+                        else:
+                            # In dry-run we want to preserve the legacy
+                            # URL in the rebuilt list so the printed
+                            # summary doesn't lie about counts. The drop
+                            # is reported but not applied.
+                            new_photos.append(url)
                         continue
                     if dry_run:
                         click.echo(f"  · [{c.id}] would upload photo → {s3_key}")
