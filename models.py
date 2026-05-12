@@ -345,7 +345,9 @@ class QuoteRequest(DietaryMixin, Base):
         String(30), default=QuoteRequestStatus.draft
     )
     service_type: Mapped[str | None] = mapped_column(String(100))
-    meal_type: Mapped[MealType | None] = mapped_column(String(20))
+    # 40 chars fits the longest slug `cocktail_dejeunatoire` (21) plus
+    # headroom for future offerings without another migration.
+    meal_type: Mapped[MealType | None] = mapped_column(String(40))
     event_date: Mapped[datetime.date | None] = mapped_column(Date)
     # Optional start/end of the event itself (not the delivery slot).
     # Caterer uses these to plan staff and equipment delivery windows.

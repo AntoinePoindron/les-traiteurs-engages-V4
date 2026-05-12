@@ -36,7 +36,7 @@ Create Date: 2026-05-12
 from typing import Sequence, Union
 
 from alembic import op
-from sqlalchemy import bindparam, text
+from sqlalchemy import String, bindparam, text
 
 
 revision: str = "a6f3b8e2d4c7"
@@ -95,6 +95,18 @@ def _remap_service_config(legacy: dict | None) -> dict | None:
 
 def upgrade() -> None:
     conn = op.get_bind()
+
+    # 0. Widen the column before remap. `cocktail_dejeunatoire` (21
+    #    chars) doesn't fit in the legacy String(20). The data remap
+    #    itself never writes that value, but the wizard will the moment
+    #    a client picks it, so the column must already accept it.
+    op.alter_column(
+        "quote_requests",
+        "meal_type",
+        existing_type=String(length=20),
+        type_=String(length=40),
+        existing_nullable=True,
+    )
 
     # 1. Remap quote_requests.meal_type values in-place.
     for legacy, new in _QR_FORWARD.items():
@@ -176,3 +188,13 @@ def downgrade() -> None:
                 continue
             out[lk] = bool(out[lk] or v)
         conn.execute(update_stmt, {"cfg": json.dumps(out), "id": row.id})
+
+    # Narrow the column back after the data fits in the legacy size.
+    # All remaining values are in the legacy set (≤ 9 chars), safe.
+    op.alter_column(
+        "quote_requests",
+        "meal_type",
+        existing_type=String(length=40),
+        type_=String(length=20),
+        existing_nullable=True,
+    )
