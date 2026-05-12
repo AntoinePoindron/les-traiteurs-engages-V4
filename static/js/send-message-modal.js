@@ -49,7 +49,12 @@
       var href = buildThreadUrl(dialog, threadId);
       if (link && href) link.href = href;
     }
-    if (window.lucide) lucide.createIcons();
+    // Scope icon refresh to the dialog so we don't reprocess every
+    // [data-lucide] node on the page each time a message is sent.
+    if (window.lucide && lucide.createIcons) {
+      try { lucide.createIcons({ root: dialog }); }
+      catch (_) { lucide.createIcons(); }
+    }
   }
 
   function resetToComposeState(dialog) {
