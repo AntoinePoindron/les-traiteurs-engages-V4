@@ -137,12 +137,14 @@ def create_app():
     from blueprints.auth import auth_bp
     from blueprints.caterer import caterer_bp
     from blueprints.client import client_bp
+    from blueprints.uploads import uploads_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(client_bp)
     app.register_blueprint(caterer_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(uploads_bp)
 
     # Per-blueprint rate limits (on top of the global default).
     # Write-heavy blueprints get tighter caps; API gets its own ceiling.
@@ -215,9 +217,12 @@ def create_app():
     # CLI for ops tasks: `flask admin create / reset-password / list / disable`.
     # Avoids relying on ADMIN_INITIAL_PASSWORD env var for day-to-day admin
     # lifecycle (P3.2).
-    from cli import admin_cli
+    # `uploads migrate-to-s3` is the one-shot migration script that lifts
+    # legacy /static/uploads/* references onto the S3 bucket.
+    from cli import admin_cli, uploads_cli
 
     app.cli.add_command(admin_cli)
+    app.cli.add_command(uploads_cli)
 
     @app.before_request
     def load_current_user():

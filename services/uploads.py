@@ -250,6 +250,18 @@ def _save_local(file, subfolder: str, safe_name: str) -> str:
     return f"/static/uploads/{subfolder}/{safe_name}"
 
 
+def _s3_key_from_url(url: str) -> str | None:
+    """Reverse `_save_s3`'s URL: extract the bucket key from `/uploads/<key>`.
+
+    Returns None when the URL does not point at the proxy route (legacy
+    filesystem URLs starting with `/static/uploads/`, absolute http(s)
+    URLs, or anything else).
+    """
+    if not url or not url.startswith("/uploads/"):
+        return None
+    return f"uploads/{url[len('/uploads/') :]}"
+
+
 def _save_s3(file, subfolder: str, safe_name: str, declared_ext: str) -> str:
     from config import settings
 
@@ -263,11 +275,38 @@ def _save_s3(file, subfolder: str, safe_name: str, declared_ext: str) -> str:
             "CacheControl": "public, max-age=31536000, immutable",
         },
     )
-    base = (
-        settings.s3_public_url
-        or f"https://{settings.s3_bucket}.s3.{settings.s3_region}.amazonaws.com"
-    )
-    return f"{base.rstrip('/')}/{key}"
+    # Return a relative path served by the Flask `/uploads/<key>` proxy
+    # route. We do NOT return the direct Scaleway URL — the bucket is
+    # private, so a public URL would 403. The proxy lets us keep ACL
+    # `private` and still serve images in <img src="...">.
+    return f"/{key}"
+
+
+def delete_upload(url: str) -> bool:
+    """Best-effort deletion of a previously saved upload.
+
+    Returns True if a delete was issued (or the URL was unmanaged so
+    nothing to do); False on S3/IO error so the caller can decide
+    whether to retry or log. Never raises.
+
+    Old filesystem URLs (`/static/uploads/...`) and external/absolute
+    URLs are left alone — callers should null out the DB column to drop
+    the reference; cleaning up the bytes is the job of the one-shot
+    migration script.
+    """
+    key = _s3_key_from_url(url)
+    if key is None:
+        return True
+    if not _s3_enabled():
+        return True
+    from config import settings
+
+    try:
+        _get_s3().delete_object(Bucket=settings.s3_bucket, Key=key)
+        return True
+    except (BotoCoreError, ClientError):
+        logger.exception("S3 delete failed for %s", key)
+        return False
 
 
 def save_upload(file, subfolder: str = "general") -> str | None:
