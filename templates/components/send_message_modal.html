@@ -45,11 +45,12 @@
         class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full"
         data-backdrop-dismiss
         data-send-message-dialog
+        aria-labelledby="{{ modal_id }}-title"
         {% if _thread_url_template %}data-thread-url-template="{{ _thread_url_template }}"{% endif %}>
   <div class="p-6">
     {# --- Compose state (default) --- #}
     <div data-modal-state="compose">
-      <h3 class="font-display font-bold text-lg text-black mb-2">
+      <h3 id="{{ modal_id }}-title" class="font-display font-bold text-lg text-black mb-2">
         Envoyer un message à {{ recipient_name }}
       </h3>
       <p class="text-sm mb-4 text-mute">
