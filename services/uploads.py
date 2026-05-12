@@ -282,6 +282,13 @@ def _save_s3(file, subfolder: str, safe_name: str, declared_ext: str) -> str:
         ExtraArgs={
             "ContentType": _CONTENT_TYPES.get(declared_ext, "application/octet-stream"),
             "CacheControl": "public, max-age=31536000, immutable",
+            # Defensive: the Scaleway bucket is currently configured
+            # with a private default ACL, but we don't want to rely on
+            # the bucket policy alone — set it explicitly per-object so
+            # a misconfigured bucket (or a future move to a provider
+            # with a permissive default) can't silently flip our uploads
+            # to public.
+            "ACL": "private",
         },
     )
     # Return a relative path served by the Flask `/uploads/<key>` proxy
