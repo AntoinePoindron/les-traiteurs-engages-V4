@@ -34,7 +34,7 @@ def test_quote_request_with_bogus_company_service_id_does_not_500(client, login)
         data={
             "company_service_id": "00000000-0000-0000-0000-000000000000",
             "service_type": "test",
-            "meal_type": "dejeuner",
+            "meal_type": "plateaux_repas",
             "event_date": "2026-12-25",
             "guest_count": 20,
         },
@@ -97,7 +97,7 @@ def test_quote_request_cannot_attach_to_other_company_service(client, login):
         data={
             "company_service_id": other_id,
             "service_type": "test",
-            "meal_type": "dejeuner",
+            "meal_type": "plateaux_repas",
             "event_date": "2026-12-25",
             "guest_count": 20,
         },

@@ -47,57 +47,31 @@
           </div>
         </div>
 
-        {# Demande ciblée avec offerings publiées → on remplace les
-           5 meal_types génériques par les offerings réelles du
-           traiteur (cf. "Catalogue & tarifs" de sa fiche publique).
-           Chaque radio porte un `data-meal-type` qui alimente le
-           champ caché meal_type via wizard.js — la base de données
-           continue de stocker QuoteRequest.meal_type comme avant.
-
-           Demande non ciblée OU traiteur sans offerings → on garde
-           les 5 meal_types historiques. #}
-        {% if target_offerings %}
+        {# Single source of truth : `meal_type_options` is built from
+           MEAL_TYPE_LABELS. For a targeted demand the route filters the
+           list down to what the caterer publishes under "Catalogue &
+           tarifs", so the client only picks something the caterer
+           explicitly proposes. Radio value IS the MealType slug — no
+           more hidden field or service_offering→meal_type mapping. #}
+        {% if target_caterer %}
         <p class="text-xs text-mute mb-4">
           Ces options correspondent aux prestations publiées par
           <span class="font-bold">{{ target_caterer.name }}</span> dans son catalogue.
         </p>
-        <input type="hidden" name="meal_type" id="hidden-meal-type" value="">
-        <div class="space-y-3" data-target-offerings>
-          {% for off in target_offerings %}
-          <label class="flex items-center gap-4 p-4 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-navy-soft border-2 border-default">
-            <input type="radio" name="service_offering" value="{{ off.slug }}"
-                   data-meal-type="{{ off.meal_type }}"
-                   {% if loop.first %}required{% endif %}
-                   class="w-4 h-4 accent-navy wizard-offering-radio">
-            <div class="flex items-center gap-3">
-              <i data-lucide="{{ off.icon }}" class="w-4\.5 h-4\.5 text-mute"></i>
-              <span class="font-bold text-sm text-text">{{ off.label }}</span>
-            </div>
-          </label>
-          {% endfor %}
-        </div>
-        {% else %}
-        {% set meal_options = [
-          ('petit_dejeuner', 'Petit-dejeuner', 'coffee'),
-          ('dejeuner', 'Dejeuner', 'sun'),
-          ('diner', 'Diner', 'moon'),
-          ('cocktail', 'Cocktail', 'wine'),
-          ('autre', 'Autre', 'plus-circle'),
-        ] %}
+        {% endif %}
         <div class="space-y-3">
-          {% for value, label, icon in meal_options %}
+          {% for opt in meal_type_options %}
           <label class="flex items-center gap-4 p-4 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-navy-soft border-2 border-default">
-            <input type="radio" name="meal_type" value="{{ value }}"
+            <input type="radio" name="meal_type" value="{{ opt.slug }}"
                    {% if loop.first %}required{% endif %}
                    class="w-4 h-4 accent-navy">
             <div class="flex items-center gap-3">
-              <i data-lucide="{{ icon }}" class="w-4\.5 h-4\.5 text-mute"></i>
-              <span class="font-bold text-sm text-text">{{ label }}</span>
+              <i data-lucide="{{ opt.icon }}" class="w-4\.5 h-4\.5 text-mute"></i>
+              <span class="font-bold text-sm text-text">{{ opt.label }}</span>
             </div>
           </label>
           {% endfor %}
         </div>
-        {% endif %}
 
         <div class="mt-6">
           <label for="service_type" class="block text-sm font-bold mb-2 text-text">Precision sur le service <span class="text-mute">(optionnel)</span></label>

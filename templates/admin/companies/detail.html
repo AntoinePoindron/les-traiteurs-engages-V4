@@ -80,7 +80,7 @@
         <tbody>
           {% for req in requests %}
           <tr class="border-t border-soft">
-            <td class="py-2 text-sm text-black">{{ req.meal_type.value if req.meal_type else req.service_type or '-' }}</td>
+            <td class="py-2 text-sm text-black">{{ meal_type_labels.get(req.meal_type) or req.service_type or '-' }}</td>
             <td class="py-2 text-sm text-mute">{{ req.event_date.strftime('%d/%m/%Y') if req.event_date else '-' }}</td>
             <td class="py-2 text-sm text-mute">{{ req.guest_count or '-' }}</td>
             <td class="py-2">{{ status_badge(req.status) }}</td>

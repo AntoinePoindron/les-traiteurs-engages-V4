@@ -27,6 +27,7 @@ from wtforms.validators import (
     Length,
     NumberRange,
     Optional,
+    ValidationError,
 )
 
 from models import MEAL_TYPE_LABELS
@@ -36,6 +37,13 @@ MEAL_TYPES = [(m.value, label) for m, label in MEAL_TYPE_LABELS.items()]
 
 class QuoteRequestForm(FlaskForm):
     """Used by both POST /client/requests/new and POST /client/requests/<id>/edit."""
+
+    # When set by the route to a set of offering slugs, `validate_meal_type`
+    # rejects any meal_type outside that subset. None (default) = no
+    # restriction — open demand, edit, or no targeted caterer. Set this
+    # BEFORE calling `validate_on_submit()` so the cross-field rule
+    # actually fires.
+    target_offerings: set | None = None
 
     company_service_id = StringField(validators=[Optional(), Length(max=36)])
     service_type = StringField(validators=[Optional(), Length(max=100)])
@@ -103,6 +111,26 @@ class QuoteRequestForm(FlaskForm):
 
     # The dietary checkboxes use value="1" in the templates; WTForms BooleanField
     # treats "1"/"true"/"on" as True, anything else as False. Matches existing UI.
+
+    def validate_meal_type(self, field):
+        """Cross-field gate: a targeted demand must pick a slug the caterer
+        actually publishes under Catalogue & tarifs.
+
+        The wizard's step-1 UI already filters the radio list down to the
+        caterer's offerings, but a tampered POST can still ship any of
+        the six canonical slugs. This validator closes that gap so the
+        DB never holds a `(target_caterer_id, meal_type)` pair the
+        caterer doesn't support.
+
+        Empty meal_type is allowed (the field is Optional); the rule
+        only kicks in when both a slug AND a target are present.
+        """
+        if self.target_offerings is None or not field.data:
+            return
+        if field.data not in self.target_offerings:
+            raise ValidationError(
+                "Le type de prestation choisi n'est pas propose par ce traiteur."
+            )
 
 
 class ServiceForm(FlaskForm):

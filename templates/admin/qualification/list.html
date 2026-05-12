@@ -33,7 +33,7 @@
       {% for req in requests %}
       <tr class="hover:bg-cream border-t border-soft">
         <td class="px-4 py-3 text-sm font-medium text-black">{{ req.company.name }}</td>
-        <td class="px-4 py-3 text-sm text-mute">{{ req.meal_type.value if req.meal_type else req.service_type or '-' }}</td>
+        <td class="px-4 py-3 text-sm text-mute">{{ meal_type_labels.get(req.meal_type) or req.service_type or '-' }}</td>
         <td class="px-4 py-3 text-sm text-mute">{{ req.event_date.strftime('%d/%m/%Y') if req.event_date else '-' }}</td>
         <td class="px-4 py-3 text-sm text-mute">{{ req.guest_count or '-' }}</td>
         <td class="px-4 py-3 text-sm text-mute">

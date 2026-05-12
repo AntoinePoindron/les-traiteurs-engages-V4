@@ -9,7 +9,7 @@
 <div class="mb-6">
   <div class="mb-3">{{ back_button(label="Retour a la liste") }}</div>
   <div class="flex items-center gap-3">
-    <h1 class="font-display font-bold text-2xl text-black">{{ qr.meal_type.value if qr.meal_type else qr.service_type or 'Demande' }} - {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else 'Date non definie' }}</h1>
+    <h1 class="font-display font-bold text-2xl text-black">{{ meal_type_labels.get(qr.meal_type) or qr.service_type or 'Demande' }} - {{ qr.event_date.strftime('%d/%m/%Y') if qr.event_date else 'Date non definie' }}</h1>
     {{ status_badge(qr.status) }}
   </div>
 </div>
@@ -28,7 +28,7 @@
       <div class="flex flex-wrap gap-2 mb-4">
         <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
           <i data-lucide="utensils" class="w-3 h-3"></i>
-          {{ qr.meal_type.value if qr.meal_type else qr.service_type or '-' }}
+          {{ meal_type_labels.get(qr.meal_type) or qr.service_type or 'Non précisé' }}
         </span>
         <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
           <i data-lucide="calendar" class="w-3 h-3"></i>
