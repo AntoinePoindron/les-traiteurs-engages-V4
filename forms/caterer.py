@@ -27,7 +27,6 @@ class CatererProfileForm(FlaskForm):
     dietary_halal = BooleanField()
     dietary_gluten_free = BooleanField()
     dietary_lactose_free = BooleanField()
-    service_config = TextAreaField(validators=[Optional(), Length(max=10000)])
     # photos handled separately via request.files
 
     # service_offerings is read off request.form.getlist; per-offering

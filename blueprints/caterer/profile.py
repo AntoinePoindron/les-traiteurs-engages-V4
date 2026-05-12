@@ -1,16 +1,13 @@
-import json
 import logging
 from decimal import Decimal, InvalidOperation
 
 from flask import flash, g, redirect, render_template, request, url_for
-from pydantic import ValidationError
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
 from extensions import limiter
 from forms.caterer import CatererProfileForm
 from models import SERVICE_OFFERING_LABELS
-from services.json_schemas import ServiceConfig
 from services.uploads import save_upload
 
 logger = logging.getLogger(__name__)
@@ -196,23 +193,6 @@ def register(bp):
         caterer.service_offering_specs = kept_specs or None
         _aggregate_legacy_fields(caterer, kept_specs)
 
-        service_config_raw = form.service_config.data or ""
-        if service_config_raw:
-            try:
-                parsed = json.loads(service_config_raw)
-                validated = ServiceConfig.model_validate(parsed)
-                caterer.service_config = validated.model_dump()
-            except json.JSONDecodeError:
-                flash("Configuration JSON : syntaxe invalide.", "error")
-                return redirect(url_for("caterer.profile"))
-            except ValidationError as exc:
-                first = exc.errors()[0]
-                field = ".".join(str(p) for p in first["loc"]) or "(racine)"
-                flash(
-                    f"Configuration JSON invalide en '{field}' : {first['msg']}.",
-                    "error",
-                )
-                return redirect(url_for("caterer.profile"))
         db.commit()
         flash("Profil mis a jour.", "success")
         return redirect(url_for("caterer.profile"))
