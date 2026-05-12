@@ -65,6 +65,45 @@ _MEAL_TYPE_ICONS: dict[str, str] = {
 }
 
 
+def _resolve_target_caterer(db, raw_id):
+    """Resolve a `target_caterer_id` string (form or query param) to a
+    validated Caterer row, or None if blank/invalid/not-validated.
+
+    Same gate as the workflow: only `is_validated=True` caterers can
+    receive a targeted demand. Returning None here means "treat as open
+    demand", which the route handler does upstream.
+    """
+    raw = (raw_id or "").strip()
+    if not raw:
+        return None
+    try:
+        cid = uuid.UUID(raw)
+    except ValueError:
+        return None
+    return db.scalar(
+        select(Caterer).where(Caterer.id == cid).where(Caterer.is_validated.is_(True))
+    )
+
+
+def _caterer_capabilities(caterer):
+    """Wizard step-4 needs to grey out régimes the caterer can't honor.
+
+    Returns None for open demands so the template falls through to
+    "no restriction"; otherwise a dict of dietary booleans.
+    """
+    if caterer is None:
+        return None
+    return {
+        "dietary": {
+            "vegetarian": bool(caterer.dietary_vegetarian),
+            "vegan": bool(caterer.dietary_vegan),
+            "halal": bool(caterer.dietary_halal),
+            "gluten_free": bool(caterer.dietary_gluten_free),
+            "lactose_free": bool(caterer.dietary_lactose_free),
+        },
+    }
+
+
 def _meal_type_options(restrict_to: set[str] | None = None) -> list[dict]:
     """Render-ready list of `{slug, label, icon}` for the step-1 radios.
 
@@ -233,19 +272,7 @@ def register(bp):
         # When the wizard is opened from a specific caterer profile
         # (?caterer_id=...), prefill target_caterer so the form ships the
         # demand straight to that caterer and bypasses admin matching.
-        target_caterer = None
-        raw_caterer_id = request.args.get("caterer_id")
-        if raw_caterer_id:
-            try:
-                cid = uuid.UUID(raw_caterer_id)
-            except ValueError:
-                cid = None
-            if cid is not None:
-                target_caterer = db.scalar(
-                    select(Caterer)
-                    .where(Caterer.id == cid)
-                    .where(Caterer.is_validated.is_(True))
-                )
+        target_caterer = _resolve_target_caterer(db, request.args.get("caterer_id"))
 
         # Build the list of prestation options the wizard's step 1 will
         # render as radios. Two cases:
@@ -260,27 +287,13 @@ def register(bp):
             if target_caterer is not None
             else None
         )
-        meal_type_options = _meal_type_options(restrict_to=restrict)
-        caterer_capabilities = None
-        if target_caterer is not None:
-            # Step 4 of the wizard greys-out régimes the caterer doesn't
-            # accommodate; the five dietary booleans drive that.
-            caterer_capabilities = {
-                "dietary": {
-                    "vegetarian": bool(target_caterer.dietary_vegetarian),
-                    "vegan": bool(target_caterer.dietary_vegan),
-                    "halal": bool(target_caterer.dietary_halal),
-                    "gluten_free": bool(target_caterer.dietary_gluten_free),
-                    "lactose_free": bool(target_caterer.dietary_lactose_free),
-                },
-            }
         return render_template(
             "client/requests/new.html",
             user=user,
             services=services,
             target_caterer=target_caterer,
-            meal_type_options=meal_type_options,
-            caterer_capabilities=caterer_capabilities,
+            meal_type_options=_meal_type_options(restrict_to=restrict),
+            caterer_capabilities=_caterer_capabilities(target_caterer),
         )
 
     @bp.route("/requests/new", methods=["POST"])
@@ -288,10 +301,20 @@ def register(bp):
     @role_required("client_admin", "client_user")
     def requests_new_post():
         user = g.current_user
+        db = get_db()
         form = QuoteRequestForm()
+
+        # Resolve the targeted caterer (if any) before validation so the
+        # form-side `validate_meal_type` cross-field rule has the right
+        # offerings set to gate against. A tampered POST with
+        # `meal_type=pause_gourmande` for a caterer that doesn't offer
+        # it gets rejected here, not silently persisted.
+        target_caterer = _resolve_target_caterer(db, form.target_caterer_id.data)
+        if target_caterer is not None:
+            form.target_offerings = set(target_caterer.service_offerings or [])
+
         if not form.validate_on_submit():
             flash("Veuillez corriger les erreurs du formulaire.", "error")
-            db = get_db()
             services = (
                 db.execute(
                     select(CompanyService).where(
@@ -301,67 +324,21 @@ def register(bp):
                 .scalars()
                 .all()
             )
-            # Re-resolve the targeted caterer so the wizard's step 1
-            # restricts to its actual offerings and step 4 greys out the
-            # right régimes, instead of dropping the user back into the
-            # generic 6-option / no-capabilities view on a typo.
-            target_caterer = None
-            raw_target = (form.target_caterer_id.data or "").strip()
-            if raw_target:
-                try:
-                    cid = uuid.UUID(raw_target)
-                except ValueError:
-                    cid = None
-                if cid is not None:
-                    target_caterer = db.scalar(
-                        select(Caterer)
-                        .where(Caterer.id == cid)
-                        .where(Caterer.is_validated.is_(True))
-                    )
             restrict = (
                 set(target_caterer.service_offerings or [])
                 if target_caterer is not None
                 else None
             )
-            caterer_capabilities = None
-            if target_caterer is not None:
-                caterer_capabilities = {
-                    "dietary": {
-                        "vegetarian": bool(target_caterer.dietary_vegetarian),
-                        "vegan": bool(target_caterer.dietary_vegan),
-                        "halal": bool(target_caterer.dietary_halal),
-                        "gluten_free": bool(target_caterer.dietary_gluten_free),
-                        "lactose_free": bool(target_caterer.dietary_lactose_free),
-                    },
-                }
             return render_template(
                 "client/requests/new.html",
                 user=user,
                 services=services,
                 target_caterer=target_caterer,
                 meal_type_options=_meal_type_options(restrict_to=restrict),
-                caterer_capabilities=caterer_capabilities,
+                caterer_capabilities=_caterer_capabilities(target_caterer),
             ), 400
 
-        db = get_db()
         service_id = own_service_id(db, user, form.company_service_id.data)
-
-        # Resolve target caterer (single-caterer flow). Validate UUID
-        # AND that the caterer actually exists + is validated, so a
-        # tampered hidden input can't sneak through.
-        target_caterer = None
-        raw_target = (form.target_caterer_id.data or "").strip()
-        if raw_target:
-            try:
-                cid = uuid.UUID(raw_target)
-            except ValueError:
-                cid = None
-            if cid is not None:
-                target_caterer = db.scalar(
-                    select(Caterer)
-                    .where(Caterer.id == cid)
-                    .where(Caterer.is_validated.is_(True))
-                )
 
         if target_caterer is not None:
             # Single-caterer demand: skip admin review entirely, send
