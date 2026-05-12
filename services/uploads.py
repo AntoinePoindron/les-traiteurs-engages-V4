@@ -346,5 +346,14 @@ def save_upload(file, subfolder: str = "general") -> str | None:
         except (BotoCoreError, ClientError):
             logger.exception("S3 upload failed for %s", safe_name)
             return None
+        except Exception:
+            # `_get_s3()` can also raise non-boto errors at construction
+            # time (missing/invalid credentials surfaced as ValueError,
+            # absent boto3 surfaced as ImportError, etc.). Bucketing all
+            # such cases as "S3 misconfiguration" mirrors the boto-error
+            # handling above: the caller sees None and flashes a
+            # user-facing rejection instead of a 500.
+            logger.exception("S3 client configuration error for %s", safe_name)
+            return None
 
     return _save_local(file, subfolder, safe_name)
