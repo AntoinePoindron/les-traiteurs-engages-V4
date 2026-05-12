@@ -28,7 +28,7 @@ import logging
 from botocore.exceptions import BotoCoreError, ClientError
 from flask import Blueprint, Response, abort, stream_with_context
 
-from services.uploads import _get_s3, _s3_enabled
+from services.uploads import PUBLIC_UPLOAD_SUBFOLDERS, _get_s3, _s3_enabled
 
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,15 @@ def serve(key: str):
         # Falling back to filesystem is intentionally NOT done here:
         # files on the legacy filesystem live under `/static/uploads/`
         # and the templates that reference them keep using that prefix.
+        abort(404)
+
+    # Fail-closed allow-list: only top-level subfolders explicitly marked
+    # as public are reachable through this proxy. Anything else (e.g. a
+    # `save_upload(..., subfolder="invoices")` added later) is opaque to
+    # unauth'd visitors even though it shares the same bucket. Keeps the
+    # "no authz check today" contract on this route honest.
+    top = key.split("/", 1)[0]
+    if top not in PUBLIC_UPLOAD_SUBFOLDERS:
         abort(404)
 
     from config import settings

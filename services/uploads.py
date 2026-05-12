@@ -32,6 +32,15 @@ ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp", "pdf"}
 UPLOAD_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "static", "uploads"
 )
+
+# Top-level subfolders the public `/uploads/<...>` proxy is allowed to
+# serve. Adding a new entry here is an explicit, reviewable decision to
+# expose that subtree without an authz check — useful when the bucket
+# starts to hold mixed (public, private) content. Anything outside this
+# set 404s at the proxy boundary even if the object exists in the
+# bucket, so a `save_upload(invoice_pdf, subfolder="invoices")` call
+# added in a follow-up doesn't accidentally become public.
+PUBLIC_UPLOAD_SUBFOLDERS = frozenset({"caterers"})
 MAX_FILENAME_LENGTH = 80
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB per file (global cap is 16 MB total request)
 
