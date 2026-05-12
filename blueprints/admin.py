@@ -26,7 +26,6 @@ from models import (
     Company,
     CompanyEmployee,
     CompanyService,
-    MEAL_TYPE_LABELS,
     Notification,
     Order,
     OrderStatus,
