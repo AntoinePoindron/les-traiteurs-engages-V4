@@ -301,12 +301,46 @@ def register(bp):
                 .scalars()
                 .all()
             )
+            # Re-resolve the targeted caterer so the wizard's step 1
+            # restricts to its actual offerings and step 4 greys out the
+            # right régimes, instead of dropping the user back into the
+            # generic 6-option / no-capabilities view on a typo.
+            target_caterer = None
+            raw_target = (form.target_caterer_id.data or "").strip()
+            if raw_target:
+                try:
+                    cid = uuid.UUID(raw_target)
+                except ValueError:
+                    cid = None
+                if cid is not None:
+                    target_caterer = db.scalar(
+                        select(Caterer)
+                        .where(Caterer.id == cid)
+                        .where(Caterer.is_validated.is_(True))
+                    )
+            restrict = (
+                set(target_caterer.service_offerings or [])
+                if target_caterer is not None
+                else None
+            )
+            caterer_capabilities = None
+            if target_caterer is not None:
+                caterer_capabilities = {
+                    "dietary": {
+                        "vegetarian": bool(target_caterer.dietary_vegetarian),
+                        "vegan": bool(target_caterer.dietary_vegan),
+                        "halal": bool(target_caterer.dietary_halal),
+                        "gluten_free": bool(target_caterer.dietary_gluten_free),
+                        "lactose_free": bool(target_caterer.dietary_lactose_free),
+                    },
+                }
             return render_template(
                 "client/requests/new.html",
                 user=user,
                 services=services,
-                target_caterer=None,
-                meal_type_options=_meal_type_options(),
+                target_caterer=target_caterer,
+                meal_type_options=_meal_type_options(restrict_to=restrict),
+                caterer_capabilities=caterer_capabilities,
             ), 400
 
         db = get_db()
