@@ -113,6 +113,7 @@ def dashboard():
         orders_this_month=orders_this_month or 0,
         recent_requests=recent_requests,
         orders_to_invoice=orders_to_invoice,
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
@@ -127,7 +128,10 @@ def qualification():
         .order_by(QuoteRequest.created_at.desc())
     ).all()
     return render_template(
-        "admin/qualification/list.html", user=g.current_user, requests=requests
+        "admin/qualification/list.html",
+        user=g.current_user,
+        requests=requests,
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
@@ -146,6 +150,7 @@ def qualification_detail(request_id):
         qr=qr,
         matches=matches,
         message_form=AdminMessageForm(),
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
@@ -379,6 +384,7 @@ def company_detail(company_id):
         employees=employees,
         services=services,
         requests=requests,
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
