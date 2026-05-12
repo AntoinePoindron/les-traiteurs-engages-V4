@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 
 import config
 from extensions import csrf, limiter
-from blueprints.middleware import login_required
+from blueprints.middleware import login_required, validated_caterer_required
 from database import get_db
 from models import (
     Caterer,
@@ -167,6 +167,7 @@ def stripe_webhook():
 
 @api_bp.route("/messages/<uuid:thread_id>")
 @login_required
+@validated_caterer_required
 def get_messages(thread_id):
     user = g.current_user
     db = get_db()
@@ -280,6 +281,7 @@ def _allowed_recipients_for(db, user, *, order_id=None, quote_request_id=None):
 
 @api_bp.route("/messages", methods=["POST"])
 @login_required
+@validated_caterer_required
 @limiter.limit("60 per minute")
 def send_message():
     user = g.current_user
@@ -407,6 +409,7 @@ def send_message():
 
 @api_bp.route("/notifications")
 @login_required
+@validated_caterer_required
 def get_notifications():
     user = g.current_user
     db = get_db()
@@ -432,6 +435,7 @@ def get_notifications():
 
 @api_bp.route("/notifications/<uuid:notification_id>/read", methods=["POST"])
 @login_required
+@validated_caterer_required
 def notification_read(notification_id):
     user = g.current_user
     db = get_db()
