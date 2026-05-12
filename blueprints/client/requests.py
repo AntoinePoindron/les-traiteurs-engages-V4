@@ -420,6 +420,20 @@ def register(bp):
         # uses a French, user-facing label instead of the raw enum value.
         qr.display_status = _derive_request_display_status(qr)
 
+        # Resolve the contactable caterer user once per quote / qrc so
+        # the template doesn't have to do `caterer.users[0] if ... else
+        # None` in two separate loops (button render + modal render).
+        # Same shape for qrcs so the pending-caterer card reads from a
+        # single source of truth.
+        for quote in quotes:
+            quote.caterer_user = (
+                quote.caterer.users[0] if quote.caterer.users else None
+            )
+        for qrc in qrcs:
+            qrc.caterer_user = (
+                qrc.caterer.users[0] if qrc.caterer.users else None
+            )
+
         # Attach per-quote PDF preview data so the template can render a
         # read-only modal for "Voir le devis" without doing arithmetic in
         # Jinja. quote.pdf_preview stays None for any quote that has no
