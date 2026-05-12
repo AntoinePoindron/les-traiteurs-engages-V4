@@ -10,19 +10,16 @@
 (function () {
   'use strict';
 
-  function findThreadEndpointTemplate(modalId) {
-    // Each <dialog> carries the Flask endpoint name it should resolve
-    // to (e.g. "client.message_thread") on a data-attribute. Server-
-    // rendered url_for would need a thread_id we don't have at render
-    // time, so we build the URL client-side: every blueprint follows
-    // /<prefix>/messages/<thread_id>, and the prefix is the bit before
-    // the dot. Hand-rolling this keeps the JS dependency-free.
-    var dialog = document.getElementById(modalId);
-    if (!dialog) return null;
-    var endpoint = dialog.dataset.threadEndpoint;
-    if (!endpoint) return null;
-    var prefix = endpoint.split('.')[0];
-    return '/' + prefix + '/messages/';
+  // Sentinel UUID the macro embeds via url_for(thread_endpoint,
+  // thread_id=<sentinel>). We substitute it with the real thread_id
+  // returned by /api/messages. Keeping the mapping in Flask via url_for
+  // means a route rename blows up at render time, not silently in JS.
+  var THREAD_ID_SENTINEL = '00000000-0000-0000-0000-000000000000';
+
+  function buildThreadUrl(dialog, threadId) {
+    var tpl = dialog && dialog.dataset.threadUrlTemplate;
+    if (!tpl || !threadId) return null;
+    return tpl.replace(THREAD_ID_SENTINEL, threadId);
   }
 
   function showError(form, msg) {
@@ -49,8 +46,8 @@
 
     if (threadId) {
       var link = dialog.querySelector('[data-modal-thread-link]');
-      var base = findThreadEndpointTemplate(modalId);
-      if (link && base) link.href = base + threadId;
+      var href = buildThreadUrl(dialog, threadId);
+      if (link && href) link.href = href;
     }
     if (window.lucide) lucide.createIcons();
   }
@@ -147,7 +144,7 @@
       .querySelectorAll('[data-send-message-form]')
       .forEach(bindForm);
     document
-      .querySelectorAll('dialog[data-thread-endpoint]')
+      .querySelectorAll('dialog[data-send-message-dialog]')
       .forEach(bindCloseReset);
   });
 })();
