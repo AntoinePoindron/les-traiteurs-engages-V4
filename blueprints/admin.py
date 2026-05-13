@@ -13,7 +13,7 @@ from flask import (
     send_file,
     url_for,
 )
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.middleware import login_required, role_required
@@ -177,10 +177,17 @@ def requests_list():
     if status_filter not in _REQUEST_STATUS_TABS:
         status_filter = "all"
 
+    # Sort: pending_review first (highest priority for the admin),
+    # then the rest by created_at DESC. SQL `CASE` keeps the priority
+    # bucket out of the regular date ordering.
+    pending_priority = case(
+        (QuoteRequest.status == QuoteRequestStatus.pending_review, 0),
+        else_=1,
+    )
     stmt = (
         select(QuoteRequest)
         .options(joinedload(QuoteRequest.company))
-        .order_by(QuoteRequest.created_at.desc())
+        .order_by(pending_priority, QuoteRequest.created_at.desc())
     )
     if status_filter != "all":
         stmt = stmt.where(QuoteRequest.status == status_filter)
