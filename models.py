@@ -104,32 +104,38 @@ class OrderStatus(str, Enum):
 
 
 class MealType(str, Enum):
-    dejeuner = "dejeuner"
-    diner = "diner"
-    cocktail = "cocktail"
+    # Same 6 slugs the caterer picks in "Catalogue & tarifs". Keeping
+    # the two surfaces aligned means a client filtering by Pause
+    # gourmande sees exactly what a caterer publishes — no more lossy
+    # "OFFERING_TO_MEAL_TYPE" reclassification in the wizard.
     petit_dejeuner = "petit_dejeuner"
-    autre = "autre"
+    pause_gourmande = "pause_gourmande"
+    plateaux_repas = "plateaux_repas"
+    cocktail_dinatoire = "cocktail_dinatoire"
+    cocktail_dejeunatoire = "cocktail_dejeunatoire"
+    aperitif = "aperitif"
 
 
+# Order matters — it defines the order of radios/checkboxes everywhere
+# the prestation list is rendered (request wizard, caterer profile,
+# catalog filter).
 MEAL_TYPE_LABELS: dict[MealType, str] = {
     MealType.petit_dejeuner: "Petit-déjeuner",
-    MealType.dejeuner: "Déjeuner",
-    MealType.diner: "Dîner",
-    MealType.cocktail: "Cocktail",
-    MealType.autre: "Autre",
+    MealType.pause_gourmande: "Pause gourmande",
+    MealType.plateaux_repas: "Plateaux repas",
+    MealType.cocktail_dinatoire: "Cocktail dînatoire",
+    MealType.cocktail_dejeunatoire: "Cocktail déjeunatoire",
+    MealType.aperitif: "Apéritif",
 }
 
 
-# Canonical list of "Type de prestation" the client catalog filters on.
-# Stored as a JSON list of slugs on Caterer.service_offerings.
-# Order matters — it defines the order of checkboxes in the search UI.
+# Back-compat alias: many call sites read `SERVICE_OFFERING_LABELS` to
+# render the caterer's catalog. Now that the client wizard and the
+# caterer profile expose the same six slugs, this is just a slug→label
+# view of MEAL_TYPE_LABELS — same content, str keys for places that
+# manipulate the slug as a string (JSON column `Caterer.service_offerings`).
 SERVICE_OFFERING_LABELS: dict[str, str] = {
-    "petit_dejeuner": "Petit déjeuner",
-    "pause_gourmande": "Pause gourmande",
-    "plateaux_repas": "Plateaux repas",
-    "cocktail_dinatoire": "Cocktail dinatoire",
-    "cocktail_dejeunatoire": "Cocktail déjeunatoire",
-    "aperitif": "Apéritif",
+    m.value: label for m, label in MEAL_TYPE_LABELS.items()
 }
 
 
@@ -165,8 +171,6 @@ class Company(Base):
     address: Mapped[str | None] = mapped_column(String(500))
     city: Mapped[str | None] = mapped_column(String(255))
     zip_code: Mapped[str | None] = mapped_column(String(10))
-    oeth_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
-    budget_annual: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     logo_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()
@@ -341,7 +345,9 @@ class QuoteRequest(DietaryMixin, Base):
         String(30), default=QuoteRequestStatus.draft
     )
     service_type: Mapped[str | None] = mapped_column(String(100))
-    meal_type: Mapped[MealType | None] = mapped_column(String(20))
+    # 40 chars fits the longest slug `cocktail_dejeunatoire` (21) plus
+    # headroom for future offerings without another migration.
+    meal_type: Mapped[MealType | None] = mapped_column(String(40))
     event_date: Mapped[datetime.date | None] = mapped_column(Date)
     # Optional start/end of the event itself (not the delivery slot).
     # Caterer uses these to plan staff and equipment delivery windows.
@@ -428,7 +434,6 @@ class Quote(Base):
     reference: Mapped[str] = mapped_column(String(50), unique=True)
     total_amount_ht: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     amount_per_person: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
-    valorisable_agefiph: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     notes: Mapped[str | None] = mapped_column(Text)
     valid_until: Mapped[datetime.date | None] = mapped_column(Date)
     status: Mapped[QuoteStatus] = mapped_column(String(20), default=QuoteStatus.draft)
@@ -524,7 +529,6 @@ class Invoice(Base):
     amount_ht: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     tva_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
     amount_ttc: Mapped[Decimal] = mapped_column(Numeric(12, 2))
-    valorisable_agefiph: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     esat_mention: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()

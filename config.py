@@ -6,7 +6,7 @@ process at boot rather than silently signing sessions with a known
 string in production.
 """
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -47,12 +47,40 @@ class Settings(BaseSettings):
     admin_email: str = "admin@traiteurs-engages.fr"
     admin_initial_password: SecretStr | None = None
 
-    s3_bucket: str | None = None
-    s3_region: str | None = None
-    s3_access_key: str | None = None
-    s3_secret_key: SecretStr | None = None
-    s3_endpoint_url: str | None = None
-    s3_public_url: str | None = None
+    # Object storage credentials. On Scalingo we ship the values under
+    # the `SCW_*` env-var names (so an ops person sees them clearly as
+    # Scaleway-specific), but the application stays provider-neutral —
+    # `S3_*` is also accepted, which keeps local dev / future moves
+    # (e.g. to MinIO for CI) trivial. `AliasChoices` matches the first
+    # name found at runtime.
+    s3_bucket: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SCW_S3_BUCKET", "S3_BUCKET"),
+    )
+    s3_region: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SCW_S3_REGION", "S3_REGION"),
+    )
+    s3_access_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SCW_ACCESS_KEY", "S3_ACCESS_KEY"),
+    )
+    s3_secret_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SCW_SECRET_KEY", "S3_SECRET_KEY"),
+    )
+    s3_endpoint_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SCW_S3_ENDPOINT_URL", "S3_ENDPOINT_URL"),
+    )
+    # Kept for completeness when serving objects through a CDN/public
+    # URL instead of the Flask proxy. Unused today (we proxy via Flask),
+    # but the field stays so future code paths can opt in without a
+    # schema migration.
+    s3_public_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SCW_S3_PUBLIC_URL", "S3_PUBLIC_URL"),
+    )
 
     # 4 gunicorn workers x 2 threads = 8 concurrent requests per worker max.
     # pool_size=10 + max_overflow=10 keeps each worker's pool ahead of demand

@@ -365,22 +365,6 @@ document.addEventListener('DOMContentLoaded', function () {
     syncSetupRequired();
   }
 
-  // Demande ciblée avec offerings : la radio name="service_offering"
-  // remplace les meal_types génériques. On miroir le choix dans le
-  // champ caché #hidden-meal-type pour que le backend reçoive un
-  // QuoteRequest.meal_type valide (data-meal-type est posé par le
-  // template via la map OFFERING_TO_MEAL_TYPE côté Python).
-  var hiddenMealType = document.getElementById('hidden-meal-type');
-  if (hiddenMealType) {
-    document.querySelectorAll('.wizard-offering-radio').forEach(function (r) {
-      r.addEventListener('change', function () {
-        if (r.checked && r.dataset.mealType) {
-          hiddenMealType.value = r.dataset.mealType;
-        }
-      });
-    });
-  }
-
   // Compare mode toggle
   var compareModeYes = document.getElementById('is_compare_mode_yes');
   var compareModeNo = document.getElementById('is_compare_mode_no');
@@ -396,12 +380,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Populate summary (step 7)
   function populateSummary() {
+    // Labels mirror MEAL_TYPE_LABELS in models.py. Keep in sync if
+    // either side changes — there is no JSON-bridge between them.
     var mealTypeLabels = {
-      petit_dejeuner: 'Petit-dejeuner',
-      dejeuner: 'Dejeuner',
-      diner: 'Diner',
-      cocktail: 'Cocktail',
-      autre: 'Autre',
+      petit_dejeuner: 'Petit-déjeuner',
+      pause_gourmande: 'Pause gourmande',
+      plateaux_repas: 'Plateaux repas',
+      cocktail_dinatoire: 'Cocktail dînatoire',
+      cocktail_dejeunatoire: 'Cocktail déjeunatoire',
+      aperitif: 'Apéritif',
     };
 
     var flexLabels = {
@@ -428,20 +415,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (el) el.textContent = text;
     }
 
-    // Recap : sur une demande ciblée, on a un radio service_offering
-    // (avec label visible côté DOM) qui pilote le hidden meal_type.
-    // On affiche le label de l'offering plutôt que le meal_type
-    // générique pour rester cohérent avec ce que l'utilisateur vient
-    // de cocher à l'étape 1.
-    var offeringChecked = form.querySelector('input[name="service_offering"]:checked');
-    if (offeringChecked) {
-      var lbl = offeringChecked.closest('label');
-      var span = lbl ? lbl.querySelector('span.font-bold') : null;
-      setHtml('summary-meal-type', span ? span.textContent.trim() : offeringChecked.value);
-    } else {
-      var mealType = radioVal('meal_type');
-      setHtml('summary-meal-type', mealTypeLabels[mealType] || mealType || '-');
-    }
+    var mealType = radioVal('meal_type');
+    setHtml('summary-meal-type', mealTypeLabels[mealType] || mealType || '-');
     setHtml('summary-service-type', val('service_type') || '-');
     setHtml('summary-event-date', val('event_date') || '-');
     // Horaires : "HH:MM – HH:MM" if at least one is set, with "?" for the

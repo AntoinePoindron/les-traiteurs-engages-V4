@@ -119,11 +119,20 @@ def create_account_link(account_id: str, refresh_url: str, return_url: str) -> s
 
 
 def get_account(account_id: str) -> dict[str, bool]:
-    """Fetch Stripe account status."""
+    """Fetch Stripe account status.
+
+    `stripe.Account.retrieve()` returns a `StripeObject` (not a dict)
+    that overrides `__getattr__` to expose fields as attributes. Calling
+    `.get(...)` on it triggers `__getattr__("get")`, which the
+    StripeObject tries to resolve as a *key* in the response payload
+    → `KeyError: 'get'` → re-raised as `AttributeError: get`. We access
+    fields directly instead, with a `getattr(..., default)` fallback in
+    case Stripe ever stops returning them on an unfinished account.
+    """
     account = stripe.Account.retrieve(account_id)
     return {
-        "charges_enabled": bool(account.get("charges_enabled", False)),
-        "payouts_enabled": bool(account.get("payouts_enabled", False)),
+        "charges_enabled": bool(getattr(account, "charges_enabled", False)),
+        "payouts_enabled": bool(getattr(account, "payouts_enabled", False)),
     }
 
 
@@ -290,7 +299,6 @@ def create_invoice_for_order(session, order: Order) -> dict[str, Any]:
         amount_ht=total_ht,
         tva_rate=avg_tva_rate,
         amount_ttc=totals["total_ttc"],
-        valorisable_agefiph=totals["valorisable_agefiph"],
         esat_mention=f"Structure {caterer.structure_type}"
         if caterer.structure_type
         else None,

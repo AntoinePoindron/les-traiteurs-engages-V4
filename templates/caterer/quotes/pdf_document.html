@@ -1,0 +1,48 @@
+{# Self-contained HTML document used as input to WeasyPrint when the
+   caterer downloads a quote as PDF. Pulls in the same `_pdf_preview.html`
+   partial as the in-app modal so the caterer downloads exactly what
+   they (and the client) saw on screen.
+
+   Stylesheets are passed to WeasyPrint at write_pdf() time as
+   `stylesheets=[...]` (see services/quote_pdf.py) — we don't <link>
+   them here because that would force WeasyPrint to make HTTP calls
+   back to gunicorn, risking a deadlock on a single-worker dyno.
+
+   Expected context (same as _pdf_preview.html):
+     quote, qr, caterer, pdf_preview, meal_type_labels.
+#}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Devis {{ quote.reference }}</title>
+  <style>
+    /* Page setup — A4 with comfortable margins. WeasyPrint honours
+       @page; the 18mm gives room for the caterer's binder / staples. */
+    @page {
+      size: A4;
+      margin: 18mm 16mm;
+    }
+    /* app.css applies `html { background-color: var(--c-cream-page) }`
+       to give the in-app pages a soft beige background. WeasyPrint
+       picks that up and tints the entire PDF page. Override here so
+       the downloaded document is on plain white — closer to what a
+       client expects from a quote attached to an email. */
+    html, body {
+      background: #FFFFFF !important;
+    }
+    body {
+      /* Tailwind's `text-text` etc. resolve via app.css. We just set
+         a sane base font so the document doesn't fall back to whatever
+         WeasyPrint picks if a class style is missing. */
+      font-family: "DejaVu Sans", Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.4;
+      color: #1F2937;
+    }
+  </style>
+</head>
+<body>
+  {% include "caterer/quotes/_pdf_preview.html" %}
+</body>
+</html>

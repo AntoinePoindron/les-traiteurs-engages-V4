@@ -1,9 +1,20 @@
+import logging
 import math
 import uuid
+from io import BytesIO
 
-from flask import abort, flash, g, redirect, render_template, request, url_for
+from flask import (
+    abort,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 from sqlalchemy import String, and_, cast, func, or_, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.client._helpers import (
     DIETARY_FLAGS,
@@ -39,6 +50,79 @@ from services.notifications import (
 )
 from services.quotes import calculate_quote_totals
 
+logger = logging.getLogger(__name__)
+
+
+# Icon glyph (lucide) per MealType slug — kept next to the templates'
+# step-1 radios. Anything not listed falls back to `utensils`.
+_MEAL_TYPE_ICONS: dict[str, str] = {
+    "petit_dejeuner": "coffee",
+    "pause_gourmande": "cookie",
+    "plateaux_repas": "utensils",
+    "cocktail_dinatoire": "wine",
+    "cocktail_dejeunatoire": "wine",
+    "aperitif": "martini",
+}
+
+
+def _resolve_target_caterer(db, raw_id):
+    """Resolve a `target_caterer_id` string (form or query param) to a
+    validated Caterer row, or None if blank/invalid/not-validated.
+
+    Same gate as the workflow: only `is_validated=True` caterers can
+    receive a targeted demand. Returning None here means "treat as open
+    demand", which the route handler does upstream.
+    """
+    raw = (raw_id or "").strip()
+    if not raw:
+        return None
+    try:
+        cid = uuid.UUID(raw)
+    except ValueError:
+        return None
+    return db.scalar(
+        select(Caterer).where(Caterer.id == cid).where(Caterer.is_validated.is_(True))
+    )
+
+
+def _caterer_capabilities(caterer):
+    """Wizard step-4 needs to grey out régimes the caterer can't honor.
+
+    Returns None for open demands so the template falls through to
+    "no restriction"; otherwise a dict of dietary booleans.
+    """
+    if caterer is None:
+        return None
+    return {
+        "dietary": {
+            "vegetarian": bool(caterer.dietary_vegetarian),
+            "vegan": bool(caterer.dietary_vegan),
+            "halal": bool(caterer.dietary_halal),
+            "gluten_free": bool(caterer.dietary_gluten_free),
+            "lactose_free": bool(caterer.dietary_lactose_free),
+        },
+    }
+
+
+def _meal_type_options(restrict_to: set[str] | None = None) -> list[dict]:
+    """Render-ready list of `{slug, label, icon}` for the step-1 radios.
+
+    Pass `restrict_to` to filter on what a targeted caterer publishes
+    (= `Caterer.service_offerings`). With no argument the caller gets
+    the full canonical list.
+    """
+    options = [
+        {
+            "slug": m.value,
+            "label": label,
+            "icon": _MEAL_TYPE_ICONS.get(m.value, "utensils"),
+        }
+        for m, label in MEAL_TYPE_LABELS.items()
+    ]
+    if restrict_to is None:
+        return options
+    return [opt for opt in options if opt["slug"] in restrict_to]
+
 
 # Filter tabs visible on /client/requests. Each tab maps to one of the
 # values _derive_request_display_status() returns (or "all").
@@ -58,6 +142,11 @@ _QUOTE_RECEIVED_STATUSES = (
     QuoteStatus.refused,
     QuoteStatus.expired,
 )
+
+# Mirror of the cap on caterer/requests.py: refuse to render a quote
+# whose line items list is implausibly long. Stops a malicious or
+# corrupted row from saturating the WeasyPrint worker.
+_MAX_PDF_LINES = 500
 
 
 def _derive_request_display_status(qr):
@@ -183,90 +272,28 @@ def register(bp):
         # When the wizard is opened from a specific caterer profile
         # (?caterer_id=...), prefill target_caterer so the form ships the
         # demand straight to that caterer and bypasses admin matching.
-        target_caterer = None
-        raw_caterer_id = request.args.get("caterer_id")
-        if raw_caterer_id:
-            try:
-                cid = uuid.UUID(raw_caterer_id)
-            except ValueError:
-                cid = None
-            if cid is not None:
-                target_caterer = db.scalar(
-                    select(Caterer)
-                    .where(Caterer.id == cid)
-                    .where(Caterer.is_validated.is_(True))
-                )
+        target_caterer = _resolve_target_caterer(db, request.args.get("caterer_id"))
 
-        # Targeted demand → expose two things the template needs to
-        # render the wizard with the caterer's real catalogue :
-        #
-        # 1) `target_offerings` : the slugs the caterer actually
-        #    published under "Catalogue & tarifs" on the public fiche
-        #    (= `Caterer.service_offerings`). On step 1 of the wizard,
-        #    we replace the 5 generic meal_types with these specific
-        #    offerings, so the user picks something the caterer
-        #    explicitly proposes — and only that. Each offering carries
-        #    a default `meal_type` (the wider enum stored on
-        #    QuoteRequest), wired through `data-meal-type` so a tiny
-        #    JS in wizard.js can set the hidden meal_type field.
-        #
-        # 2) `caterer_capabilities.dietary` : the 5 dietary booleans
-        #    from the Caterer row, used on step 4 to disable régimes
-        #    the caterer doesn't accommodate.
-        target_offerings = []
-        # Mapping from service_offering slug → wizard meal_type enum
-        # value. Each offering picks the most natural meal_type so
-        # the legacy filter / matching code (which keys on meal_type)
-        # keeps working. The label / icon used to render the radio
-        # come from the canonical SERVICE_OFFERING_LABELS dict.
-        OFFERING_TO_MEAL_TYPE = {
-            "petit_dejeuner": "petit_dejeuner",
-            "pause_gourmande": "petit_dejeuner",
-            "plateaux_repas": "dejeuner",
-            "cocktail_dinatoire": "cocktail",
-            "cocktail_dejeunatoire": "cocktail",
-            "aperitif": "cocktail",
-        }
-        OFFERING_ICONS = {
-            "petit_dejeuner": "coffee",
-            "pause_gourmande": "cookie",
-            "plateaux_repas": "utensils",
-            "cocktail_dinatoire": "wine",
-            "cocktail_dejeunatoire": "wine",
-            "aperitif": "martini",
-        }
-        caterer_capabilities = None
-        if target_caterer is not None:
-            raw_offerings = target_caterer.service_offerings or []
-            # Filter out unknown slugs (data integrity guard) and dedupe.
-            seen = set()
-            for slug in raw_offerings:
-                if slug in SERVICE_OFFERING_LABELS and slug not in seen:
-                    seen.add(slug)
-                    target_offerings.append(
-                        {
-                            "slug": slug,
-                            "label": SERVICE_OFFERING_LABELS[slug],
-                            "meal_type": OFFERING_TO_MEAL_TYPE.get(slug, "autre"),
-                            "icon": OFFERING_ICONS.get(slug, "utensils"),
-                        }
-                    )
-            caterer_capabilities = {
-                "dietary": {
-                    "vegetarian": bool(target_caterer.dietary_vegetarian),
-                    "vegan": bool(target_caterer.dietary_vegan),
-                    "halal": bool(target_caterer.dietary_halal),
-                    "gluten_free": bool(target_caterer.dietary_gluten_free),
-                    "lactose_free": bool(target_caterer.dietary_lactose_free),
-                },
-            }
+        # Build the list of prestation options the wizard's step 1 will
+        # render as radios. Two cases:
+        #  - Targeted demand : filter to what the caterer actually
+        #    publishes under "Catalogue & tarifs" (= service_offerings).
+        #  - Open demand     : the full canonical MEAL_TYPE_LABELS list.
+        # The radio's `value` IS the MealType slug — the wizard no longer
+        # needs a hidden meal_type field nor a service_offering → meal_type
+        # mapping, since the two surfaces now share the same slug set.
+        restrict = (
+            set(target_caterer.service_offerings or [])
+            if target_caterer is not None
+            else None
+        )
         return render_template(
             "client/requests/new.html",
             user=user,
             services=services,
             target_caterer=target_caterer,
-            target_offerings=target_offerings,
-            caterer_capabilities=caterer_capabilities,
+            meal_type_options=_meal_type_options(restrict_to=restrict),
+            caterer_capabilities=_caterer_capabilities(target_caterer),
         )
 
     @bp.route("/requests/new", methods=["POST"])
@@ -274,10 +301,20 @@ def register(bp):
     @role_required("client_admin", "client_user")
     def requests_new_post():
         user = g.current_user
+        db = get_db()
         form = QuoteRequestForm()
+
+        # Resolve the targeted caterer (if any) before validation so the
+        # form-side `validate_meal_type` cross-field rule has the right
+        # offerings set to gate against. A tampered POST with
+        # `meal_type=pause_gourmande` for a caterer that doesn't offer
+        # it gets rejected here, not silently persisted.
+        target_caterer = _resolve_target_caterer(db, form.target_caterer_id.data)
+        if target_caterer is not None:
+            form.target_offerings = set(target_caterer.service_offerings or [])
+
         if not form.validate_on_submit():
             flash("Veuillez corriger les erreurs du formulaire.", "error")
-            db = get_db()
             services = (
                 db.execute(
                     select(CompanyService).where(
@@ -287,32 +324,21 @@ def register(bp):
                 .scalars()
                 .all()
             )
+            restrict = (
+                set(target_caterer.service_offerings or [])
+                if target_caterer is not None
+                else None
+            )
             return render_template(
                 "client/requests/new.html",
                 user=user,
                 services=services,
-                target_caterer=None,
+                target_caterer=target_caterer,
+                meal_type_options=_meal_type_options(restrict_to=restrict),
+                caterer_capabilities=_caterer_capabilities(target_caterer),
             ), 400
 
-        db = get_db()
         service_id = own_service_id(db, user, form.company_service_id.data)
-
-        # Resolve target caterer (single-caterer flow). Validate UUID
-        # AND that the caterer actually exists + is validated, so a
-        # tampered hidden input can't sneak through.
-        target_caterer = None
-        raw_target = (form.target_caterer_id.data or "").strip()
-        if raw_target:
-            try:
-                cid = uuid.UUID(raw_target)
-            except ValueError:
-                cid = None
-            if cid is not None:
-                target_caterer = db.scalar(
-                    select(Caterer)
-                    .where(Caterer.id == cid)
-                    .where(Caterer.is_validated.is_(True))
-                )
 
         if target_caterer is not None:
             # Single-caterer demand: skip admin review entirely, send
@@ -406,10 +432,17 @@ def register(bp):
             .all()
         )
 
+        # Drafts are caterer-only — they're work-in-progress quotes the
+        # caterer hasn't sent yet. Surfacing them on the client side
+        # leaks pricing + caterer identity before the caterer is ready
+        # to commit. Allow-list rather than `!= draft` so a future
+        # status doesn't leak by default — same gate as the dashboard
+        # helpers and the client.quote_pdf route.
         quotes = (
             db.execute(
                 select(Quote)
                 .where(Quote.quote_request_id == request_id)
+                .where(Quote.status.in_(_QUOTE_RECEIVED_STATUSES))
                 .order_by(Quote.created_at.asc())
             )
             .scalars()
@@ -426,13 +459,9 @@ def register(bp):
         # Same shape for qrcs so the pending-caterer card reads from a
         # single source of truth.
         for quote in quotes:
-            quote.caterer_user = (
-                quote.caterer.users[0] if quote.caterer.users else None
-            )
+            quote.caterer_user = quote.caterer.users[0] if quote.caterer.users else None
         for qrc in qrcs:
-            qrc.caterer_user = (
-                qrc.caterer.users[0] if qrc.caterer.users else None
-            )
+            qrc.caterer_user = qrc.caterer.users[0] if qrc.caterer.users else None
 
         # Attach per-quote PDF preview data so the template can render a
         # read-only modal for "Voir le devis" without doing arithmetic in
@@ -559,6 +588,70 @@ def register(bp):
         flash("Devis refuse.", "info")
         return redirect(url_for("client.request_detail", request_id=request_id))
 
+    @bp.route("/requests/<uuid:request_id>/quote/<uuid:q_id>/pdf", methods=["GET"])
+    @login_required
+    @role_required("client_admin", "client_user")
+    @limiter.limit("20 per minute")
+    def quote_pdf(request_id, q_id):
+        """Download a received quote as a server-rendered PDF.
+
+        Mirrors `caterer.quote_pdf` but the scope check goes the other
+        way: the quote must belong to a request the viewer's company
+        owns. Reuses `services.quote_pdf.render_quote_pdf` so the file
+        looks identical to what the client sees in the in-app preview
+        modal (same template, same totals).
+        """
+        # Lazy import — WeasyPrint pulls Cairo/Pango bindings at import
+        # time. Same rationale as caterer.quote_pdf.
+        from services.quote_pdf import render_quote_pdf
+
+        user = g.current_user
+        db = get_db()
+        # Gate scope via get_company_request: applies company_id AND
+        # own_requests_filter (a client_user only sees QRs they
+        # themselves created — a colleague's QR is out of scope, same
+        # rule as the page detail). 404 keeps the existence of an
+        # off-scope QR opaque.
+        qr = get_company_request(request_id, user)
+        quote = db.scalar(
+            select(Quote)
+            .options(
+                selectinload(Quote.lines),
+                joinedload(Quote.caterer),
+                joinedload(Quote.quote_request).options(
+                    joinedload(QuoteRequest.company),
+                    joinedload(QuoteRequest.user),
+                ),
+            )
+            .where(Quote.id == q_id)
+            .where(Quote.quote_request_id == qr.id)
+            # Drafts are caterer-only — refuse to serve a brouillon PDF
+            # to the client even if they guess the URL. Allow-list
+            # rather than `!= draft` so a future status doesn't leak by
+            # default.
+            .where(Quote.status.in_(_QUOTE_RECEIVED_STATUSES))
+        )
+        if not quote:
+            abort(404)
+        if len(quote.lines) > _MAX_PDF_LINES:
+            abort(413)
+
+        pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
+        logger.info(
+            "quote_pdf_downloaded company_id=%s user_id=%s quote_id=%s reference=%s lines=%d",
+            user.company_id,
+            user.id,
+            quote.id,
+            quote.reference,
+            len(quote.lines),
+        )
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"devis-{quote.reference}.pdf",
+        )
+
     @bp.route("/requests/<uuid:request_id>/edit", methods=["GET"])
     @login_required
     @role_required("client_admin", "client_user")
@@ -588,6 +681,7 @@ def register(bp):
             user=user,
             qr=qr,
             services=services,
+            meal_type_options=_meal_type_options(),
         )
 
     @bp.route("/requests/<uuid:request_id>/edit", methods=["POST"])
@@ -622,6 +716,7 @@ def register(bp):
                 user=user,
                 qr=qr,
                 services=services,
+                meal_type_options=_meal_type_options(),
             ), 400
 
         qr.company_service_id = own_service_id(db, user, form.company_service_id.data)

@@ -1,4 +1,6 @@
 import datetime
+import logging
+from io import BytesIO
 
 from flask import (
     Blueprint,
@@ -8,15 +10,18 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     url_for,
 )
 from sqlalchemy import func, select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.middleware import login_required, role_required
 from database import get_db
+from extensions import limiter
 from forms.caterer import AdminMessageForm, RejectionForm
 from models import (
+    MEAL_TYPE_LABELS,
     Caterer,
     Company,
     CompanyEmployee,
@@ -42,7 +47,15 @@ from services.notifications import (
     notify_users,
 )
 from services.matching import find_matching_caterers
+from services.quotes import build_pdf_preview
 from blueprints._notifications import register as _register_notifications
+
+logger = logging.getLogger(__name__)
+
+# Mirror of the cap on caterer/client routes — refuses to render a
+# quote whose line items list is implausibly long. Stops a malicious
+# row from saturating the WeasyPrint worker.
+_MAX_PDF_LINES = 500
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -112,6 +125,7 @@ def dashboard():
         orders_this_month=orders_this_month or 0,
         recent_requests=recent_requests,
         orders_to_invoice=orders_to_invoice,
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
@@ -126,7 +140,10 @@ def qualification():
         .order_by(QuoteRequest.created_at.desc())
     ).all()
     return render_template(
-        "admin/qualification/list.html", user=g.current_user, requests=requests
+        "admin/qualification/list.html",
+        user=g.current_user,
+        requests=requests,
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
@@ -145,6 +162,7 @@ def qualification_detail(request_id):
         qr=qr,
         matches=matches,
         message_form=AdminMessageForm(),
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
@@ -378,6 +396,7 @@ def company_detail(company_id):
         employees=employees,
         services=services,
         requests=requests,
+        meal_type_labels=MEAL_TYPE_LABELS,
     )
 
 
@@ -526,15 +545,12 @@ def stats():
         .group_by(QuoteRequest.meal_type)
         .order_by(func.count(QuoteRequest.id).desc())
     ).all()
-    meal_labels = {
-        "dejeuner": "Dejeuner",
-        "diner": "Diner",
-        "cocktail": "Cocktail",
-        "petit_dejeuner": "Petit-dejeuner",
-        "autre": "Autre",
-    }
+    # Slug → label via the canonical MEAL_TYPE_LABELS dict so the
+    # stats page stays in sync with whatever the wizard / caterer
+    # profile actually offers.
+    meal_slug_to_label = {m.value: label for m, label in MEAL_TYPE_LABELS.items()}
     meal_data = [
-        {"type": meal_labels.get(r.meal_type, r.meal_type), "count": r.cnt}
+        {"type": meal_slug_to_label.get(r.meal_type, r.meal_type), "count": r.cnt}
         for r in meal_rows
     ]
 
@@ -616,18 +632,82 @@ def orders_list():
 @role_required("super_admin")
 def order_detail(order_id):
     db = get_db()
-    order = db.get(Order, order_id)
+    order = db.scalar(
+        select(Order)
+        .options(
+            joinedload(Order.quote).options(
+                selectinload(Quote.lines),
+                joinedload(Quote.caterer),
+                joinedload(Quote.quote_request).joinedload(QuoteRequest.company),
+            ),
+            selectinload(Order.payments),
+        )
+        .where(Order.id == order_id)
+    )
     if not order:
         abort(404)
-    _ = order.quote
-    _ = order.quote.quote_request
-    _ = order.quote.quote_request.company
-    _ = order.quote.caterer
-    _ = order.payments
+    pdf_preview = (
+        build_pdf_preview(order.quote, order.quote.quote_request, order.quote.caterer)
+        if order.quote.lines
+        else None
+    )
     return render_template(
         "admin/orders/detail.html",
         user=g.current_user,
         order=order,
+        pdf_preview=pdf_preview,
+        meal_type_labels=MEAL_TYPE_LABELS,
+    )
+
+
+@admin_bp.route("/quotes/<uuid:q_id>/pdf", methods=["GET"])
+@login_required
+@role_required("super_admin")
+@limiter.limit("20 per minute")
+def quote_pdf(q_id):
+    """Download any quote as a server-rendered PDF (admin observer view).
+
+    Mirrors `caterer.quote_pdf` and `client.quote_pdf` but with no
+    company- or caterer-scope check — super_admin sees every quote on
+    the platform. The PDF reuses the same `_pdf_preview.html` partial
+    as the in-app modals so the file is byte-for-byte aligned with
+    what either side sees on screen.
+    """
+    # Lazy import — WeasyPrint pulls Cairo/Pango bindings at import
+    # time. Same rationale as the other quote_pdf routes.
+    from services.quote_pdf import render_quote_pdf
+
+    db = get_db()
+    quote = db.scalar(
+        select(Quote)
+        .options(
+            selectinload(Quote.lines),
+            joinedload(Quote.caterer),
+            joinedload(Quote.quote_request).options(
+                joinedload(QuoteRequest.company),
+                joinedload(QuoteRequest.user),
+            ),
+        )
+        .where(Quote.id == q_id)
+    )
+    if not quote:
+        abort(404)
+    if len(quote.lines) > _MAX_PDF_LINES:
+        abort(413)
+
+    pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
+    logger.info(
+        "quote_pdf_downloaded admin_user_id=%s quote_id=%s reference=%s lines=%d",
+        g.current_user.id,
+        quote.id,
+        quote.reference,
+        len(quote.lines),
+    )
+    return send_file(
+        BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"devis-{quote.reference}.pdf",
     )
 
 

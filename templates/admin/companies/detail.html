@@ -9,9 +9,6 @@
   <div class="mb-3">{{ back_button(label="Retour a la liste") }}</div>
   <div class="flex items-center gap-3">
     <h1 class="font-display font-bold text-2xl text-black">{{ company.name }}</h1>
-    {% if company.oeth_eligible %}
-    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">OETH</span>
-    {% endif %}
   </div>
 </div>
 
@@ -31,10 +28,6 @@
         <div>
           <p class="text-xs font-bold uppercase text-mute">Ville</p>
           <p class="text-sm font-medium text-black mt-1">{{ company.city or '-' }}{% if company.zip_code %} ({{ company.zip_code }}){% endif %}</p>
-        </div>
-        <div>
-          <p class="text-xs font-bold uppercase text-mute">Budget annuel</p>
-          <p class="text-sm font-medium text-black mt-1">{% if company.budget_annual %}{{ "%.0f"|format(company.budget_annual) }} EUR{% else %}-{% endif %}</p>
         </div>
         <div>
           <p class="text-xs font-bold uppercase text-mute">Inscrite le</p>
@@ -87,7 +80,7 @@
         <tbody>
           {% for req in requests %}
           <tr class="border-t border-soft">
-            <td class="py-2 text-sm text-black">{{ req.meal_type.value if req.meal_type else req.service_type or '-' }}</td>
+            <td class="py-2 text-sm text-black">{{ meal_type_labels.get(req.meal_type) or req.service_type or '-' }}</td>
             <td class="py-2 text-sm text-mute">{{ req.event_date.strftime('%d/%m/%Y') if req.event_date else '-' }}</td>
             <td class="py-2 text-sm text-mute">{{ req.guest_count or '-' }}</td>
             <td class="py-2">{{ status_badge(req.status) }}</td>

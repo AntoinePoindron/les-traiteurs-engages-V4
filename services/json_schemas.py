@@ -12,16 +12,18 @@ from pydantic import BaseModel, ConfigDict
 class ServiceConfig(BaseModel):
     """Validates Caterer.service_config.
 
-    Keys are the MealType enum values; each value is a boolean indicating
-    whether the caterer offers that meal type. Any extra key is rejected
-    so a typo (`dejeunner` instead of `dejeuner`) cannot silently break
-    matching, and an attacker cannot stuff arbitrary data in the column.
+    Keys mirror the `MealType` enum (same six prestation slugs the caterer
+    publishes in their catalog). Each value is a boolean indicating
+    whether the caterer offers that prestation. Any extra key is rejected
+    so a typo cannot silently break matching, and an attacker cannot
+    stuff arbitrary data in the column.
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    dejeuner: bool = False
-    diner: bool = False
-    cocktail: bool = False
     petit_dejeuner: bool = False
-    autre: bool = False
+    pause_gourmande: bool = False
+    plateaux_repas: bool = False
+    cocktail_dinatoire: bool = False
+    cocktail_dejeunatoire: bool = False
+    aperitif: bool = False

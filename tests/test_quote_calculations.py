@@ -37,7 +37,6 @@ def test_empty_lines_returns_zeros():
     assert t["platform_fee_ht"] == Decimal("0.00")
     assert t["platform_fee_tva"] == Decimal("0.00")
     assert t["platform_fee_ttc"] == Decimal("0.00")
-    assert t["valorisable_agefiph"] == Decimal("0.00")
 
 
 def test_single_line_basic_math():
@@ -108,24 +107,24 @@ def test_section_totals_split_correctly():
 
 
 # ---------------------------------------------------------------------------
-# Platform fee (5 % HT + 20 % TVA on fee)
+# Platform fee (5 % HT, no TVA — platform isn't a VAT collector for now)
 # ---------------------------------------------------------------------------
 
 
 def test_platform_fee_is_5pct_of_ht():
-    # 1000 HT → 50 fee HT, 10 fee TVA, 60 fee TTC
+    # 1000 HT → 50 fee HT, 0 fee TVA (no VAT on the platform fee), 50 fee TTC
     t = calculate_quote_totals(
         [_line(quantity=10, unit_price_ht=100, tva_rate=10)],
         guest_count=10,
     )
     assert t["total_ht"] == Decimal("1000.00")
     assert t["platform_fee_ht"] == Decimal("50.00")
-    assert t["platform_fee_tva"] == Decimal("10.00")
-    assert t["platform_fee_ttc"] == Decimal("60.00")
+    assert t["platform_fee_tva"] == Decimal("0.00")
+    assert t["platform_fee_ttc"] == Decimal("50.00")
 
 
 def test_platform_fee_independent_of_line_tva_rates():
-    """Platform fee TVA is always 20 %, never follows the line TVA."""
+    """Platform fee carries no TVA regardless of the line TVA rates."""
     t_low = calculate_quote_totals(
         [_line(quantity=10, unit_price_ht=100, tva_rate=10)],
         guest_count=10,
@@ -135,20 +134,8 @@ def test_platform_fee_independent_of_line_tva_rates():
         guest_count=10,
     )
     # Both should produce the same platform fee TTC because base HT is equal
-    assert t_low["platform_fee_ttc"] == t_high["platform_fee_ttc"] == Decimal("60.00")
-
-
-# ---------------------------------------------------------------------------
-# AGEFIPH
-# ---------------------------------------------------------------------------
-
-
-def test_valorisable_agefiph_equals_total_ht():
-    t = calculate_quote_totals(
-        [_line(quantity=10, unit_price_ht=75, tva_rate=10)],
-        guest_count=10,
-    )
-    assert t["valorisable_agefiph"] == t["total_ht"] == Decimal("750.00")
+    # and TVA on the fee is 0.
+    assert t_low["platform_fee_ttc"] == t_high["platform_fee_ttc"] == Decimal("50.00")
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +172,6 @@ def test_returned_values_are_decimal_not_float():
         "platform_fee_ht",
         "platform_fee_tva",
         "platform_fee_ttc",
-        "valorisable_agefiph",
     ):
         assert isinstance(t[key], Decimal), (
             f"{key} should be Decimal, got {type(t[key])}"
@@ -223,15 +209,17 @@ def test_line_missing_fields_default_to_zero():
 @pytest.mark.parametrize(
     "lines,guests,expected_ttc,expected_per_person,expected_fee_ttc",
     [
-        # Buffet déjeuner 20 couverts
+        # Buffet déjeuner 20 couverts.
+        # 20 × 35 = 700 HT → fee_ht = 35.00, fee_tva = 0 → fee_ttc = 35.00.
         (
             [_line(quantity=20, unit_price_ht=35, tva_rate=10)],
             20,
             Decimal("770.00"),
             Decimal("38.50"),
-            Decimal("42.00"),
+            Decimal("35.00"),
         ),
-        # Cocktail 50 couverts avec boissons TVA 20
+        # Cocktail 50 couverts avec boissons TVA 20.
+        # (50×15) + (50×4) = 950 HT → fee_ht = 47.50, fee_ttc = 47.50.
         (
             [
                 _line(section="principal", quantity=50, unit_price_ht=15, tva_rate=10),
@@ -240,15 +228,16 @@ def test_line_missing_fields_default_to_zero():
             50,
             Decimal("1065.00"),
             Decimal("21.30"),
-            Decimal("57.00"),
+            Decimal("47.50"),
         ),
-        # Dîner premium
+        # Dîner premium.
+        # 12 × 85 = 1020 HT → fee_ht = 51.00, fee_ttc = 51.00.
         (
             [_line(quantity=12, unit_price_ht=85, tva_rate=10)],
             12,
             Decimal("1122.00"),
             Decimal("93.50"),
-            Decimal("61.20"),
+            Decimal("51.00"),
         ),
     ],
 )

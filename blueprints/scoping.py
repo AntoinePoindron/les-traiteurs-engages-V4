@@ -68,12 +68,16 @@ def get_company_request(request_id, user):
     return qr
 
 
-def get_company_order(order_id, user):
+def get_company_order(order_id, user, *, options=None):
     """Fetch an Order the `user` is allowed to see, or abort 404.
 
     Scoped via the underlying QuoteRequest: admins see all the company's
     orders, client_user sees only the orders flowing from QRs they
     themselves created.
+
+    `options` is forwarded to `Select.options(...)` so callers can
+    eager-load relationships in a single round-trip rather than relying
+    on lazy loads.
     """
     db = get_db()
     stmt = (
@@ -82,6 +86,8 @@ def get_company_order(order_id, user):
         .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
         .where(Order.id == order_id, QuoteRequest.company_id == user.company_id)
     )
+    if options:
+        stmt = stmt.options(*options)
     own_only = own_requests_filter(user)
     if own_only is not None:
         stmt = stmt.where(own_only)
@@ -168,15 +174,23 @@ def get_caterer_quote(qr_id, quote_id, caterer_id):
     return quote
 
 
-def get_caterer_order(order_id, caterer_id):
-    """Fetch an Order whose Quote belongs to `caterer_id`, or abort 404."""
+def get_caterer_order(order_id, caterer_id, *, options=None):
+    """Fetch an Order whose Quote belongs to `caterer_id`, or abort 404.
+
+    `options` is forwarded to `Select.options(...)` so callers can
+    eager-load relationships in a single round-trip rather than relying
+    on lazy loads.
+    """
     db = get_db()
-    order = db.scalar(
+    stmt = (
         select(Order)
         .join(Quote, Order.quote_id == Quote.id)
         .where(Order.id == order_id)
         .where(Quote.caterer_id == caterer_id)
     )
+    if options:
+        stmt = stmt.options(*options)
+    order = db.scalar(stmt)
     if not order:
         abort(404)
     return order

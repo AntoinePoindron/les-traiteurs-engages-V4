@@ -7,6 +7,7 @@ Available command groups:
     flask admin create               — interactive prompt, never logs the password
     flask admin reset-password EMAIL — interactive prompt
     flask admin list                 — list all super-admins
+    flask uploads migrate-to-s3      — one-shot migration of legacy fs uploads to S3
 
 Audit reference: P3 / "Provisionner le super-admin via une CLI dediee".
 The ADMIN_INITIAL_PASSWORD env var bootstrap remains for first-boot use
@@ -17,6 +18,8 @@ admin lifecycle goes through this CLI.
 from __future__ import annotations
 
 import getpass
+import mimetypes
+import os
 import sys
 
 import bcrypt
@@ -26,7 +29,7 @@ from sqlalchemy import select
 
 from blueprints.auth import validate_password
 from database import get_session
-from models import User, UserRole
+from models import Caterer, User, UserRole
 
 
 admin_cli = AppGroup("admin", help="Manage super-admin accounts.")
@@ -131,3 +134,202 @@ def disable_admin(email: str):
             sys.exit(1)
         user.is_active = False
         click.echo(f"Super-admin desactive : {email}")
+
+
+# ---------------------------------------------------------------------------
+# Uploads — one-shot migration from local filesystem to S3
+# ---------------------------------------------------------------------------
+
+uploads_cli = AppGroup(
+    "uploads",
+    help="Manage user-uploaded assets (logos, photos).",
+)
+
+
+_LEGACY_PREFIX = "/static/uploads/"
+_S3_PREFIX = "/uploads/"
+
+
+def _is_legacy_fs_url(url: str | None) -> bool:
+    return isinstance(url, str) and url.startswith(_LEGACY_PREFIX)
+
+
+def _legacy_url_to_paths(url: str) -> tuple[str, str, str]:
+    """Map `/static/uploads/<rest>` to (fs_path, s3_key, new_url).
+
+    `fs_path` is where the file lives on disk today. `s3_key` is what we
+    write to in the bucket. `new_url` is what should land in DB after
+    the upload so the Flask proxy can serve it.
+    """
+    rest = url[len(_LEGACY_PREFIX) :]
+    fs_path = os.path.join(os.path.dirname(__file__), "static", "uploads", rest)
+    s3_key = f"uploads/{rest}"
+    new_url = f"{_S3_PREFIX}{rest}"
+    return fs_path, s3_key, new_url
+
+
+@uploads_cli.command(
+    "migrate-to-s3",
+    help="Upload every legacy `/static/uploads/*` referenced in DB to S3, "
+    "then point the column at the new `/uploads/*` URL. Idempotent.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="List what would change, do not touch S3 or DB.",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    default=False,
+    help="Print every file processed (default: only summary + errors).",
+)
+def migrate_uploads_to_s3(dry_run: bool, verbose: bool):
+    """Push every fs-backed caterer logo/photo to S3 and rewrite the URL in DB.
+
+    Behaviour:
+      * Logos (`Caterer.logo_url`) and photo galleries (`Caterer.photos`)
+        are scanned. Other tables don't currently store uploads.
+      * URLs already pointing at `/uploads/*` are skipped (already on S3).
+      * URLs whose file is missing on disk are reported as warnings and
+        the column is NULLed out (logo) or the entry dropped from the
+        list (photos) so dead refs stop crashing templates.
+      * The command is safe to re-run: on the second pass nothing matches.
+
+    Exit codes: 0 on success, 1 if any upload failed (DB still committed
+    for whatever succeeded).
+    """
+    # Lazy imports — boto3 is heavy and we don't want the rest of the
+    # CLI to pay its cost on `flask --help`.
+    from botocore.exceptions import BotoCoreError, ClientError
+
+    from config import settings
+    from services.uploads import _get_s3, _s3_enabled
+
+    if not _s3_enabled():
+        click.echo(
+            "S3_BUCKET / SCW_S3_BUCKET not configured — nothing to do.", err=True
+        )
+        sys.exit(1)
+
+    s3 = _get_s3()
+    bucket = settings.s3_bucket
+
+    uploaded = 0
+    skipped_already = 0
+    missing = 0
+    errors = 0
+
+    with get_session() as session:
+        caterers = session.scalars(select(Caterer)).all()
+        for c in caterers:
+            # --- logo ---------------------------------------------------
+            if _is_legacy_fs_url(c.logo_url):
+                fs_path, s3_key, new_url = _legacy_url_to_paths(c.logo_url)
+                if not os.path.isfile(fs_path):
+                    action = "would null column" if dry_run else "nulling column"
+                    click.echo(
+                        f"  ! [{c.id}] logo file missing: {fs_path} — {action}",
+                        err=True,
+                    )
+                    missing += 1
+                    if not dry_run:
+                        c.logo_url = None
+                else:
+                    if dry_run:
+                        click.echo(f"  · [{c.id}] would upload logo → {s3_key}")
+                    else:
+                        try:
+                            content_type, _ = mimetypes.guess_type(fs_path)
+                            with open(fs_path, "rb") as fh:
+                                s3.upload_fileobj(
+                                    fh,
+                                    bucket,
+                                    s3_key,
+                                    ExtraArgs={
+                                        "ContentType": content_type
+                                        or "application/octet-stream",
+                                        "CacheControl": "public, max-age=31536000, immutable",
+                                    },
+                                )
+                            c.logo_url = new_url
+                            uploaded += 1
+                            if verbose:
+                                click.echo(f"  ✓ [{c.id}] logo → {s3_key}")
+                        except (BotoCoreError, ClientError, OSError) as exc:
+                            click.echo(
+                                f"  ✗ [{c.id}] logo upload failed: {exc}", err=True
+                            )
+                            errors += 1
+            elif c.logo_url:
+                skipped_already += 1
+
+            # --- photos -------------------------------------------------
+            if c.photos:
+                new_photos: list[str] = []
+                changed = False
+                for url in c.photos:
+                    if not _is_legacy_fs_url(url):
+                        new_photos.append(url)
+                        if url:
+                            skipped_already += 1
+                        continue
+                    fs_path, s3_key, new_url = _legacy_url_to_paths(url)
+                    if not os.path.isfile(fs_path):
+                        action = "would drop" if dry_run else "dropping"
+                        click.echo(
+                            f"  ! [{c.id}] photo file missing: {fs_path} — {action}",
+                            err=True,
+                        )
+                        missing += 1
+                        if not dry_run:
+                            changed = True
+                        else:
+                            # In dry-run we want to preserve the legacy
+                            # URL in the rebuilt list so the printed
+                            # summary doesn't lie about counts. The drop
+                            # is reported but not applied.
+                            new_photos.append(url)
+                        continue
+                    if dry_run:
+                        click.echo(f"  · [{c.id}] would upload photo → {s3_key}")
+                        new_photos.append(url)  # keep legacy URL under dry-run
+                        continue
+                    try:
+                        content_type, _ = mimetypes.guess_type(fs_path)
+                        with open(fs_path, "rb") as fh:
+                            s3.upload_fileobj(
+                                fh,
+                                bucket,
+                                s3_key,
+                                ExtraArgs={
+                                    "ContentType": content_type
+                                    or "application/octet-stream",
+                                    "CacheControl": "public, max-age=31536000, immutable",
+                                },
+                            )
+                        new_photos.append(new_url)
+                        uploaded += 1
+                        changed = True
+                        if verbose:
+                            click.echo(f"  ✓ [{c.id}] photo → {s3_key}")
+                    except (BotoCoreError, ClientError, OSError) as exc:
+                        click.echo(
+                            f"  ✗ [{c.id}] photo upload failed ({url}): {exc}",
+                            err=True,
+                        )
+                        errors += 1
+                        new_photos.append(url)  # keep legacy on failure
+                if changed and not dry_run:
+                    c.photos = new_photos or None
+
+    click.echo("")
+    click.echo(f"  uploaded:        {uploaded}")
+    click.echo(f"  already on S3:   {skipped_already}")
+    click.echo(f"  missing on disk: {missing}")
+    click.echo(f"  errors:          {errors}")
+    if dry_run:
+        click.echo("  (dry-run: no changes were committed)")
+    sys.exit(1 if errors else 0)

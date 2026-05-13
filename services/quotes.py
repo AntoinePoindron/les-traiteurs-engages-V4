@@ -17,6 +17,11 @@ LEGAL_TVA_RATES: frozenset[Decimal] = frozenset(
 MAX_QUANTITY = Decimal("10000")
 MAX_UNIT_PRICE_HT = Decimal("100000")
 MAX_LINE_TOTAL_HT = Decimal("10000000")
+# Bound the per-line description so the PDF renderer can't be fed a
+# multi-MB string crafted to slow layout. Real menu items run a few
+# dozen chars; 1000 leaves headroom for verbose descriptions while
+# keeping the renderer's worst case tractable.
+MAX_DESCRIPTION_LEN = 1000
 
 
 def _parse_finite_decimal(raw, field: str) -> Decimal:
@@ -55,12 +60,17 @@ def lines_from_dicts(line_dicts: list[dict]) -> list[QuoteLine]:
             raise ValueError(
                 f"line {i}: tva_rate {tva_rate} not in {sorted(LEGAL_TVA_RATES)}"
             )
+        description = d.get("description") or None
+        if description is not None and len(description) > MAX_DESCRIPTION_LEN:
+            raise ValueError(
+                f"line {i}: description longer than {MAX_DESCRIPTION_LEN} chars"
+            )
 
         result.append(
             QuoteLine(
                 position=i,
                 section=str(d.get("section") or "principal")[:50],
-                description=d.get("description") or None,
+                description=description,
                 quantity=quantity,
                 unit_price_ht=unit_price_ht,
                 tva_rate=tva_rate,
@@ -95,6 +105,28 @@ def derive_invoice_reference(quote_reference):
     return quote_reference.replace("DEVIS-", "FAC-", 1)
 
 
+def build_pdf_preview(quote, qr, caterer) -> dict:
+    """Build the `pdf_preview` dict consumed by `_pdf_preview.html`.
+
+    Same shape feeds the in-app modal (caterer request detail) and the
+    downloadable PDF (services/quote_pdf.render_quote_pdf), so both
+    surfaces stay visually aligned.
+    """
+    line_dicts = [ln.as_dict() for ln in quote.lines]
+    totals = calculate_quote_totals(
+        line_dicts,
+        qr.guest_count,
+        commission_rate=caterer.commission_rate,
+    )
+    lines_by_section: dict[str, list] = {}
+    for ln in quote.lines:
+        lines_by_section.setdefault(ln.section, []).append(ln)
+    return {
+        "lines_by_section": lines_by_section,
+        "totals": totals,
+    }
+
+
 DEFAULT_COMMISSION_RATE = Decimal("0.05")
 
 
@@ -102,7 +134,7 @@ def calculate_quote_totals(details, guest_count, commission_rate=None):
     """Compute all totals from line items as Decimals.
 
     Callers write the relevant fields onto Quote columns
-    (`total_amount_ht`, `amount_per_person`, `valorisable_agefiph`).
+    (`total_amount_ht`, `amount_per_person`).
     Templates that need richer breakdowns (per-section, per-TVA-rate) call
     this helper at render time — there is no persisted cache.
 
@@ -144,17 +176,17 @@ def calculate_quote_totals(details, guest_count, commission_rate=None):
     total_ttc = total_ht + total_tva
 
     # Platform fee: commission_rate of total_ht (default 5%, per-caterer override
-    # via Caterer.commission_rate), TVA 20% on fee.
+    # via Caterer.commission_rate). The platform isn't a VAT collector for now,
+    # so the fee carries no TVA — keep the *_tva / *_ttc keys in the return
+    # shape so downstream callers (Stripe service, PDF preview, editor JS)
+    # don't break, but the values are 0 / equal to HT.
     platform_fee_ht = total_ht * commission_rate
-    platform_fee_tva = platform_fee_ht * Decimal("0.20")
+    platform_fee_tva = Decimal("0")
     platform_fee_ttc = platform_fee_ht + platform_fee_tva
 
     amount_per_person = (
         total_ttc / Decimal(str(guest_count)) if guest_count else Decimal("0")
     )
-
-    # AGEFIPH: total HT is valorisable for ESAT/EA structures
-    valorisable_agefiph = total_ht
 
     return {
         "section_totals": {k: v.quantize(CENT) for k, v in section_totals.items()},
@@ -169,5 +201,4 @@ def calculate_quote_totals(details, guest_count, commission_rate=None):
         "platform_fee_ht": platform_fee_ht.quantize(CENT),
         "platform_fee_tva": platform_fee_tva.quantize(CENT),
         "platform_fee_ttc": platform_fee_ttc.quantize(CENT),
-        "valorisable_agefiph": valorisable_agefiph.quantize(CENT),
     }

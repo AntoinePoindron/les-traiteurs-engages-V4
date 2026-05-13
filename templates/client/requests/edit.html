@@ -47,19 +47,12 @@
         </div>
 
         <div class="space-y-3">
-          {% set meal_options = [
-            ('petit_dejeuner', 'Petit-dejeuner', 'coffee'),
-            ('dejeuner', 'Dejeuner', 'sun'),
-            ('diner', 'Diner', 'moon'),
-            ('cocktail', 'Cocktail', 'wine'),
-            ('autre', 'Autre', 'plus-circle'),
-          ] %}
-          {% for value, label, icon in meal_options %}
+          {% for opt in meal_type_options %}
           <label class="flex items-center gap-4 p-4 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-navy-soft border-2 border-default">
-            <input type="radio" name="meal_type" value="{{ value }}" {% if qr.meal_type == value %}checked{% endif %} required class="w-4 h-4 accent-navy">
+            <input type="radio" name="meal_type" value="{{ opt.slug }}" {% if qr.meal_type == opt.slug %}checked{% endif %} required class="w-4 h-4 accent-navy">
             <div class="flex items-center gap-3">
-              <i data-lucide="{{ icon }}" class="w-4\.5 h-4\.5 text-mute"></i>
-              <span class="font-bold text-sm text-text">{{ label }}</span>
+              <i data-lucide="{{ opt.icon }}" class="w-4\.5 h-4\.5 text-mute"></i>
+              <span class="font-bold text-sm text-text">{{ opt.label }}</span>
             </div>
           </label>
           {% endfor %}

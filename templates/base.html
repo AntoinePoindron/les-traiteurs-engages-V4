@@ -34,9 +34,18 @@
 
   <!-- Sidebar -->
   <aside id="sidebar" class="w-sidebar fixed left-0 top-0 h-full bg-white z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0 border-r border-soft">
-    <!-- Logo -->
-    <div class="p-4 flex items-center gap-3">
+    <!-- Logo + notifications bell -->
+    <div class="p-4 flex items-center justify-between gap-3">
       <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Les Traiteurs Engag&#233;s" class="h-10">
+      <button type="button" data-action="toggle-hidden" data-target="notifications-modal"
+              class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
+        <i data-lucide="bell" class="w-5 h-5 text-mute"></i>
+        {# Badge sits on the icon's top-right corner. The button is w-9
+           with a w-5 icon centered (~8px gap each side), so top-1.5
+           right-1.5 + ring places the dot right on the corner of the
+           bell glyph rather than floating in the button padding. #}
+        <span class="notification-badge absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-coral-red ring-2 ring-white hidden"></span>
+      </button>
     </div>
 
     <!-- Entity badge -->
@@ -103,6 +112,8 @@
         {% endif %}
 
         {% elif g.current_user.role == UserRole.caterer %}
+        {% set caterer_is_validated = g.current_user.caterer and g.current_user.caterer.is_validated %}
+        {% if caterer_is_validated %}
         <a href="{{ url_for('caterer.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
           <span>Tableau de bord</span>
@@ -115,18 +126,30 @@
           <i data-lucide="shopping-bag" class="w-5 h-5 flex-shrink-0"></i>
           <span>Mes commandes</span>
         </a>
+        {% else %}
+        <a href="{{ url_for('caterer.pending_validation') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="pending">
+          <i data-lucide="clock" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Compte en attente</span>
+        </a>
+        {% endif %}
         <a href="{{ url_for('caterer.profile') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="profile">
           <i data-lucide="user" class="w-5 h-5 flex-shrink-0"></i>
           <span>Mon profil</span>
         </a>
-        {# Pas de lien Stripe dans la sidebar : retiré côté V1 (commit 2c386b9
-           "drop Stripe sidebar entry — pending V2 work"). La route
-           caterer.stripe_status existe toujours côté backend, on ne la
-           ré-expose qu'après la V2 du flux paiement. #}
+        {# Stripe Connect onboarding — chemin vers la page d'inscription
+           Stripe ; le traiteur doit y passer pour recevoir ses paiements.
+           Le lien a été retiré pendant la V1 (commit 2c386b9), il est
+           remis ici pour réactiver le flux paiement. #}
+        <a href="{{ url_for('caterer.stripe_status') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="stripe">
+          <i data-lucide="banknote" class="w-5 h-5 flex-shrink-0"></i>
+          <span>Paiements</span>
+        </a>
+        {% if caterer_is_validated %}
         <a href="{{ url_for('caterer.messages') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="messages">
           <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
           <span>Messagerie</span>
         </a>
+        {% endif %}
 
         {% elif g.current_user.role == UserRole.super_admin %}
         <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors" data-page="dashboard">
@@ -174,11 +197,6 @@
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-text truncate">{{ g.current_user.first_name }} {{ g.current_user.last_name }}</p>
         </div>
-        <button type="button" data-action="dialog-open" data-target="notifications-modal"
-                class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
-          <i data-lucide="bell" class="w-4.5 h-4.5 text-mute"></i>
-          <span class="notification-badge absolute top-1 right-1 w-2 h-2 rounded-full bg-coral-red hidden"></span>
-        </button>
         <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors" title="D&#233;connexion">
@@ -208,9 +226,9 @@
     {% include "components/dev_account_switcher.html" %}
   {% endif %}
 
-  {# Notifications dropdown — opened by the bell button in the sidebar
-     footer. Server-rendered with the recent 10 notifications via the
-     `_inject_notifications` context processor. #}
+  {# Notifications dropdown — triggered by the bell button at the top of
+     the sidebar. Uses fixed positioning so it lands just past the
+     sidebar's right edge regardless of where it sits in the DOM. #}
   {% if g.current_user %}
     {% include "components/notifications_modal.html" %}
   {% endif %}

@@ -1,4 +1,6 @@
 import json
+import logging
+from io import BytesIO
 
 from flask import (
     abort,
@@ -7,13 +9,20 @@ from flask import (
     redirect,
     render_template,
     request as flask_request,
+    send_file,
     url_for,
 )
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload
 
-from blueprints.middleware import login_required, role_required
+from blueprints.middleware import (
+    login_required,
+    role_required,
+    validated_caterer_required,
+)
 from blueprints.scoping import get_caterer_qrc, get_caterer_quote
 from database import get_db
+from extensions import limiter
 from forms.caterer import QuoteForm
 from models import (
     MEAL_TYPE_LABELS,
@@ -26,10 +35,19 @@ from models import (
 )
 from services import workflow
 from services.quotes import (
+    build_pdf_preview,
     calculate_quote_totals,
     generate_quote_reference,
     lines_from_dicts,
 )
+
+logger = logging.getLogger(__name__)
+
+# Hard cap on the number of quote lines accepted by the PDF renderer.
+# WeasyPrint is CPU-bound on layout; an authenticated caterer crafting a
+# pathological quote with thousands of lines could starve a worker. The
+# cap is well above any realistic catering quote (typical: 5–30 lines).
+_MAX_PDF_LINES = 500
 
 
 def _parse_line_dicts(raw: str) -> list[dict]:
@@ -104,6 +122,7 @@ def register(bp):
     @bp.route("/requests")
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def requests_list():
         caterer = g.current_user.caterer
         status_filter = flask_request.args.get("status") or "all"
@@ -139,6 +158,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>")
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def request_detail(qr_id):
         caterer = g.current_user.caterer
         db = get_db()
@@ -170,19 +190,7 @@ def register(bp):
         # template needs so the template stays free of arithmetic.
         pdf_preview = None
         if existing_quote and existing_quote.lines:
-            line_dicts = [ln.as_dict() for ln in existing_quote.lines]
-            totals = calculate_quote_totals(
-                line_dicts,
-                qr.guest_count,
-                commission_rate=caterer.commission_rate,
-            )
-            lines_by_section: dict[str, list] = {}
-            for ln in existing_quote.lines:
-                lines_by_section.setdefault(ln.section, []).append(ln)
-            pdf_preview = {
-                "lines_by_section": lines_by_section,
-                "totals": totals,
-            }
+            pdf_preview = build_pdf_preview(existing_quote, qr, caterer)
         return render_template(
             "caterer/requests/detail.html",
             user=g.current_user,
@@ -197,6 +205,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/reject", methods=["POST"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def request_reject(qr_id):
         """Caterer declines a request before sending any quote.
 
@@ -223,6 +232,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote/new", methods=["GET"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_new(qr_id):
         caterer = g.current_user.caterer
         db = get_db()
@@ -257,6 +267,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote", methods=["POST"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_create(qr_id):
         caterer = g.current_user.caterer
         db = get_db()
@@ -300,7 +311,6 @@ def register(bp):
             reference=reference,
             total_amount_ht=totals["total_ht"],
             amount_per_person=totals["amount_per_person"],
-            valorisable_agefiph=totals["valorisable_agefiph"],
             notes=form.notes.data or "",
             valid_until=form.valid_until.data,
             status=QuoteStatus.draft,
@@ -309,7 +319,11 @@ def register(bp):
         db.add(quote)
         db.commit()
         # action=send saves the draft AND sends it in one go, so the caterer
-        # doesn't have to navigate away and come back. Default is 'draft'.
+        # doesn't have to navigate away and come back.
+        # action=draft_and_pdf saves the draft and bounces to the PDF
+        # download route — covers the "Télécharger en PDF" button on a
+        # not-yet-saved quote.
+        # Default is 'draft'.
         action = flask_request.form.get("action", "draft")
         if action == "send":
             try:
@@ -336,6 +350,8 @@ def register(bp):
 
             email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis enregistre et envoye au client.", "success")
+        elif action == "draft_and_pdf":
+            return redirect(url_for("caterer.quote_pdf", qr_id=qr_id, q_id=quote.id))
         else:
             flash("Devis enregistre en brouillon.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
@@ -343,6 +359,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/edit", methods=["GET"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_edit(qr_id, q_id):
         caterer = g.current_user.caterer
         quote = get_caterer_quote(qr_id, q_id, caterer.id)
@@ -363,6 +380,7 @@ def register(bp):
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/edit", methods=["POST"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_update(qr_id, q_id):
         caterer = g.current_user.caterer
         db = get_db()
@@ -406,7 +424,6 @@ def register(bp):
         quote.lines = new_lines
         quote.total_amount_ht = totals["total_ht"]
         quote.amount_per_person = totals["amount_per_person"]
-        quote.valorisable_agefiph = totals["valorisable_agefiph"]
         quote.notes = form.notes.data or ""
         quote.valid_until = (
             form.valid_until.data if form.valid_until.data else quote.valid_until
@@ -414,6 +431,9 @@ def register(bp):
         db.commit()
         # Same as quote_create: action=send chains save + send so the
         # caterer can ship the quote without leaving the editor.
+        # action=draft_and_pdf chains save + redirect-to-PDF so a click
+        # on "Télécharger en PDF" persists the latest edits before
+        # downloading them.
         action = flask_request.form.get("action", "draft")
         if action == "send":
             try:
@@ -440,13 +460,74 @@ def register(bp):
 
             email_triggers.quote_received(db, quote=quote, caterer=caterer)
             flash("Devis mis a jour et envoye au client.", "success")
+        elif action == "draft_and_pdf":
+            return redirect(url_for("caterer.quote_pdf", qr_id=qr_id, q_id=quote.id))
         else:
             flash("Devis mis a jour.", "success")
         return redirect(url_for("caterer.request_detail", qr_id=qr_id))
 
+    @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/pdf", methods=["GET"])
+    @login_required
+    @role_required("caterer")
+    @validated_caterer_required
+    @limiter.limit("20 per minute")
+    def quote_pdf(qr_id, q_id):
+        """Download the quote as a server-rendered PDF.
+
+        Replaces the old `window.print()` fallback (which produced a
+        screenshot of the editor's chrome). The PDF reuses the same
+        `_pdf_preview.html` partial as the in-app modal so the file
+        looks identical to what was on screen.
+        """
+        # Lazy import: WeasyPrint pulls Cairo/Pango bindings at import,
+        # which adds noticeable latency to a cold start. Keep it out of
+        # the module-level import graph; pay the cost only on PDF hits.
+        from services.quote_pdf import render_quote_pdf
+
+        caterer = g.current_user.caterer
+        # Eager-load every relationship the template touches so the PDF
+        # renders in a single round-trip — the request detail page goes
+        # through the helper, but the PDF route owns its own query so we
+        # can opt into the loader options without burdening other callers.
+        db = get_db()
+        quote = db.scalar(
+            select(Quote)
+            .options(
+                selectinload(Quote.lines),
+                joinedload(Quote.caterer),
+                joinedload(Quote.quote_request).options(
+                    joinedload(QuoteRequest.company),
+                    joinedload(QuoteRequest.user),
+                ),
+            )
+            .where(Quote.id == q_id)
+            .where(Quote.caterer_id == caterer.id)
+            .where(Quote.quote_request_id == qr_id)
+        )
+        if not quote:
+            abort(404)
+        if len(quote.lines) > _MAX_PDF_LINES:
+            abort(413)
+
+        pdf_bytes = render_quote_pdf(quote, quote.quote_request, quote.caterer)
+        logger.info(
+            "quote_pdf_downloaded caterer_id=%s quote_id=%s reference=%s lines=%d",
+            caterer.id,
+            quote.id,
+            quote.reference,
+            len(quote.lines),
+        )
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"devis-{quote.reference}.pdf",
+        )
+
     @bp.route("/requests/<uuid:qr_id>/quote/<uuid:q_id>/send", methods=["POST"])
     @login_required
     @role_required("caterer")
+    @validated_caterer_required
     def quote_send(qr_id, q_id):
         caterer = g.current_user.caterer
         db = get_db()

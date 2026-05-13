@@ -96,8 +96,6 @@ def seed():
             address="15 rue de Rivoli",
             city="Paris",
             zip_code="75001",
-            oeth_eligible=True,
-            budget_annual=50000,
         )
         techcorp = Company(
             name="TechCorp France",
@@ -105,8 +103,6 @@ def seed():
             address="42 avenue Jean Jaures",
             city="Lyon",
             zip_code="69007",
-            oeth_eligible=False,
-            budget_annual=30000,
         )
         db.add_all([acme, techcorp])
         db.flush()
@@ -279,7 +275,7 @@ def seed():
             user_id=alice.id,
             company_service_id=svc_marketing.id,
             status=QuoteRequestStatus.draft,
-            meal_type=MealType.cocktail,
+            meal_type=MealType.cocktail_dinatoire,
             event_date=today + datetime.timedelta(days=30),
             guest_count=50,
             event_address="15 rue de Rivoli",
@@ -299,7 +295,7 @@ def seed():
             user_id=alice.id,
             company_service_id=svc_direction.id,
             status=QuoteRequestStatus.sent_to_caterers,
-            meal_type=MealType.dejeuner,
+            meal_type=MealType.plateaux_repas,
             event_date=today + datetime.timedelta(days=15),
             guest_count=30,
             event_address="15 rue de Rivoli",
@@ -322,7 +318,7 @@ def seed():
             user_id=bob.id,
             company_service_id=svc_rh.id,
             status=QuoteRequestStatus.completed,
-            meal_type=MealType.diner,
+            meal_type=MealType.cocktail_dinatoire,
             event_date=today - datetime.timedelta(days=10),
             guest_count=20,
             event_address="42 avenue Jean Jaures",
@@ -376,7 +372,6 @@ def seed():
             reference="DEVIS-ESAT1-2026-001",
             total_amount_ht=Decimal("1350.00"),
             amount_per_person=Decimal("45.00"),
-            valorisable_agefiph=Decimal("1350.00"),
             notes="Menu compose avec des produits de saison.",
             valid_until=today + datetime.timedelta(days=30),
             status=QuoteStatus.sent,
@@ -406,7 +401,6 @@ def seed():
             reference="DEVIS-EATCO-2026-001",
             total_amount_ht=Decimal("1100.00"),
             amount_per_person=Decimal("55.00"),
-            valorisable_agefiph=Decimal("1100.00"),
             notes="Menu gastronomique adapte aux regimes specifiques.",
             valid_until=today - datetime.timedelta(days=5),
             status=QuoteStatus.accepted,

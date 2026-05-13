@@ -7,7 +7,7 @@ the same DB session as the business change so a rollback on the action
 also drops the notif — no orphan rows on failure.
 """
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from models import Caterer, MembershipStatus, Notification, User, UserRole
@@ -221,3 +221,67 @@ def mark_as_read(session: Session, notification_id):
     if notification:
         notification.is_read = True
     return notification
+
+
+def mark_read_for_entity(session: Session, user_id, entity_type, entity_id):
+    """Bulk-mark every unread notification for `user_id` whose
+    related_entity matches `(entity_type, entity_id)` as read.
+
+    Called from the `before_request` hook in app.py whenever a user
+    lands on an entity-detail page — the goal is to clear the bell
+    dropdown of items the user has already consulted via any path
+    (dashboard tile, list page, direct link, …), not just via the
+    dropdown itself. Returns the number of rows updated.
+    """
+    if not user_id or not entity_type or not entity_id:
+        return 0
+    result = session.execute(
+        update(Notification)
+        .where(
+            Notification.user_id == user_id,
+            Notification.is_read.is_(False),
+            Notification.related_entity_type == entity_type,
+            Notification.related_entity_id == entity_id,
+        )
+        .values(is_read=True)
+    )
+    return result.rowcount or 0
+
+
+def mark_read_by_type(session: Session, user_id, entity_type):
+    """Mark every unread notification for `user_id` of a given
+    `entity_type` as read, regardless of entity_id. Used for the
+    "list page" cases where the URL doesn't carry a specific id —
+    e.g. /client/team aggregates all pending-membership notifs."""
+    if not user_id or not entity_type:
+        return 0
+    result = session.execute(
+        update(Notification)
+        .where(
+            Notification.user_id == user_id,
+            Notification.is_read.is_(False),
+            Notification.related_entity_type == entity_type,
+        )
+        .values(is_read=True)
+    )
+    return result.rowcount or 0
+
+
+def mark_read_for_entities(session: Session, user_id, entity_type, entity_ids):
+    """Bulk variant of `mark_read_for_entity` for a list of ids — one
+    UPDATE instead of N. Used when a single page surfaces multiple
+    related entities (e.g. all quotes attached to a request, all
+    messages in a thread)."""
+    if not user_id or not entity_type or not entity_ids:
+        return 0
+    result = session.execute(
+        update(Notification)
+        .where(
+            Notification.user_id == user_id,
+            Notification.is_read.is_(False),
+            Notification.related_entity_type == entity_type,
+            Notification.related_entity_id.in_(list(entity_ids)),
+        )
+        .values(is_read=True)
+    )
+    return result.rowcount or 0

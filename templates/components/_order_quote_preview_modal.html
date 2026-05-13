@@ -1,0 +1,51 @@
+{# Quote preview modal opened by the "Devis" button on order detail
+   pages. Same _pdf_preview.html partial as the request-detail modal,
+   so the in-app preview always matches what the role-appropriate
+   PDF route renders.
+
+   Args:
+     order            : the Order whose quote is being previewed.
+     download_url     : role-specific URL for the "Télécharger" link
+                        (caterer.quote_pdf / client.quote_pdf /
+                        admin.quote_pdf), already resolved by the
+                        caller.
+     meal_type_labels : MEAL_TYPE_LABELS dict.
+     pdf_preview      : pre-computed dict (lines_by_section + totals)
+                        already in each `order_detail` route's context.
+
+   `meal_type_labels` and `pdf_preview` must be passed in explicitly
+   because a Jinja {% include %} sitting inside a macro does not
+   inherit the calling template's globals — only the macro's own
+   arguments + the surrounding {% with %} bindings reach the include. #}
+{% macro order_quote_preview_modal(order, download_url, meal_type_labels, pdf_preview) %}
+<div id="order-quote-preview-modal"
+     class="hidden fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
+     style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
+  <div class="bg-white rounded-lg w-full my-8 flex flex-col" style="max-width:800px;max-height:90vh;">
+    <div class="flex items-start justify-between gap-4 p-6 border-b border-soft flex-shrink-0">
+      <div>
+        <h2 class="font-display font-bold text-xl text-text">Aperçu du devis</h2>
+        <p class="text-sm mt-1 text-mute">Réf. {{ order.quote.reference }}</p>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <a href="{{ download_url }}"
+           class="inline-flex items-center gap-1.5 rounded-full text-xs font-bold px-3 py-2 btn-ghost-navy no-underline">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          Télécharger
+        </a>
+        <button type="button" data-action="dialog-close" data-target="order-quote-preview-modal"
+                class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-cream transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-text"></i>
+        </button>
+      </div>
+    </div>
+    <div class="flex-1 overflow-y-auto p-6">
+      <div class="bg-white rounded-lg border border-soft p-8">
+        {% with quote=order.quote, caterer=order.quote.caterer, qr=order.quote.quote_request %}
+        {% include "caterer/quotes/_pdf_preview.html" %}
+        {% endwith %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
