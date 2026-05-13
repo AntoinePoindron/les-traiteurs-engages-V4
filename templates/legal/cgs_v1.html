@@ -2,7 +2,15 @@
 
 {% block title %}{{ version.title }} - Les Traiteurs Engagés{% endblock %}
 
-{% block content %}
+{# Same body whether the visitor is signed in (block content, rendered
+   inside the dashboard sidebar layout) or not (block public_content,
+   rendered without the sidebar). Defining both via `self.body()` keeps
+   the markup in one place. #}
+{% block public_content %}<div class="p-6 max-w-7xl mx-auto">{{ self.body() }}</div>{% endblock %}
+
+{% block content %}{{ self.body() }}{% endblock %}
+
+{% block body %}
 <article class="legal-page bg-white rounded-lg p-8 max-w-3xl mx-auto">
   <header class="mb-8">
     <h1 class="font-display font-bold text-3xl text-black">
