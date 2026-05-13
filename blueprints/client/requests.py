@@ -7,6 +7,7 @@ from flask import (
     abort,
     flash,
     g,
+    make_response,
     redirect,
     render_template,
     request,
@@ -52,6 +53,22 @@ from services.notifications import (
 from services.quotes import calculate_quote_totals
 
 logger = logging.getLogger(__name__)
+
+
+def _no_store(response):
+    """Tag a response so the browser does not keep it in history.
+
+    Without this, pressing "back" after submitting the wizard restores
+    the cached HTML — pre-ticked checkboxes carried only in DOM state
+    (not in the server-rendered attributes) appear blank, and the user
+    can re-submit a stale form. `no-store` evicts the response from
+    bfcache (Chrome/Firefox) and from regular cache, forcing the
+    browser to re-fetch on back/forward navigation.
+    """
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 # Icon glyph (lucide) per MealType slug — kept next to the templates'
@@ -288,19 +305,23 @@ def register(bp):
             if target_caterer is not None
             else None
         )
-        return render_template(
-            "client/requests/new.html",
-            user=user,
-            services=services,
-            target_caterer=target_caterer,
-            meal_type_options=_meal_type_options(restrict_to=restrict),
-            caterer_capabilities=_caterer_capabilities(target_caterer),
-            # Idempotency token: same value across re-renders of this
-            # GET (the browser's "back" button replays the exact same
-            # HTML response from history without re-hitting the server),
-            # but a fresh GET in another tab produces a new one. The
-            # POST handler uses it to deduplicate.
-            form_token=str(uuid.uuid4()),
+        return _no_store(
+            make_response(
+                render_template(
+                    "client/requests/new.html",
+                    user=user,
+                    services=services,
+                    target_caterer=target_caterer,
+                    meal_type_options=_meal_type_options(restrict_to=restrict),
+                    caterer_capabilities=_caterer_capabilities(target_caterer),
+                    # Idempotency token: a fresh GET in another tab
+                    # produces a new one. The POST handler uses it to
+                    # deduplicate. Combined with the `no_store` header
+                    # below, "back + resubmit" doesn't even reach this
+                    # branch — bfcache is bypassed.
+                    form_token=str(uuid.uuid4()),
+                )
+            )
         )
 
     @bp.route("/requests/new", methods=["POST"])
@@ -360,17 +381,24 @@ def register(bp):
                 if target_caterer is not None
                 else None
             )
-            return render_template(
-                "client/requests/new.html",
-                user=user,
-                services=services,
-                target_caterer=target_caterer,
-                meal_type_options=_meal_type_options(restrict_to=restrict),
-                caterer_capabilities=_caterer_capabilities(target_caterer),
-                # Echo the token back so the user's correction stays
-                # idempotent — a tab-restored form keeps the same token.
-                form_token=form_token or str(uuid.uuid4()),
-            ), 400
+            response = _no_store(
+                make_response(
+                    render_template(
+                        "client/requests/new.html",
+                        user=user,
+                        services=services,
+                        target_caterer=target_caterer,
+                        meal_type_options=_meal_type_options(restrict_to=restrict),
+                        caterer_capabilities=_caterer_capabilities(target_caterer),
+                        # Echo the token back so the user's correction
+                        # stays idempotent — a tab-restored form keeps
+                        # the same token.
+                        form_token=form_token or str(uuid.uuid4()),
+                    )
+                )
+            )
+            response.status_code = 400
+            return response
 
         service_id = own_service_id(db, user, form.company_service_id.data)
 
@@ -727,12 +755,16 @@ def register(bp):
             .all()
         )
 
-        return render_template(
-            "client/requests/edit.html",
-            user=user,
-            qr=qr,
-            services=services,
-            meal_type_options=_meal_type_options(),
+        return _no_store(
+            make_response(
+                render_template(
+                    "client/requests/edit.html",
+                    user=user,
+                    qr=qr,
+                    services=services,
+                    meal_type_options=_meal_type_options(),
+                )
+            )
         )
 
     @bp.route("/requests/<uuid:request_id>/edit", methods=["POST"])
@@ -762,13 +794,19 @@ def register(bp):
                 .scalars()
                 .all()
             )
-            return render_template(
-                "client/requests/edit.html",
-                user=user,
-                qr=qr,
-                services=services,
-                meal_type_options=_meal_type_options(),
-            ), 400
+            response = _no_store(
+                make_response(
+                    render_template(
+                        "client/requests/edit.html",
+                        user=user,
+                        qr=qr,
+                        services=services,
+                        meal_type_options=_meal_type_options(),
+                    )
+                )
+            )
+            response.status_code = 400
+            return response
 
         qr.company_service_id = own_service_id(db, user, form.company_service_id.data)
         apply_quote_request_form(qr, form)
