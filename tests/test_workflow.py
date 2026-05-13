@@ -269,8 +269,7 @@ def test_accept_quote_for_other_company_raises_request_not_found(session):
 # --- approve_quote_request / reject_quote_request -------------------------
 
 
-def _seed_pending_review_qr(s, *, with_geo: bool) -> uuid.UUID:
-    """QR en pending_review. `with_geo=True` met lat/lng pour permettre le matching."""
+def _seed_pending_review_qr(s) -> uuid.UUID:
     from sqlalchemy import select
 
     acme = s.scalar(select(Company).where(Company.siret == "12345678901234"))
@@ -284,46 +283,20 @@ def _seed_pending_review_qr(s, *, with_geo: bool) -> uuid.UUID:
         event_city="Paris",
         event_zip_code="75001",
         event_date=_dt.date.today() + _dt.timedelta(days=30),
-        event_latitude=48.8566 if with_geo else None,
-        event_longitude=2.3522 if with_geo else None,
     )
     s.add(qr)
     s.flush()
     return qr.id
 
 
-def test_approve_quote_request_dispatches_to_matching_caterers(session):
+def test_approve_quote_request_dispatches_to_all_validated_caterers(session):
+    """Approving a request fans it out to every validated caterer on the
+    platform. The previous distance / capacity / budget pre-filter was
+    retired with the matching service — caterers gate their own queue
+    via the catalog filters they pick on their profile."""
     from sqlalchemy import select
 
-    qr_id = _seed_pending_review_qr(session, with_geo=True)
-    # Aligne le caterer seedé avec la demande pour qu'il soit matché.
-    caterer = session.scalar(select(Caterer).where(Caterer.siret == "98765432109876"))
-    caterer.latitude = 48.8566
-    caterer.longitude = 2.3522
-    caterer.delivery_radius_km = 50
-    session.flush()
-
-    qrcs = workflow.approve_quote_request(session, request_id=qr_id)
-    session.flush()
-
-    assert len(qrcs) >= 1
-    qr = session.scalar(select(QuoteRequest).where(QuoteRequest.id == qr_id))
-    assert qr.status == QuoteRequestStatus.sent_to_caterers
-    persisted = session.scalars(
-        select(QuoteRequestCaterer).where(QuoteRequestCaterer.quote_request_id == qr_id)
-    ).all()
-    assert len(persisted) == len(qrcs)
-    assert all(q.status == QRCStatus.selected for q in persisted)
-
-
-def test_approve_quote_request_with_no_matches_falls_back_to_all_caterers(session):
-    """Plus de gating sur la compatibilité : si le matcher ne renvoie
-    aucun traiteur (par ex. demande sans coordonnées géocodées), la
-    validation admin envoie quand même la demande à tous les traiteurs
-    `is_validated`. Sinon ils ne la voient pas dans leur file."""
-    from sqlalchemy import select
-
-    qr_id = _seed_pending_review_qr(session, with_geo=False)
+    qr_id = _seed_pending_review_qr(session)
 
     validated_caterers = session.scalars(
         select(Caterer).where(Caterer.is_validated.is_(True))
@@ -345,6 +318,7 @@ def test_approve_quote_request_with_no_matches_falls_back_to_all_caterers(sessio
         ).all()
     }
     assert persisted_ids == {c.id for c in validated_caterers}
+    assert all(q.status == QRCStatus.selected for q in qrcs)
 
 
 def test_approve_unknown_request_raises_not_found(session):

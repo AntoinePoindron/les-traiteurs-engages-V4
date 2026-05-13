@@ -46,7 +46,6 @@ from services.notifications import (
     company_admin_user_ids,
     notify_users,
 )
-from services.matching import find_matching_caterers
 from services.quotes import build_pdf_preview
 from blueprints._notifications import register as _register_notifications
 
@@ -219,12 +218,10 @@ def qualification_detail(request_id):
     )
     if not qr:
         abort(404)
-    matches = find_matching_caterers(db, qr)
     return render_template(
         "admin/qualification/detail.html",
         user=g.current_user,
         qr=qr,
-        matches=matches,
         message_form=AdminMessageForm(),
         meal_type_labels=MEAL_TYPE_LABELS,
     )
@@ -251,10 +248,9 @@ def qualification_approve(request_id):
     if qrcs:
         flash(f"Demande approuvee et envoyee a {len(qrcs)} traiteur(s).", "success")
     else:
-        # `approve_quote_request` falls back to every validated caterer
-        # when matching is empty, so reaching this branch means the
-        # catalogue itself is empty. Tell the admin so they can follow
-        # up with the client.
+        # `approve_quote_request` fans out to every validated caterer,
+        # so reaching this branch means the catalogue itself is empty.
+        # Tell the admin so they can follow up with the client.
         flash(
             "Demande approuvee, mais aucun traiteur valide n'est present "
             "dans le catalogue. Pensez a contacter le client.",
