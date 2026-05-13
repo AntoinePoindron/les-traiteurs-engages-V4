@@ -58,6 +58,40 @@
       </div>
     </div>
 
+    {# Impact social — agrégé sur les commandes effectivement payées.
+       Source des chiffres : services/impact.py. La phrase de bas de bloc
+       reproduit la mention publiée par la plateforme du marché de
+       l'inclusion d'où la formule des heures financées est tirée. #}
+    {% if social_impact %}
+    <div class="bg-white rounded-lg p-6 mb-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
+          <i data-lucide="sprout" class="w-[18px] h-[18px] text-navy"></i>
+        </div>
+        <h2 class="font-display font-bold text-xl text-text">Impact social</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <p class="text-xs uppercase tracking-wider font-bold text-mute mb-2">Prix HT des achats inclusifs r&#233;alis&#233;s</p>
+          <p class="font-display font-bold text-3xl text-black mb-3">{{ "%.0f"|format(social_impact.total_ht) }}&nbsp;&euro;</p>
+          <ul class="text-sm space-y-1.5 text-text-soft">
+            <li>dont <span class="font-bold text-text">{{ "%.0f"|format(social_impact.siae_ht) }}&nbsp;&euro;</span> aupr&#232;s de structures d'insertion (SIAE)</li>
+            <li>dont <span class="font-bold text-text">{{ "%.0f"|format(social_impact.stpa_ht) }}&nbsp;&euro;</span> aupr&#232;s du secteur prot&#233;g&#233; et adapt&#233; (STPA)</li>
+          </ul>
+        </div>
+
+        <div>
+          <p class="text-xs uppercase tracking-wider font-bold text-mute mb-2">Nombre d'heures financ&#233;es dans l'insertion</p>
+          <p class="font-display font-bold text-3xl text-black mb-3">{{ social_impact.hours_financed }}&nbsp;h</p>
+          <p class="text-xs text-mute">
+            Il s'agit d'une estimation bas&#233;e sur le mode de calcul d'un &#233;chantillon non repr&#233;sentatif de l'ensemble des prestataires inclusifs.
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     {# Layout 70/30 : liste des demandes a gauche, commandes + budget a droite. #}
     <div class="split-detail">
       <div class="split-main">
