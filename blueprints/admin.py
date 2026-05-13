@@ -32,6 +32,7 @@ from models import (
     PaymentStatus,
     Quote,
     QuoteRequest,
+    QuoteRequestCaterer,
     QuoteRequestStatus,
     QuoteStatus,
 )
@@ -198,7 +199,15 @@ def requests_list():
 @role_required("super_admin")
 def qualification_detail(request_id):
     db = get_db()
-    qr = db.get(QuoteRequest, request_id)
+    qr = db.scalar(
+        select(QuoteRequest)
+        .where(QuoteRequest.id == request_id)
+        .options(
+            joinedload(QuoteRequest.user),
+            joinedload(QuoteRequest.company),
+            selectinload(QuoteRequest.caterers).joinedload(QuoteRequestCaterer.caterer),
+        )
+    )
     if not qr:
         abort(404)
     matches = find_matching_caterers(db, qr)
