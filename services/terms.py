@@ -12,17 +12,21 @@ from sqlalchemy import select
 from models import TermsVersion
 
 
-def current_terms_version(db) -> TermsVersion:
+def current_terms_version(db, today: datetime.date | None = None) -> TermsVersion:
     """Return the version currently in force.
 
     "In force" = highest `effective_at` that's <= today. Same-day ties
     are broken by `created_at` (most recent wins) so we can stage a new
     version on its effective date without juggling timezones.
 
+    `today` defaults to `datetime.date.today()`; passing it explicitly
+    is the test seam (avoids `freeze_time` for unit tests).
+
     Raises `RuntimeError` if no row matches — that's a deploy mistake,
     not a runtime condition we want to swallow with a fallback.
     """
-    today = datetime.date.today()
+    if today is None:
+        today = datetime.date.today()
     row = db.scalar(
         select(TermsVersion)
         .where(TermsVersion.effective_at <= today)
