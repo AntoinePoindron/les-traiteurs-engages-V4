@@ -30,22 +30,27 @@
      quote_request_id    : optional — same as order_id for QR context.
      thread_endpoint     : Flask endpoint string used by the post-send
                            "Voir la conversation" link
-                           (e.g. "client.message_thread"). The URL is
-                           resolved server-side via `url_for` with a
-                           sentinel UUID, then JS substitutes the real
-                           thread_id — so route changes (renames, prefix
-                           tweaks) are picked up automatically. #}
+                           (e.g. "client.message_thread"). #}
 {% macro send_message_modal(modal_id, recipient_user_id, recipient_name,
                             order_id=None, quote_request_id=None,
                             thread_endpoint=None) %}
+{# Build the thread-URL template via url_for with a sentinel UUID so the
+   coupling between endpoint name and URL prefix lives in Flask, not in
+   the JS. The JS will substitute the sentinel for the real thread_id
+   returned by /api/messages. If the endpoint is ever renamed or the
+   route moves, url_for blows up at render time — loud failure beats
+   silent breakage. #}
+{% set _thread_url_template = url_for(thread_endpoint, thread_id='00000000-0000-0000-0000-000000000000') if thread_endpoint else '' %}
 <dialog id="{{ modal_id }}"
         class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full"
         data-backdrop-dismiss
-        data-thread-url-template="{{ url_for(thread_endpoint, thread_id='00000000-0000-0000-0000-000000000000') if thread_endpoint else '' }}">
+        data-send-message-dialog
+        aria-labelledby="{{ modal_id }}-title"
+        {% if _thread_url_template %}data-thread-url-template="{{ _thread_url_template }}"{% endif %}>
   <div class="p-6">
     {# --- Compose state (default) --- #}
     <div data-modal-state="compose">
-      <h3 class="font-display font-bold text-lg text-black mb-2">
+      <h3 id="{{ modal_id }}-title" class="font-display font-bold text-lg text-black mb-2">
         Envoyer un message à {{ recipient_name }}
       </h3>
       <p class="text-sm mb-4 text-mute">

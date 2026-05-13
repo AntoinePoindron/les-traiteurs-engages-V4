@@ -419,11 +419,14 @@ def register(bp):
         db = get_db()
         qr = get_company_request(request_id, user)
 
+        # Order by id so qrcs[0] is deterministic — the model has no
+        # created_at, and the template indexes into qrcs in direct mode
+        # to render the pending-caterer card.
         qrcs = (
             db.execute(
-                select(QuoteRequestCaterer).where(
-                    QuoteRequestCaterer.quote_request_id == request_id
-                )
+                select(QuoteRequestCaterer)
+                .where(QuoteRequestCaterer.quote_request_id == request_id)
+                .order_by(QuoteRequestCaterer.id)
             )
             .scalars()
             .all()
@@ -449,6 +452,16 @@ def register(bp):
         # Same display_status logic as the list page so the header badge
         # uses a French, user-facing label instead of the raw enum value.
         qr.display_status = _derive_request_display_status(qr)
+
+        # Resolve the contactable caterer user once per quote / qrc so
+        # the template doesn't have to do `caterer.users[0] if ... else
+        # None` in two separate loops (button render + modal render).
+        # Same shape for qrcs so the pending-caterer card reads from a
+        # single source of truth.
+        for quote in quotes:
+            quote.caterer_user = quote.caterer.users[0] if quote.caterer.users else None
+        for qrc in qrcs:
+            qrc.caterer_user = qrc.caterer.users[0] if qrc.caterer.users else None
 
         # Attach per-quote PDF preview data so the template can render a
         # read-only modal for "Voir le devis" without doing arithmetic in

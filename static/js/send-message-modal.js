@@ -10,19 +10,16 @@
 (function () {
   'use strict';
 
-  // Sentinel UUID baked into data-thread-url-template by the Jinja
-  // macro: server-side `url_for` builds the full URL with this value
-  // standing in for the real thread_id, and we swap it client-side
-  // once the API returns. Keeps URL construction owned by Flask, so
-  // route renames flow through automatically.
-  var THREAD_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
+  // Sentinel UUID the macro embeds via url_for(thread_endpoint,
+  // thread_id=<sentinel>). We substitute it with the real thread_id
+  // returned by /api/messages. Keeping the mapping in Flask via url_for
+  // means a route rename blows up at render time, not silently in JS.
+  var THREAD_ID_SENTINEL = '00000000-0000-0000-0000-000000000000';
 
-  function buildThreadUrl(modalId, threadId) {
-    var dialog = document.getElementById(modalId);
-    if (!dialog) return null;
-    var template = dialog.dataset.threadUrlTemplate;
-    if (!template) return null;
-    return template.replace(THREAD_ID_PLACEHOLDER, threadId);
+  function buildThreadUrl(dialog, threadId) {
+    var tpl = dialog && dialog.dataset.threadUrlTemplate;
+    if (!tpl || !threadId) return null;
+    return tpl.replace(THREAD_ID_SENTINEL, threadId);
   }
 
   function showError(form, msg) {
@@ -49,10 +46,15 @@
 
     if (threadId) {
       var link = dialog.querySelector('[data-modal-thread-link]');
-      var url = buildThreadUrl(modalId, threadId);
-      if (link && url) link.href = url;
+      var href = buildThreadUrl(dialog, threadId);
+      if (link && href) link.href = href;
     }
-    if (window.lucide) lucide.createIcons();
+    // Scope icon refresh to the dialog so we don't reprocess every
+    // [data-lucide] node on the page each time a message is sent.
+    if (window.lucide && lucide.createIcons) {
+      try { lucide.createIcons({ root: dialog }); }
+      catch (_) { lucide.createIcons(); }
+    }
   }
 
   function resetToComposeState(dialog) {
@@ -147,7 +149,7 @@
       .querySelectorAll('[data-send-message-form]')
       .forEach(bindForm);
     document
-      .querySelectorAll('dialog[data-thread-url-template]')
+      .querySelectorAll('dialog[data-send-message-dialog]')
       .forEach(bindCloseReset);
   });
 })();
