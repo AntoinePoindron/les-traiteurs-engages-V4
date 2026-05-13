@@ -40,11 +40,19 @@
       <button type="button" data-action="toggle-hidden" data-target="notifications-modal"
               class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors relative" title="Notifications">
         <i data-lucide="bell" class="w-5 h-5 text-mute"></i>
-        {# Badge sits on the icon's top-right corner. The button is w-9
-           with a w-5 icon centered (~8px gap each side), so top-1.5
-           right-1.5 + ring places the dot right on the corner of the
-           bell glyph rather than floating in the button padding. #}
-        <span class="notification-badge absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-coral-red ring-2 ring-white hidden"></span>
+        {# Bell unread counter. Visibility + count are server-rendered
+           from the `_inject_notifications` context processor so the
+           badge is correct on first paint — the JS poll later in
+           app.js only refreshes the value live (and was the previous
+           single source of truth, which is why a single fetch hiccup
+           would leave the dot silently hidden). The .notification-badge
+           class carries all the dimensions / colours — see app.css. #}
+        {% set _bell_count = notifications_unread_total or 0 %}
+        <span class="notification-badge {% if _bell_count <= 0 %}hidden{% endif %}"
+              data-count="{{ _bell_count }}"
+              aria-label="{{ _bell_count }} notification{% if _bell_count != 1 %}s{% endif %} non lue{% if _bell_count != 1 %}s{% endif %}">
+          {{ _bell_count if _bell_count <= 99 else '99+' }}
+        </span>
       </button>
     </div>
 

@@ -429,6 +429,30 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 /* Badge sizes */
 .badge-xs { padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4; }
 
+/* Sidebar bell unread counter.
+   Sits on the top-right corner of the bell glyph inside a w-9 button.
+   `min-width` lets a single digit stay perfectly circular while two-
+   digit counts (10..99) stretch to a pill. Beyond 99 the template emits
+   "99+" so width stays bounded. The white ring lifts the pill off the
+   sidebar background so it reads against either light or hover state. */
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 1.125rem;       /* 18px — 1.5x the 12px font, keeps single digits round */
+  height: 1.125rem;
+  padding: 0 0.3125rem;      /* horizontal breathing room for two-digit counts */
+  border-radius: 9999px;
+  background-color: var(--c-coral-red);
+  color: white;
+  font-size: 0.6875rem;      /* 11px — readable next to a 20px bell glyph */
+  font-weight: 700;
+  line-height: 1.125rem;
+  text-align: center;
+  box-shadow: 0 0 0 2px white; /* same effect as Tailwind's ring-2 ring-white */
+  pointer-events: none;         /* clicks should reach the bell button, not the pill */
+}
+
 /* ============================================================
    Wizard validation error styles — appliquées par static/js/wizard.js
    au clic "Suivant" si des champs requis sont vides. Les classes

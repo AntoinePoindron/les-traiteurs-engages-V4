@@ -22,13 +22,35 @@
     main.style.marginLeft = window.innerWidth >= 1024 ? '241px' : '0';
   }
 
+  function applyNotificationCount(count) {
+    var n = Math.max(0, parseInt(count, 10) || 0);
+    document.querySelectorAll('.notification-badge').forEach(function (badge) {
+      badge.classList.toggle('hidden', n <= 0);
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.setAttribute('data-count', String(n));
+      // aria-label kept in sync so a screen-reader user hears the live
+      // value, not the stale one rendered server-side.
+      badge.setAttribute(
+        'aria-label',
+        n + ' notification' + (n === 1 ? '' : 's') + ' non lue' + (n === 1 ? '' : 's')
+      );
+    });
+  }
+
   function updateNotificationBadge() {
-    fetch('/api/notifications')
-      .then(function (r) { return r.json(); })
+    // Server-side render already gave the badge its initial value, so a
+    // failed fetch here is non-fatal — the worst case is the count is a
+    // few seconds stale until the next poll succeeds. We require a 2xx
+    // *and* a non-empty JSON shape before touching the DOM.
+    fetch('/api/notifications', { credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      })
       .then(function (data) {
-        document.querySelectorAll('.notification-badge').forEach(function (badge) {
-          badge.classList.toggle('hidden', !(data.unread_count > 0));
-        });
+        if (data && typeof data.unread_count === 'number') {
+          applyNotificationCount(data.unread_count);
+        }
       })
       .catch(function () {});
   }
