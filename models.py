@@ -139,6 +139,28 @@ SERVICE_OFFERING_LABELS: dict[str, str] = {
 }
 
 
+# Beverage slugs the request wizard step 5 exposes as checkboxes, kept
+# in render order. Same slug appears as the checkbox `name` attribute
+# (e.g. `name="drinks_eau_plate"`) and as an entry in the
+# `QuoteRequest.drinks` JSON list when ticked.
+DRINK_LABELS: dict[str, str] = {
+    "drinks_eau_plate": "Eau plate",
+    "drinks_eau_gazeuse": "Eau gazeuse",
+    "drinks_soft": "Soft / Jus",
+    "drinks_bieres": "Bières",
+    "drinks_vins": "Vins",
+    "drinks_champagne": "Champagne",
+    "drinks_boissons_chaudes": "Boissons chaudes",
+}
+
+# Subset of DRINK_LABELS that counts as "alcoholic" for the legacy
+# `drinks_alcohol` flag — derived at save time so old templates and any
+# downstream consumer keep working without a per-template change.
+ALCOHOLIC_DRINKS: frozenset[str] = frozenset(
+    {"drinks_bieres", "drinks_vins", "drinks_champagne"}
+)
+
+
 # Per-person price band slugs the client search uses, with the matching
 # numeric bounds (in EUR). A caterer matches a band when its price range
 # overlaps with the band's [min, max].
@@ -366,7 +388,14 @@ class QuoteRequest(DietaryMixin, Base):
     halal_count: Mapped[int | None] = mapped_column(Integer)
     gluten_free_count: Mapped[int | None] = mapped_column(Integer)
     lactose_free_count: Mapped[int | None] = mapped_column(Integer)
+    # `drinks_alcohol` is kept as a derived shortcut (true iff the
+    # selection includes a recognized alcoholic slug) so legacy callers
+    # don't break, but the canonical state of "what did the client tick"
+    # lives in `drinks` below — a JSON list of slugs taken from
+    # `DRINK_LABELS`. The 7 step-5 checkboxes in the wizard map to it
+    # directly.
     drinks_alcohol: Mapped[bool] = mapped_column(Boolean, default=False)
+    drinks: Mapped[list | None] = mapped_column(JSON)
     drinks_details: Mapped[str | None] = mapped_column(Text)
     wants_waitstaff: Mapped[bool] = mapped_column(Boolean, default=False)
     service_waitstaff_details: Mapped[str | None] = mapped_column(Text)

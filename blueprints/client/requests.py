@@ -20,6 +20,7 @@ from blueprints.client._helpers import (
     DIETARY_FLAGS,
     ITEMS_PER_PAGE,
     STRUCTURE_GROUPS,
+    apply_drinks,
     apply_quote_request_form,
     own_service_id,
 )
@@ -364,6 +365,7 @@ def register(bp):
             status=status,
         )
         apply_quote_request_form(qr, form)
+        apply_drinks(qr, request.form)
         # Force the persisted is_compare_mode to match the resolved flow
         # (apply_quote_request_form may have written it from the form).
         qr.is_compare_mode = is_compare
@@ -721,6 +723,7 @@ def register(bp):
 
         qr.company_service_id = own_service_id(db, user, form.company_service_id.data)
         apply_quote_request_form(qr, form)
+        apply_drinks(qr, request.form)
 
         # VULN-36: editing a request that is already awaiting admin qualification
         # MUST keep it in pending_review.

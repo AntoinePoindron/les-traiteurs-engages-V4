@@ -142,11 +142,17 @@
           <i data-lucide="cup-soda" class="w-4 h-4 text-navy"></i>
           <h3 class="font-display font-bold text-sm text-text">Boissons</h3>
         </div>
-        <p class="text-sm text-text-soft">
-          {% if qr.drinks_alcohol %}Avec alcool{% else %}Sans alcool{% endif %}
-        </p>
+        {% if qr.drinks %}
+        <ul class="text-sm text-text-soft list-disc pl-5">
+          {% for slug in qr.drinks %}
+          {% if slug in DRINK_LABELS %}<li>{{ DRINK_LABELS[slug] }}</li>{% endif %}
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-sm text-text-soft">Aucune boisson selectionnee</p>
+        {% endif %}
         {% if qr.drinks_details %}
-        <p class="text-xs mt-1 text-mute">{{ qr.drinks_details }}</p>
+        <p class="text-xs mt-2 text-mute">{{ qr.drinks_details }}</p>
         {% endif %}
       </div>
 

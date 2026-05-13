@@ -220,11 +220,33 @@
           </div>
         </div>
 
-        {# Bloc "Alcool ?" retiré (cf. new.html) — redondant avec les
-           checkboxes Bières / Vins / Champagne. On préserve la valeur
-           existante de drinks_alcohol via un input caché pour ne pas
-           écraser un ancien choix au save. #}
-        <input type="hidden" name="drinks_alcohol" value="{{ '1' if qr.drinks_alcohol else '0' }}">
+        {# Same 7 checkboxes as new.html step 5, this time pre-checked
+           from qr.drinks. The backend derives `drinks_alcohol` from the
+           selection at save time, so no hidden mirror is needed here. #}
+        {% set _drinks = qr.drinks or [] %}
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+          {% set drink_items = [
+            ('drinks_eau_plate', 'Eau plate', 'droplets'),
+            ('drinks_eau_gazeuse', 'Eau gazeuse', 'droplets'),
+            ('drinks_soft', 'Soft / Jus', 'glass-water'),
+            ('drinks_bieres', 'Bieres', 'beer'),
+            ('drinks_vins', 'Vins', 'wine'),
+            ('drinks_champagne', 'Champagne', 'sparkles'),
+            ('drinks_boissons_chaudes', 'Boissons chaudes', 'coffee'),
+          ] %}
+          {% for field_id, label, icon in drink_items %}
+          <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-navy-soft border-2 border-default">
+            <input type="checkbox" name="{{ field_id }}" value="1"
+                   class="drink-checkbox w-4 h-4 rounded accent-navy"
+                   data-label="{{ label }}"
+                   {% if field_id in _drinks %}checked{% endif %}>
+            <div class="flex items-center gap-2">
+              <i data-lucide="{{ icon }}" class="w-4 h-4 text-mute"></i>
+              <span class="text-xs font-bold text-text">{{ label }}</span>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
 
         <div>
           <label for="drinks_details" class="block text-sm font-bold mb-2 text-text">Precisions sur les boissons <span class="text-mute">(optionnel)</span></label>
