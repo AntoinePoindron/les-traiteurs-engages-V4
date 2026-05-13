@@ -239,7 +239,7 @@
 </div>
 
 {% if pdf_preview %}
-{{ order_quote_preview_modal(order, url_for('caterer.quote_pdf', qr_id=order.quote.quote_request_id, q_id=order.quote.id), meal_type_labels) }}
+{{ order_quote_preview_modal(order, url_for('caterer.quote_pdf', qr_id=order.quote.quote_request_id, q_id=order.quote.id), meal_type_labels, pdf_preview) }}
 {% endif %}
 
 {% endblock %}
