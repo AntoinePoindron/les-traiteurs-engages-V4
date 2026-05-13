@@ -722,3 +722,25 @@ textarea.wizard-field-error {
   .landing-root .lg\:px-8            { padding-left: 2rem; padding-right: 2rem; }
 }
 
+/* --- Legal pages (CGS, future privacy policy, etc.) ----------------
+   Single hook `.legal-page` scopes the typography rules so the rest of
+   the app keeps its compact dashboard look. Articles/sections nest h2
+   (= article), h3 (= sub-section), h4 (= deeper rubric). */
+.legal-page                 { color: var(--c-text); line-height: 1.6; }
+.legal-page h2              { font-family: 'Fraunces', serif; font-weight: 700;
+                              font-size: 1.5rem; margin-top: 2rem;
+                              margin-bottom: 0.75rem; color: #000; }
+.legal-page h3              { font-weight: 700; font-size: 1.125rem;
+                              margin-top: 1.5rem; margin-bottom: 0.5rem;
+                              color: var(--c-text); }
+.legal-page h4              { font-weight: 700; font-size: 1rem;
+                              margin-top: 1rem; margin-bottom: 0.25rem;
+                              color: var(--c-text); }
+.legal-page p               { margin-bottom: 0.75rem; }
+.legal-page ul              { list-style: disc; padding-left: 1.5rem;
+                              margin-bottom: 0.75rem; }
+.legal-page li              { margin-bottom: 0.25rem; }
+.legal-page a               { color: var(--c-navy); text-decoration: underline; }
+.legal-page a:hover         { opacity: 0.8; }
+.legal-page strong          { font-weight: 700; color: var(--c-text); }
+

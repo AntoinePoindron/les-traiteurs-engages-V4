@@ -162,6 +162,7 @@ def create_app():
     from blueprints.auth import auth_bp
     from blueprints.caterer import caterer_bp
     from blueprints.client import client_bp
+    from blueprints.legal import legal_bp
     from blueprints.uploads import uploads_bp
 
     app.register_blueprint(auth_bp)
@@ -169,6 +170,7 @@ def create_app():
     app.register_blueprint(caterer_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(legal_bp)
     app.register_blueprint(uploads_bp)
 
     # Per-blueprint rate limits (on top of the global default).

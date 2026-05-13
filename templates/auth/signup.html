@@ -126,12 +126,23 @@
           </div>
         </div>
 
+        <label class="flex items-start gap-2 text-sm text-text mb-4 cursor-pointer">
+          <input type="checkbox" id="accept-terms" name="accept_terms" value="on" required
+            class="mt-0.5 w-4 h-4 accent-navy flex-shrink-0">
+          <span>
+            J'ai pris connaissance et j'accepte les
+            <a href="{{ url_for('legal.cgs_current') }}" target="_blank" rel="noopener"
+              class="text-navy underline">conditions g&#233;n&#233;rales de services</a>.
+          </span>
+        </label>
+
         <button type="submit" id="signup-submit" disabled
           class="w-full py-3 rounded-xl font-medium btn-coral signup-submit-disabled">
           Cr&#233;er mon compte
         </button>
         <p id="signup-hint" class="text-xs text-center mt-2 text-mute">
-          Remplissez tous les champs et choisissez un mot de passe valide.
+          Remplissez tous les champs, choisissez un mot de passe valide
+          et acceptez les conditions g&#233;n&#233;rales de services.
         </p>
       </form>
     </div>

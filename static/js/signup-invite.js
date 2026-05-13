@@ -56,7 +56,9 @@
 
     var btn = document.getElementById("signup-invite-submit");
     if (btn) {
-      var valid = rules.length && rules.categories;
+      var terms = document.getElementById("accept-terms");
+      var termsOk = terms ? terms.checked : true;
+      var valid = rules.length && rules.categories && termsOk;
       btn.disabled = !valid;
       btn.classList.toggle("signup-submit-disabled", !valid);
     }
@@ -67,6 +69,10 @@
     if (pwEl) togglePassword(pwEl.dataset.target, pwEl);
   });
   document.addEventListener("input", function (ev) {
+    if (ev.target.closest("#signup-invite-form")) revalidate();
+  });
+  // `input` doesn't fire for checkbox toggles in older browsers; `change` does.
+  document.addEventListener("change", function (ev) {
     if (ev.target.closest("#signup-invite-form")) revalidate();
   });
   document.addEventListener("DOMContentLoaded", revalidate);
