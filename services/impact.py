@@ -6,6 +6,15 @@ commande n'est pas réglée, son montant n'a pas encore quitté la
 trésorerie de l'acheteur — il ne compte donc pas comme un achat
 inclusif réalisé.
 
+`Quote.total_amount_ht` ne contient que la prestation traiteur (somme
+des lignes du devis). Les 5% de frais de mise en relation sont
+calculés à part (`platform_fee_ht = total_ht × commission_rate`) et
+facturés via un `CommissionInvoice` distinct lié à l'`Order` — ils
+n'entrent donc **pas** dans le total impact affiché côté client. Si
+un futur refactor déplace la commission dans `Quote.total_amount_ht`,
+il faudra soustraire `Caterer.commission_rate × total_amount_ht` ici
+pour conserver la sémantique « achat inclusif » du chiffre.
+
 Le découpage SIAE / STPA suit la nomenclature des structures du
 marché de l'inclusion :
 
