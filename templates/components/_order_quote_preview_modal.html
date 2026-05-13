@@ -4,11 +4,17 @@
    PDF route renders.
 
    Args:
-     order        : the Order whose quote is being previewed.
-     download_url : role-specific URL for the "Télécharger" link
-                    (caterer.quote_pdf / client.quote_pdf /
-                    admin.quote_pdf), already resolved by the caller. #}
-{% macro order_quote_preview_modal(order, download_url) %}
+     order            : the Order whose quote is being previewed.
+     download_url     : role-specific URL for the "Télécharger" link
+                        (caterer.quote_pdf / client.quote_pdf /
+                        admin.quote_pdf), already resolved by the
+                        caller.
+     meal_type_labels : MEAL_TYPE_LABELS dict, consumed by the included
+                        _pdf_preview.html partial. Must be passed in
+                        explicitly because a Jinja {% include %} sitting
+                        inside a macro does not inherit the calling
+                        template's globals. #}
+{% macro order_quote_preview_modal(order, download_url, meal_type_labels) %}
 <div id="order-quote-preview-modal"
      class="hidden fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
      style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>

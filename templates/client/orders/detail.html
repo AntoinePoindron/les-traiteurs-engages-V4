@@ -317,7 +317,7 @@
 </main>
 
 {% if pdf_preview %}
-{{ order_quote_preview_modal(order, url_for('client.quote_pdf', request_id=order.quote.quote_request_id, q_id=order.quote.id)) }}
+{{ order_quote_preview_modal(order, url_for('client.quote_pdf', request_id=order.quote.quote_request_id, q_id=order.quote.id), meal_type_labels) }}
 {% endif %}
 
 {% endblock %}
