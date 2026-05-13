@@ -122,7 +122,10 @@
         {% endif %}
         {% if qr.wants_setup %}
         <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
-          <i data-lucide="package" class="w-3 h-3"></i> Installation
+          <i data-lucide="package" class="w-3 h-3"></i>
+          Installation{% if qr.service_setup_time %}
+            &middot; à {{ qr.service_setup_time.strftime('%H:%M') }}
+          {% endif %}
         </span>
         {% endif %}
         {% if qr.wants_cleanup %}
@@ -131,6 +134,16 @@
         </span>
         {% endif %}
       </div>
+      {% if qr.service_waitstaff_details %}
+      <p class="text-xs mt-3 text-mute">
+        <span class="font-bold">Service en salle :</span> {{ qr.service_waitstaff_details }}
+      </p>
+      {% endif %}
+      {% if qr.service_setup_details %}
+      <p class="text-xs mt-2 text-mute">
+        <span class="font-bold">Installation :</span> {{ qr.service_setup_details }}
+      </p>
+      {% endif %}
     </div>
   </div>
 

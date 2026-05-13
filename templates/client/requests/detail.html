@@ -166,12 +166,23 @@
         <div class="flex flex-wrap gap-2">
           {% for svc in services_list %}
           <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-cream">
-            <span class="text-xs font-bold whitespace-nowrap text-text-soft">{{ svc }}</span>
+            <span class="text-xs font-bold whitespace-nowrap text-text-soft">
+              {{ svc }}{% if svc == 'Installation' and qr.service_setup_time %}
+                &middot; à {{ qr.service_setup_time.strftime('%H:%M') }}
+              {% endif %}
+            </span>
           </div>
           {% endfor %}
         </div>
         {% if qr.service_waitstaff_details %}
-        <p class="text-xs mt-2 text-mute">{{ qr.service_waitstaff_details }}</p>
+        <p class="text-xs mt-2 text-mute">
+          <span class="font-bold">Service en salle :</span> {{ qr.service_waitstaff_details }}
+        </p>
+        {% endif %}
+        {% if qr.service_setup_details %}
+        <p class="text-xs mt-2 text-mute">
+          <span class="font-bold">Installation :</span> {{ qr.service_setup_details }}
+        </p>
         {% endif %}
         {% else %}
         <p class="text-xs text-mute">Aucun service complementaire</p>
