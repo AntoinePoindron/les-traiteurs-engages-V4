@@ -431,59 +431,57 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 
 /* Sidebar bell unread counter.
 
-   Visual goal: read at a glance from the sidebar header, even with the
-   bell at 20px in a 36px button. Three knobs do the heavy lifting:
+   The bell button is `w-9 h-9` (36×36) and the bell glyph itself is
+   `w-5 h-5` (20×20) centred via flex. The badge has to:
 
-   1. **Size + overflow** : 20px pill that sits *outside* the button's
-      top-right corner (negative offsets). Feels pinned-on rather than
-      tucked-in — same vocabulary as native OS notification dots.
-   2. **Solid white border + soft red glow** : the border separates
-      the pill from any sidebar background (light, hover, focus ring),
-      the glow draws the eye without screaming.
-   3. **Gentle pulse animation** : a 2s ease-in-out scale + halo cycle.
-      Stops the badge from blending into surrounding chrome the second
-      time the user lands on the page. Suppressed under
-      `prefers-reduced-motion` for vestibular-sensitive users.
+   * read at a glance from the sidebar header,
+   * **not cover the bell glyph** (the user must still recognise the
+     icon, not just the counter),
+   * **not eat clicks** — the badge sits over the button so clicks must
+     pass through.
 
-   Single-digit counts stay circular thanks to `min-width: 1.25rem`;
-   2-digit counts (10..99) stretch into a pill; past 99 the template
-   emits "99+" so the width stays bounded. */
+   The previous iteration positioned the pill at `top:-0.25rem;
+   right:-0.25rem` with a pulse animation. Combined the two visually
+   swallowed the bell on a 36px button and the overhang fell outside
+   the button's hit area, so clicks on what the user perceived as the
+   bell didn't open the dropdown. Keep the pill **inside** the button
+   on a top-right corner, use a thin white ring for separation, and
+   shrink the footprint to ~16px so the bell stays clearly visible
+   underneath. A subtle once-on-load attention pulse + a slow ambient
+   pulse keep the badge eye-catching without dominating the bell. */
 .notification-badge {
   position: absolute;
-  top: -0.25rem;             /* -4px : pops out past the button corner */
-  right: -0.25rem;
-  min-width: 1.25rem;        /* 20px — single digit stays perfectly round */
-  height: 1.25rem;
-  padding: 0 0.375rem;       /* room for "10".."99" without resizing the box */
+  top: 0.125rem;             /* 2px from the button's top edge */
+  right: 0.125rem;
+  min-width: 1rem;            /* 16px — bell glyph stays visible beneath */
+  height: 1rem;
+  padding: 0 0.25rem;
   border-radius: 9999px;
   background-color: var(--c-coral-red);
   color: white;
-  font-size: 0.75rem;        /* 12px — clear next to a 20px bell glyph */
+  font-size: 0.625rem;        /* 10px — legible on a 16px pill */
   font-weight: 700;
-  line-height: 1.25rem;
+  line-height: 1rem;
   text-align: center;
-  border: 2px solid white;   /* lifts the pill off any sidebar shade */
-  box-shadow: 0 0 0 0 rgba(255, 84, 85, 0.55);
-  pointer-events: none;       /* clicks should reach the bell button, not the pill */
-  animation: notification-badge-pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 0 1.5px white; /* ring against any sidebar shade */
+  pointer-events: none;       /* clicks must reach the bell button beneath */
+  /* Origin set so the scale animation grows from the badge centre,
+     not its top-left corner — otherwise the pulse drifts visually. */
+  transform-origin: center;
+  animation: notification-badge-pulse 2.4s ease-in-out infinite;
 }
 
-/* Pulse: subtle scale + outward halo ring. The halo grows then fades
-   out, so the eye catches the movement without a hard flash. */
+/* Halo pulse only — no transform on the pill itself, so the badge
+   doesn't grow over the bell at any point in the cycle. The ring
+   expands and fades, drawing the eye purely via the surrounding glow. */
 @keyframes notification-badge-pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(255, 84, 85, 0.55);
-  }
-  50% {
-    transform: scale(1.08);
-    box-shadow: 0 0 0 6px rgba(255, 84, 85, 0);
-  }
+  0%, 100% { box-shadow: 0 0 0 1.5px white, 0 0 0 0 rgba(255, 84, 85, 0.55); }
+  50%      { box-shadow: 0 0 0 1.5px white, 0 0 0 5px rgba(255, 84, 85, 0); }
 }
 
-/* `.hidden` (Tailwind utility) is `display:none` so no need to also
-   kill the animation — display:none implicitly stops it. We still
-   guard against motion-sensitivity preferences. */
+/* `.hidden` (Tailwind utility) is `display:none`, which implicitly
+   stops the animation. We still guard against motion-sensitivity
+   preferences for users who don't want the pulse. */
 @media (prefers-reduced-motion: reduce) {
   .notification-badge { animation: none; }
 }
