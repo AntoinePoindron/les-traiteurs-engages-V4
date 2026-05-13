@@ -429,26 +429,11 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 /* Badge sizes */
 .badge-xs { padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4; }
 
-/* Sidebar bell unread counter.
-
-   The bell button is `w-9 h-9` (36×36) and the bell glyph itself is
-   `w-5 h-5` (20×20) centred via flex. The badge has to:
-
-   * read at a glance from the sidebar header,
-   * **not cover the bell glyph** (the user must still recognise the
-     icon, not just the counter),
-   * **not eat clicks** — the badge sits over the button so clicks must
-     pass through.
-
-   The previous iteration positioned the pill at `top:-0.25rem;
-   right:-0.25rem` with a pulse animation. Combined the two visually
-   swallowed the bell on a 36px button and the overhang fell outside
-   the button's hit area, so clicks on what the user perceived as the
-   bell didn't open the dropdown. Keep the pill **inside** the button
-   on a top-right corner, use a thin white ring for separation, and
-   shrink the footprint to ~16px so the bell stays clearly visible
-   underneath. A subtle once-on-load attention pulse + a slow ambient
-   pulse keep the badge eye-catching without dominating the bell. */
+/* Sidebar bell unread counter. Sits inside the 36px button (no
+   overhang — overhang pixels fall outside the button's hit area
+   and clicks there don't open the dropdown). The white box-shadow
+   ring lifts the pill off any sidebar shade; pointer-events:none
+   keeps the bell beneath clickable. */
 .notification-badge {
   position: absolute;
   top: 0.125rem;             /* 2px from the button's top edge */

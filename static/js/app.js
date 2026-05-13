@@ -24,20 +24,24 @@
 
   function updateNotificationBadge() {
     // The server pre-renders the count + visibility on every page load
-    // via the `_inject_notifications` context processor, so this poll
-    // only refreshes the value live while the user keeps the tab open.
-    // Defensive: never touch the DOM unless the response is 2xx and
-    // shaped as expected — silently swallowing a 302/HTML body must not
-    // wipe out the server-rendered value or knock other handlers over.
+    // via the `_inject_notifications` context processor; this poll
+    // only refreshes the value live. A failed/non-JSON response leaves
+    // the SSR value intact rather than wiping the badge to 0.
+    if (document.hidden) return; // skip work on backgrounded tabs
     fetch('/api/notifications', { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data || typeof data.unread_count !== 'number') return;
-        var n = Math.max(0, data.unread_count | 0);
+        var n = Math.max(0, data.unread_count);
         document.querySelectorAll('.notification-badge').forEach(function (badge) {
+          // No-op short-circuit: avoid 4 DOM writes per tick when the
+          // count hasn't moved (the common case on idle tabs).
+          if (badge.dataset.count === String(n)) return;
+          var plural = n === 1 ? '' : 's';
           badge.classList.toggle('hidden', n <= 0);
           badge.textContent = n > 99 ? '99+' : String(n);
           badge.setAttribute('data-count', String(n));
+          badge.setAttribute('aria-label', n + ' notification' + plural + ' non lue' + plural);
         });
       })
       .catch(function () { /* leave the SSR value intact */ });

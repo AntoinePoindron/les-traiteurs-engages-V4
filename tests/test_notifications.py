@@ -172,43 +172,9 @@ def test_notifications_modal_escapes_body_against_xss(client, login):
 # ---------------------------------------------------------------------------
 
 
-def _seed_unread_notifs(user_id, n: int, marker: str) -> None:
-    """Create N unread notifications for `user_id`, tagged via `type=marker`
-    so the test can clean them up at the end without touching siblings."""
-    from database import session_factory
-    from services.notifications import create_notification
-
-    s = session_factory()
-    try:
-        for i in range(n):
-            create_notification(
-                s,
-                user_id=user_id,
-                type=marker,
-                title=f"badge test {i}",
-                body=None,
-            )
-        s.commit()
-    finally:
-        s.close()
-
-
-def _delete_notifs(marker: str) -> None:
-    from database import session_factory
-    from models import Notification
-
-    s = session_factory()
-    try:
-        s.execute(Notification.__table__.delete().where(Notification.type == marker))
-        s.commit()
-    finally:
-        s.close()
-
-
 def _bell_badge_html(body: str) -> str:
-    """Extract the `<span class="notification-badge ...">…</span>` from a
-    rendered page body. Returns the span tag including its text content,
-    or '' if not found."""
+    """Extract the `<span class="notification-badge ...">…</span>` span
+    (tag + text) from a rendered page body, or '' if not found."""
     import re
 
     m = re.search(
@@ -219,19 +185,51 @@ def _bell_badge_html(body: str) -> str:
     return m.group(0) if m else ""
 
 
-def test_bell_badge_hidden_when_no_unread(client, login):
-    """A user with zero unread notifications must see the badge in its
-    `hidden` state on first paint. The previous shape relied on a JS
-    fetch to *show* it, which meant a single fetch hiccup left users
-    blind to fresh notifications — see the regression that triggered
-    this fix."""
+@pytest.fixture
+def seed_alice_unread():
+    """Seed N unread notifications for alice in a single bulk INSERT,
+    then wipe alice's notifications afterwards. 120 row-by-row adds
+    (the clamp test's worst case) was 100× slower than one INSERT…
+    VALUES; the bulk path also frees us from per-row `created_at`
+    autogeneration concerns since `server_default=now()` fires once.
+
+    Usage: pass `n` via indirect parametrization, fixture yields the
+    user id so the caller can ignore the seeding plumbing."""
     from sqlalchemy import select
 
     from database import session_factory
     from models import Notification, User
 
-    # Start from a clean slate — alice has no unread notifs from
-    # earlier tests in the run.
+    def _seed(n: int):
+        s = session_factory()
+        try:
+            alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+            # Wipe first so the badge count reflects exactly `n`, not
+            # whatever leaked from prior tests sharing the DB.
+            s.execute(
+                Notification.__table__.delete().where(Notification.user_id == alice.id)
+            )
+            if n > 0:
+                s.execute(
+                    Notification.__table__.insert(),
+                    [
+                        {
+                            "user_id": alice.id,
+                            "type": "test_bell_badge",
+                            "title": f"badge test {i}",
+                            "body": None,
+                            "is_read": False,
+                        }
+                        for i in range(n)
+                    ],
+                )
+            s.commit()
+            return alice.id
+        finally:
+            s.close()
+
+    yield _seed
+
     s = session_factory()
     try:
         alice = s.scalar(select(User).where(User.email == "alice@test.local"))
@@ -242,87 +240,41 @@ def test_bell_badge_hidden_when_no_unread(client, login):
     finally:
         s.close()
 
+
+@pytest.mark.parametrize(
+    "n, expect_hidden, expect_text",
+    [
+        # Zero unread: badge present in HTML but carries `hidden` —
+        # the previous shape left this to a JS fetch, so a single
+        # fetch hiccup blinded users to fresh notifs.
+        (0, True, "0"),
+        # Typical case: badge visible with the literal count.
+        (3, False, "3"),
+        # Clamp: past 99 we collapse to "99+" so the pill width stays
+        # bounded on a 36px button. `data-count` keeps the truth.
+        (120, False, "99+"),
+    ],
+    ids=["zero", "three", "clamped"],
+)
+def test_bell_badge_renders_unread_count(
+    client, login, seed_alice_unread, n, expect_hidden, expect_text
+):
+    seed_alice_unread(n)
     login("alice@test.local")
     r = client.get("/client/dashboard")
     assert r.status_code == 200
+
     badge = _bell_badge_html(r.data.decode("utf-8", errors="replace"))
     assert badge, "bell badge must always be rendered, even at zero count"
-    assert "hidden" in badge, "badge must carry the `hidden` class when count is 0"
-    assert 'data-count="0"' in badge
 
-
-def test_bell_badge_shows_count_when_unread(client, login):
-    """With N unread notifications the badge renders WITHOUT `hidden`
-    and shows N as its text content. This is the bug the user reported:
-    fresh notifs landing without surfacing on the bell."""
-    from sqlalchemy import select
-
-    from models import User
-
-    s = __import__("database").session_factory()
-    try:
-        alice = s.scalar(select(User).where(User.email == "alice@test.local"))
-    finally:
-        s.close()
-
-    marker = "test_bell_count"
-    _delete_notifs(marker)
-    _seed_unread_notifs(alice.id, n=3, marker=marker)
-
-    try:
-        login("alice@test.local")
-        r = client.get("/client/dashboard")
-        assert r.status_code == 200
-        badge = _bell_badge_html(r.data.decode("utf-8", errors="replace"))
-        assert badge, "badge must be in the bell button"
-        # `class="notification-badge"` is followed by the conditional
-        # `hidden` modifier; with N>0 it must NOT be present.
-        assert (
-            'class="notification-badge "' in badge
-            or 'class="notification-badge"' in badge
-        ), (
-            "badge must NOT carry `hidden` when there are unread notifications; "
-            f"got: {badge}"
-        )
-        assert ">3<" in badge.replace(" ", "").replace("\n", ""), (
-            f"badge must render the unread count as visible text; got: {badge}"
-        )
-        assert 'data-count="3"' in badge
-    finally:
-        _delete_notifs(marker)
-
-
-def test_bell_badge_clamps_to_99_plus(client, login):
-    """Past 99 unread notifications we render '99+' so the pill width
-    stays bounded — the sidebar header is a small target and a 3-digit
-    count would overflow the bell button. Tests the clamp."""
-    from sqlalchemy import select
-
-    from models import User
-
-    s = __import__("database").session_factory()
-    try:
-        alice = s.scalar(select(User).where(User.email == "alice@test.local"))
-    finally:
-        s.close()
-
-    marker = "test_bell_clamp"
-    _delete_notifs(marker)
-    _seed_unread_notifs(alice.id, n=120, marker=marker)
-
-    try:
-        login("alice@test.local")
-        r = client.get("/client/dashboard")
-        assert r.status_code == 200
-        badge = _bell_badge_html(r.data.decode("utf-8", errors="replace"))
-        assert "99+" in badge, (
-            f"counts above 99 must render as the literal '99+'; got: {badge}"
-        )
-        assert 'data-count="120"' in badge, (
-            f"data-count keeps the true value so the JS poll can compare; got: {badge}"
-        )
-    finally:
-        _delete_notifs(marker)
+    has_hidden = "hidden" in badge
+    assert has_hidden is expect_hidden, (
+        f"badge `hidden` mismatch for n={n}: got {badge}"
+    )
+    assert f'data-count="{n}"' in badge
+    assert f">{expect_text}<" in badge.replace(" ", "").replace("\n", ""), (
+        f"badge text mismatch for n={n}: got {badge}"
+    )
 
 
 # ---------------------------------------------------------------------------
