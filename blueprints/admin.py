@@ -33,7 +33,6 @@ from models import (
     PaymentStatus,
     Quote,
     QuoteRequest,
-    QuoteRequestCaterer,
     QuoteRequestStatus,
     QuoteStatus,
     User,
@@ -208,7 +207,7 @@ def qualification_detail(request_id):
         .options(
             joinedload(QuoteRequest.user),
             joinedload(QuoteRequest.company),
-            selectinload(QuoteRequest.caterers).joinedload(QuoteRequestCaterer.caterer),
+            selectinload(QuoteRequest.quotes).joinedload(Quote.caterer),
         )
     )
     if not qr:
