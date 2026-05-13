@@ -147,6 +147,55 @@ def qualification():
     )
 
 
+# Tab labels for the /admin/requests page. Keys map to the URL
+# `?status=` param; values are the human-readable tab label. "all"
+# (no filter) is the default landing tab.
+_REQUEST_STATUS_TABS: dict[str, str] = {
+    "all": "Toutes",
+    QuoteRequestStatus.pending_review.value: "En attente",
+    QuoteRequestStatus.sent_to_caterers.value: "Envoyées",
+    QuoteRequestStatus.completed.value: "Terminées",
+    QuoteRequestStatus.quotes_refused.value: "Devis refusés",
+    QuoteRequestStatus.cancelled.value: "Annulées",
+    QuoteRequestStatus.draft.value: "Brouillons",
+}
+
+
+@admin_bp.route("/requests")
+@login_required
+@role_required("super_admin")
+def requests_list():
+    """Exhaustive list of every QuoteRequest on the platform.
+
+    `/qualification` only shows the pending-review queue (admin's
+    work-to-do view); this page is the full read-only registry, with
+    a tab filter on `status`. The detail link reuses
+    `/qualification/<id>` since that route already accepts any status.
+    """
+    db = get_db()
+    status_filter = request.args.get("status", "all")
+    if status_filter not in _REQUEST_STATUS_TABS:
+        status_filter = "all"
+
+    stmt = (
+        select(QuoteRequest)
+        .options(joinedload(QuoteRequest.company))
+        .order_by(QuoteRequest.created_at.desc())
+    )
+    if status_filter != "all":
+        stmt = stmt.where(QuoteRequest.status == status_filter)
+    rows = db.scalars(stmt).all()
+
+    return render_template(
+        "admin/requests/list.html",
+        user=g.current_user,
+        requests=rows,
+        status_tabs=_REQUEST_STATUS_TABS,
+        current_tab=status_filter,
+        meal_type_labels=MEAL_TYPE_LABELS,
+    )
+
+
 @admin_bp.route("/qualification/<uuid:request_id>")
 @login_required
 @role_required("super_admin")
