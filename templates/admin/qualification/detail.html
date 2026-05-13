@@ -159,28 +159,29 @@
   </div>
 
   <div class="space-y-6">
-    {# Real caterers tied to this request (rows in quote_request_caterers).
-       Empty before the admin approves the demand — in that case we only
-       show the "Suggestions du matching" block below. #}
-    {% if qr.caterers %}
+    {# Caterers who effectively sent a quote on this request — drafts are
+       excluded since the client never sees them. Empty until the first
+       caterer pushes their devis through. #}
+    {% set sent_quotes = qr.quotes | rejectattr('status', 'equalto', QuoteStatus.draft) | list %}
+    {% if sent_quotes %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4">Traiteurs concernes</h2>
-      <p class="font-display font-bold text-3xl text-black">{{ qr.caterers|length }}</p>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Devis envoyes</h2>
+      <p class="font-display font-bold text-3xl text-black">{{ sent_quotes|length }}</p>
       <p class="text-xs mt-1 text-mute">
-        traiteur{{ 's' if qr.caterers|length != 1 }} effectivement notifie{{ 's' if qr.caterers|length != 1 }} par cette demande
+        traiteur{{ 's' if sent_quotes|length != 1 }} ayant envoye un devis
       </p>
       <div class="mt-4">
-        {% for qrc in qr.caterers %}
+        {% for q in sent_quotes %}
         <div class="flex items-center gap-3 py-3.5 border-t border-soft">
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-black">{{ qrc.caterer.name }}</p>
+            <p class="text-sm font-medium text-black">{{ q.caterer.name }}</p>
             <p class="text-xs text-mute">
-              {{ qrc.caterer.city or '?' }}
-              &middot; statut : {{ qrc.status.value }}
-              {% if qrc.responded_at %}&middot; repondu le {{ qrc.responded_at.strftime('%d/%m/%Y') }}{% endif %}
+              {{ q.caterer.city or '?' }}
+              &middot; {{ q.reference }}
+              &middot; {{ "%.2f"|format(q.total_amount_ht or 0) }} EUR HT
             </p>
           </div>
-          {{ structure_type_badge(qrc.caterer.structure_type) }}
+          {{ status_badge(q.status) }}
         </div>
         {% endfor %}
       </div>
