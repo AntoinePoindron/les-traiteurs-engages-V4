@@ -742,5 +742,11 @@ textarea.wizard-field-error {
 .legal-page li              { margin-bottom: 0.25rem; }
 .legal-page a               { color: var(--c-navy); text-decoration: underline; }
 .legal-page a:hover         { opacity: 0.8; }
+
+/* Inline navy link inside body copy (forms, signup checkbox, etc.).
+   `underline` + `text-navy` aren't in our curated Tailwind bundle, so
+   anchors must opt into this class to be visibly linkable. */
+.text-link                  { color: var(--c-navy); text-decoration: underline; }
+.text-link:hover            { opacity: 0.8; }
 .legal-page strong          { font-weight: 700; color: var(--c-text); }
 
