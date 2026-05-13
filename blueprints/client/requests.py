@@ -14,6 +14,7 @@ from flask import (
     url_for,
 )
 from sqlalchemy import String, and_, cast, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.client._helpers import (
@@ -294,6 +295,12 @@ def register(bp):
             target_caterer=target_caterer,
             meal_type_options=_meal_type_options(restrict_to=restrict),
             caterer_capabilities=_caterer_capabilities(target_caterer),
+            # Idempotency token: same value across re-renders of this
+            # GET (the browser's "back" button replays the exact same
+            # HTML response from history without re-hitting the server),
+            # but a fresh GET in another tab produces a new one. The
+            # POST handler uses it to deduplicate.
+            form_token=str(uuid.uuid4()),
         )
 
     @bp.route("/requests/new", methods=["POST"])
@@ -303,6 +310,30 @@ def register(bp):
         user = g.current_user
         db = get_db()
         form = QuoteRequestForm()
+
+        # Idempotency : the GET emits a one-shot UUID into a hidden
+        # `form_token` field. A "back + resubmit" replays the same
+        # token; we short-circuit straight to the existing detail page
+        # instead of creating a duplicate row. Scoping to company_id
+        # closes a (very unlikely) cross-tenant clash.
+        form_token = (request.form.get("form_token") or "").strip()
+        if form_token:
+            try:
+                uuid.UUID(form_token)
+            except ValueError:
+                form_token = ""
+        if form_token:
+            existing = db.scalar(
+                select(QuoteRequest).where(
+                    QuoteRequest.submission_token == form_token,
+                    QuoteRequest.company_id == user.company_id,
+                )
+            )
+            if existing is not None:
+                flash("Cette demande a deja ete envoyee.", "info")
+                return redirect(
+                    url_for("client.request_detail", request_id=existing.id)
+                )
 
         # Resolve the targeted caterer (if any) before validation so the
         # form-side `validate_meal_type` cross-field rule has the right
@@ -336,6 +367,9 @@ def register(bp):
                 target_caterer=target_caterer,
                 meal_type_options=_meal_type_options(restrict_to=restrict),
                 caterer_capabilities=_caterer_capabilities(target_caterer),
+                # Echo the token back so the user's correction stays
+                # idempotent — a tab-restored form keeps the same token.
+                form_token=form_token or str(uuid.uuid4()),
             ), 400
 
         service_id = own_service_id(db, user, form.company_service_id.data)
@@ -362,13 +396,30 @@ def register(bp):
             user_id=user.id,
             company_service_id=service_id,
             status=status,
+            submission_token=form_token or None,
         )
         apply_quote_request_form(qr, form)
         # Force the persisted is_compare_mode to match the resolved flow
         # (apply_quote_request_form may have written it from the form).
         qr.is_compare_mode = is_compare
         db.add(qr)
-        db.flush()
+        try:
+            db.flush()
+        except IntegrityError:
+            # Race condition: a concurrent POST landed first and grabbed
+            # the same token. Resolve to that one instead of failing.
+            db.rollback()
+            existing = db.scalar(
+                select(QuoteRequest).where(
+                    QuoteRequest.submission_token == form_token,
+                    QuoteRequest.company_id == user.company_id,
+                )
+            )
+            if existing is None:
+                # Token clash that's NOT the dedup case — surface it.
+                raise
+            flash("Cette demande a deja ete envoyee.", "info")
+            return redirect(url_for("client.request_detail", request_id=existing.id))
 
         if target_caterer is not None:
             db.add(

@@ -344,6 +344,13 @@ class QuoteRequest(DietaryMixin, Base):
     status: Mapped[QuoteRequestStatus] = mapped_column(
         String(30), default=QuoteRequestStatus.draft
     )
+    # Idempotency token. Generated server-side on `GET /requests/new`
+    # and round-tripped through a hidden input. The UNIQUE constraint
+    # makes "back + resubmit" or a double-click land on the existing
+    # row instead of inserting a duplicate (the POST handler catches
+    # the IntegrityError and redirects to the original detail page).
+    # Nullable so existing rows aren't disturbed.
+    submission_token: Mapped[str | None] = mapped_column(String(36), unique=True)
     service_type: Mapped[str | None] = mapped_column(String(100))
     # 40 chars fits the longest slug `cocktail_dejeunatoire` (21) plus
     # headroom for future offerings without another migration.
