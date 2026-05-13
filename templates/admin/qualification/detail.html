@@ -21,6 +21,13 @@
       <p class="text-sm font-medium text-black">{{ qr.company.name }}</p>
       <p class="text-xs mt-1 text-mute">SIRET : {{ qr.company.siret }}</p>
       {% if qr.company.city %}<p class="text-xs text-mute">{{ qr.company.city }}</p>{% endif %}
+      {% if qr.user %}
+      <div class="mt-4 pt-4 border-t border-soft">
+        <p class="text-xs font-bold uppercase text-mute mb-1">Demande creee par</p>
+        <p class="text-sm font-medium text-black">{{ qr.user.first_name }} {{ qr.user.last_name }}</p>
+        <p class="text-xs mt-1 text-mute">{{ qr.user.email }}</p>
+      </div>
+      {% endif %}
     </div>
 
     <div class="bg-white rounded-lg p-6">
@@ -135,11 +142,39 @@
   </div>
 
   <div class="space-y-6">
+    {# Real caterers tied to this request (rows in quote_request_caterers).
+       Empty before the admin approves the demand — in that case we only
+       show the "Suggestions du matching" block below. #}
+    {% if qr.caterers %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4">Traiteurs notifies</h2>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Traiteurs concernes</h2>
+      <p class="font-display font-bold text-3xl text-black">{{ qr.caterers|length }}</p>
+      <p class="text-xs mt-1 text-mute">
+        traiteur{{ 's' if qr.caterers|length != 1 }} effectivement notifie{{ 's' if qr.caterers|length != 1 }} par cette demande
+      </p>
+      <div class="mt-4">
+        {% for qrc in qr.caterers %}
+        <div class="flex items-center gap-3 py-3.5 border-t border-soft">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-black">{{ qrc.caterer.name }}</p>
+            <p class="text-xs text-mute">
+              {{ qrc.caterer.city or '?' }}
+              &middot; statut : {{ qrc.status.value }}
+              {% if qrc.responded_at %}&middot; repondu le {{ qrc.responded_at.strftime('%d/%m/%Y') }}{% endif %}
+            </p>
+          </div>
+          {{ structure_type_badge(qrc.caterer.structure_type) }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-lg p-6">
+      <h2 class="font-display font-bold text-lg text-black mb-4">Suggestions du matching</h2>
       <p class="font-display font-bold text-3xl text-black">{{ matches|length }}</p>
       <p class="text-xs mt-1 text-mute">
-        traiteur{{ 's' if matches|length != 1 }} cible{{ 's' if matches|length != 1 }} par le matching automatique
+        traiteur{{ 's' if matches|length != 1 }} propose{{ 's' if matches|length != 1 }} par le matching automatique
       </p>
 
       {% if matches %}
