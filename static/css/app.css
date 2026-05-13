@@ -465,25 +465,6 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
   text-align: center;
   box-shadow: 0 0 0 1.5px white; /* ring against any sidebar shade */
   pointer-events: none;       /* clicks must reach the bell button beneath */
-  /* Origin set so the scale animation grows from the badge centre,
-     not its top-left corner — otherwise the pulse drifts visually. */
-  transform-origin: center;
-  animation: notification-badge-pulse 2.4s ease-in-out infinite;
-}
-
-/* Halo pulse only — no transform on the pill itself, so the badge
-   doesn't grow over the bell at any point in the cycle. The ring
-   expands and fades, drawing the eye purely via the surrounding glow. */
-@keyframes notification-badge-pulse {
-  0%, 100% { box-shadow: 0 0 0 1.5px white, 0 0 0 0 rgba(255, 84, 85, 0.55); }
-  50%      { box-shadow: 0 0 0 1.5px white, 0 0 0 5px rgba(255, 84, 85, 0); }
-}
-
-/* `.hidden` (Tailwind utility) is `display:none`, which implicitly
-   stops the animation. We still guard against motion-sensitivity
-   preferences for users who don't want the pulse. */
-@media (prefers-reduced-motion: reduce) {
-  .notification-badge { animation: none; }
 }
 
 /* ============================================================

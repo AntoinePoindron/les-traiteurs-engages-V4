@@ -22,37 +22,25 @@
     main.style.marginLeft = window.innerWidth >= 1024 ? '241px' : '0';
   }
 
-  function applyNotificationCount(count) {
-    var n = Math.max(0, parseInt(count, 10) || 0);
-    document.querySelectorAll('.notification-badge').forEach(function (badge) {
-      badge.classList.toggle('hidden', n <= 0);
-      badge.textContent = n > 99 ? '99+' : String(n);
-      badge.setAttribute('data-count', String(n));
-      // aria-label kept in sync so a screen-reader user hears the live
-      // value, not the stale one rendered server-side.
-      badge.setAttribute(
-        'aria-label',
-        n + ' notification' + (n === 1 ? '' : 's') + ' non lue' + (n === 1 ? '' : 's')
-      );
-    });
-  }
-
   function updateNotificationBadge() {
-    // Server-side render already gave the badge its initial value, so a
-    // failed fetch here is non-fatal — the worst case is the count is a
-    // few seconds stale until the next poll succeeds. We require a 2xx
-    // *and* a non-empty JSON shape before touching the DOM.
+    // The server pre-renders the count + visibility on every page load
+    // via the `_inject_notifications` context processor, so this poll
+    // only refreshes the value live while the user keeps the tab open.
+    // Defensive: never touch the DOM unless the response is 2xx and
+    // shaped as expected — silently swallowing a 302/HTML body must not
+    // wipe out the server-rendered value or knock other handlers over.
     fetch('/api/notifications', { credentials: 'same-origin' })
-      .then(function (r) {
-        if (!r.ok) throw new Error('http ' + r.status);
-        return r.json();
-      })
+      .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (data && typeof data.unread_count === 'number') {
-          applyNotificationCount(data.unread_count);
-        }
+        if (!data || typeof data.unread_count !== 'number') return;
+        var n = Math.max(0, data.unread_count | 0);
+        document.querySelectorAll('.notification-badge').forEach(function (badge) {
+          badge.classList.toggle('hidden', n <= 0);
+          badge.textContent = n > 99 ? '99+' : String(n);
+          badge.setAttribute('data-count', String(n));
+        });
       })
-      .catch(function () {});
+      .catch(function () { /* leave the SSR value intact */ });
   }
 
   var ACTIONS = {
