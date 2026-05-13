@@ -32,7 +32,8 @@
     </div>
 
     <!-- Wizard form -->
-    <form id="wizard-form" method="POST" action="{{ url_for('client.requests_new') }}">
+    <form id="wizard-form" method="POST" action="{{ url_for('client.requests_new') }}"
+          data-back-redirect="{{ url_for('client.requests_list') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {# Idempotency token : the POST handler refuses to create a second
          QuoteRequest if it's already seen this token (e.g. user pressed

@@ -1,3 +1,19 @@
+// When the user submits the wizard, the next "back" navigation can
+// restore this very page from bfcache (Chrome/Firefox), with the DOM
+// frozen at step 7 — even though the response carried
+// `Cache-Control: no-store`. `pageshow` with `event.persisted === true`
+// is THE signal that the page was restored from bfcache; we redirect
+// to whatever URL the template configured (typically the requests
+// list) so the user never lands back on a stale, already-submitted
+// form. Scoped via `data-back-redirect` so this only fires on pages
+// that opt in (new.html), not on edit.html.
+window.addEventListener('pageshow', function (e) {
+  if (!e.persisted) return;
+  var f = document.getElementById('wizard-form');
+  if (!f || !f.dataset || !f.dataset.backRedirect) return;
+  window.location.replace(f.dataset.backRedirect);
+});
+
 document.addEventListener('DOMContentLoaded', function () {
   var totalSteps = 7;
   var currentStep = 1;
