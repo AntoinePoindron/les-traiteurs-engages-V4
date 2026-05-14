@@ -80,17 +80,18 @@ boot only. Once the platform is live, prefer the CLI: passwords are
 typed at the prompt (no shell history, no env exposure) and the policy
 from `blueprints/auth.validate_password` is enforced.
 
-## Default credentials
+## Local dev fixtures
 
-| Role | Email | Password |
-|---|---|---|
-| Super admin | admin@traiteurs-engages.fr | admin |
-| Client admin (Acme) | alice@acme-solutions.fr | password123 |
-| Client admin (TechCorp) | bob@techcorp.fr | password123 |
-| Client user | claire@acme-solutions.fr | password123 |
-| Caterer (ESAT) | contact@saveurs-solidaires.fr | password123 |
-| Caterer (EA) | contact@traiteur-co.fr | password123 |
-| Caterer (EI) | contact@delices-engages.fr | password123 |
+`docker compose exec app python seed_data.py` populates a local DB with
+two client companies, three caterers, a few demands and an order. The
+seeder refuses to run unless `FLASK_DEBUG=1` (set in
+`docker-compose.dev.yml`) or `SEED_FIXTURES_ALLOW=1` is in the
+environment, so it can't be triggered accidentally on staging or prod.
+
+The accounts it creates all share the same throwaway password. Read
+[`seed_data.py`](seed_data.py) to find it — it is **not** documented
+here on purpose: a previous audit (C-3, 2026-05-13) flagged this README
+as a single-Google-search away from compromising the demo platform.
 
 ## Architecture
 
