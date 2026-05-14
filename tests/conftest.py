@@ -59,6 +59,11 @@ def _required_env():
     # doesn't exercise Redis itself, so opt-in to the in-memory store
     # explicitly here — that's exactly what `LIMITER_ALLOW_MEMORY` is for.
     os.environ.setdefault("LIMITER_ALLOW_MEMORY", "1")
+    # Same for the SESSION_COOKIE_SECURE default: the test client doesn't
+    # speak HTTPS, so leaving the Secure flag on means the session cookie
+    # never round-trips, breaking every authenticated assertion. Override
+    # for tests; prod keeps the safe True default flipped by H-13.
+    os.environ.setdefault("SECURE_COOKIES", "false")
     yield
 
 

@@ -1,13 +1,20 @@
-"""Tests for the H-3 and H-11 findings of the 2026-05-13 security audit.
+"""Tests for the infra/headers cluster of the 2026-05-13 security audit.
+
+Findings covered so far:
 
   * H-3  — `_limiter_storage_uri()` refuses to start on `memory://`
            outside an explicit dev / test opt-in.
   * H-11 — `gunicorn.conf.py` now sets `forwarded_allow_ips` and request
            caps so trust-chain headers (X-Forwarded-*) actually reach
            Werkzeug ProxyFix on Scalingo.
+  * H-13 — `secure_cookies` defaults to True; HSTS is decoupled from
+           that flag and emitted whenever the request is secure.
 """
 
 from __future__ import annotations
+
+import importlib
+import os
 
 import pytest
 
@@ -123,3 +130,70 @@ def test_gunicorn_conf_caps_request_line_and_field_size():
     conf = _load_gunicorn_conf()
     assert conf.limit_request_line >= 4096
     assert conf.limit_request_field_size >= 8192
+
+
+# ---------------------------------------------------------------------------
+# H-13 — secure_cookies default + HSTS decoupling
+# ---------------------------------------------------------------------------
+
+
+def test_secure_cookies_defaults_to_true_when_env_is_absent(monkeypatch):
+    """Audit H-13: the Pydantic default must be True so a self-host
+    operator who forgets the env var still gets Secure cookies + HSTS.
+    Empty-string env (the docker-compose interpolation pattern) keeps
+    coercing to False for local dev."""
+    # Wipe the cached settings module so we re-evaluate the field default.
+    monkeypatch.delenv("SECURE_COOKIES", raising=False)
+    import config as config_module
+
+    # Reload to re-apply field defaults under the clean env.
+    importlib.reload(config_module)
+    fresh_settings = config_module.Settings()
+    assert fresh_settings.secure_cookies is True, (
+        "default must be True; got False — H-13 regression"
+    )
+
+
+def test_secure_cookies_empty_env_still_coerces_to_false(monkeypatch):
+    """Belt for the docker-compose case: SECURE_COOKIES is interpolated
+    as `${SECURE_COOKIES:-}` so it lands as '' when unset upstream. The
+    `_bool_empty_to_false` validator must keep coercing that to False,
+    otherwise we accidentally turn on Secure cookies on local HTTP and
+    every dev login silently fails."""
+    monkeypatch.setenv("SECURE_COOKIES", "")
+    import config as config_module
+
+    importlib.reload(config_module)
+    fresh_settings = config_module.Settings()
+    assert fresh_settings.secure_cookies is False
+
+
+def test_hsts_emitted_for_secure_requests(app):
+    """Audit H-13: HSTS now goes out whenever the request is actually
+    TLS, regardless of the `secure_cookies` flag. We simulate by
+    overriding `is_secure` via WSGI environ."""
+    # Force a "TLS-looking" request via WSGI environ. ProxyFix isn't in
+    # the path of the test client but `request.is_secure` reads
+    # `wsgi.url_scheme` directly.
+    client = app.test_client()
+    resp = client.get("/", environ_overrides={"wsgi.url_scheme": "https"})
+    assert "Strict-Transport-Security" in resp.headers, (
+        "HSTS must be emitted on a TLS request, even when secure_cookies "
+        "is False (the case after H-13's decoupling)"
+    )
+
+
+def test_hsts_skipped_for_plain_http_when_secure_cookies_false(app):
+    """Inverse: a plain HTTP request with `secure_cookies=False` (the
+    local-dev situation) must NOT carry HSTS — otherwise a future
+    https-only deploy would cause `localhost` to refuse to load over
+    HTTP. This is the only path HSTS can leak the test env."""
+    # conftest sets SECURE_COOKIES=false explicitly for tests; this
+    # asserts that combo behaves as documented.
+    assert os.environ.get("SECURE_COOKIES", "").lower() == "false"
+
+    client = app.test_client()
+    resp = client.get("/", environ_overrides={"wsgi.url_scheme": "http"})
+    assert "Strict-Transport-Security" not in resp.headers, (
+        "HSTS must be skipped on plain HTTP when secure_cookies is False"
+    )
