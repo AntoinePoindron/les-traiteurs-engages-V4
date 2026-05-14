@@ -67,7 +67,14 @@ CSP = (
     "connect-src 'self' https://api-adresse.data.gouv.fr; "
     "object-src 'none'; "
     "frame-ancestors 'none'; "
-    "base-uri 'self'"
+    "base-uri 'self'; "
+    # Audit M-12 (2026-05-13): without `form-action 'self'`, an HTML
+    # injection that lands a `<form action="https://evil/">` in the
+    # rendered page would POST credentials / CSRF tokens off-origin
+    # before any other layer (CSP frame-ancestors, SameSite, etc.)
+    # could complain. The same-origin lock matches what every form
+    # in this codebase actually does.
+    "form-action 'self'"
 )
 
 
