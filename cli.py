@@ -17,6 +17,7 @@ admin lifecycle goes through this CLI.
 
 from __future__ import annotations
 
+import datetime
 import getpass
 import mimetypes
 import os
@@ -67,6 +68,11 @@ def create_admin(email: str, first_name: str, last_name: str):
 
         password = _read_password_twice()
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        # Stamp `password_changed_at` so the first password rotation does
+        # invalidate active sessions. `before_request` compares this against
+        # `session["pwd_changed_at"]` — a null value would silently disable
+        # the session-invalidation tripwire for newly-created admins.
+        now = datetime.datetime.utcnow()
 
         session.add(
             User(
@@ -76,6 +82,7 @@ def create_admin(email: str, first_name: str, last_name: str):
                 last_name=last_name,
                 role=UserRole.super_admin,
                 is_active=True,
+                password_changed_at=now,
             )
         )
         click.echo(f"Super-admin cree : {email}")
@@ -97,6 +104,11 @@ def reset_password(email: str):
 
         password = _read_password_twice("Nouveau mot de passe")
         user.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        # Audit H-5 (2026-05-13): the CLI is the incident-response tool
+        # ops reach for when a session is suspected compromised. Without
+        # bumping `password_changed_at`, the existing session keeps
+        # working — the very fix becomes a no-op against the attacker.
+        user.password_changed_at = datetime.datetime.utcnow()
         click.echo(f"Mot de passe reinitialise pour {email}.")
 
 
