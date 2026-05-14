@@ -54,6 +54,11 @@ def _required_env():
     # Use the in-memory dramatiq stub broker (no Redis dependency in tests).
     # services/billing_tasks.py reads this at import time.
     os.environ["DRAMATIQ_TESTING"] = "1"
+    # The rate-limiter refuses to start on `memory://` outside of dev/test
+    # (audit H-3, 2026-05-13). The test suite runs single-process and
+    # doesn't exercise Redis itself, so opt-in to the in-memory store
+    # explicitly here — that's exactly what `LIMITER_ALLOW_MEMORY` is for.
+    os.environ.setdefault("LIMITER_ALLOW_MEMORY", "1")
     yield
 
 
