@@ -47,7 +47,11 @@ def _ensure_test_db():
 @pytest.fixture(scope="session", autouse=True)
 def _required_env():
     """Provide SECRET_KEY + a clean test DB url before any app import."""
-    os.environ.setdefault("SECRET_KEY", "x" * 32)
+    # `setdefault` is not enough: docker-compose interpolates
+    # `${VAR:-}` to an empty string, which leaves the key present in
+    # os.environ but unusable. Treat empty as absent.
+    if not os.environ.get("SECRET_KEY"):
+        os.environ["SECRET_KEY"] = "x" * 32
     test_url = _ensure_test_db()
     os.environ["DATABASE_URL"] = test_url
     os.environ.pop("STRIPE_SECRET_KEY", None)
@@ -58,12 +62,14 @@ def _required_env():
     # (audit H-3, 2026-05-13). The test suite runs single-process and
     # doesn't exercise Redis itself, so opt-in to the in-memory store
     # explicitly here — that's exactly what `LIMITER_ALLOW_MEMORY` is for.
-    os.environ.setdefault("LIMITER_ALLOW_MEMORY", "1")
+    if not os.environ.get("LIMITER_ALLOW_MEMORY"):
+        os.environ["LIMITER_ALLOW_MEMORY"] = "1"
     # Same for the SESSION_COOKIE_SECURE default: the test client doesn't
     # speak HTTPS, so leaving the Secure flag on means the session cookie
     # never round-trips, breaking every authenticated assertion. Override
     # for tests; prod keeps the safe True default flipped by H-13.
-    os.environ.setdefault("SECURE_COOKIES", "false")
+    if not os.environ.get("SECURE_COOKIES"):
+        os.environ["SECURE_COOKIES"] = "false"
     yield
 
 
