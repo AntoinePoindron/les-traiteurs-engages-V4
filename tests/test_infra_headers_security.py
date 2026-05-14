@@ -1,12 +1,20 @@
-"""Tests for the H-3 finding of the 2026-05-13 security audit.
+"""Tests for the H-3 and H-11 findings of the 2026-05-13 security audit.
 
-H-3 — `_limiter_storage_uri()` refuses to start on `memory://` outside
-       an explicit dev / test opt-in.
+  * H-3  — `_limiter_storage_uri()` refuses to start on `memory://`
+           outside an explicit dev / test opt-in.
+  * H-11 — `gunicorn.conf.py` now sets `forwarded_allow_ips` and request
+           caps so trust-chain headers (X-Forwarded-*) actually reach
+           Werkzeug ProxyFix on Scalingo.
 """
 
 from __future__ import annotations
 
 import pytest
+
+
+# ---------------------------------------------------------------------------
+# H-3 — rate-limiter must fail closed when REDIS_URL is unset in prod
+# ---------------------------------------------------------------------------
 
 
 def test_limiter_refuses_memory_storage_without_marker(monkeypatch):
@@ -60,3 +68,58 @@ def test_limiter_uses_redis_db_one_when_url_is_set(monkeypatch):
     import extensions
 
     assert extensions._limiter_storage_uri() == "redis://localhost:6379/1"
+
+
+# ---------------------------------------------------------------------------
+# H-11 — gunicorn config exports the headers ProxyFix needs
+# ---------------------------------------------------------------------------
+
+
+def _load_gunicorn_conf():
+    """Load `gunicorn.conf.py` from the project root as a fresh module.
+    The dot in the filename makes a plain `import` impossible, hence the
+    `importlib` dance. Each call re-evaluates the module body so env
+    overrides applied via monkeypatch take effect."""
+    import importlib.util
+    import pathlib
+    import sys
+
+    repo_root = pathlib.Path(__file__).resolve().parent.parent
+    spec = importlib.util.spec_from_file_location(
+        "_gunicorn_conf_under_test", repo_root / "gunicorn.conf.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_gunicorn_conf_sets_forwarded_allow_ips_to_star_by_default(monkeypatch):
+    """The gunicorn config must wire `forwarded_allow_ips` to '*' (the
+    Scalingo-safe default) when no FORWARDED_ALLOW_IPS override is set.
+    The audit's PoC: without this, `X-Forwarded-For` is stripped before
+    ProxyFix can read it, every request's `remote_addr` collapses to
+    the router IP, and rate-limit buckets fuse across all clients."""
+    monkeypatch.delenv("FORWARDED_ALLOW_IPS", raising=False)
+    conf = _load_gunicorn_conf()
+    assert conf.forwarded_allow_ips == "*", (
+        f"default must be '*' for the Scalingo path; got {conf.forwarded_allow_ips!r}"
+    )
+
+
+def test_gunicorn_conf_honors_forwarded_allow_ips_override(monkeypatch):
+    """Self-hosters behind a stricter proxy must be able to lock down
+    the trust set via env. Defensive: a misconfigured 'star-but-not-quite'
+    default would silently re-introduce H-11."""
+    monkeypatch.setenv("FORWARDED_ALLOW_IPS", "10.0.0.0/24,192.168.1.1")
+    conf = _load_gunicorn_conf()
+    assert conf.forwarded_allow_ips == "10.0.0.0/24,192.168.1.1"
+
+
+def test_gunicorn_conf_caps_request_line_and_field_size():
+    """Belt: gunicorn must reject absurdly long request lines / headers
+    before they cost any Python work. Defaults are well above any
+    legitimate URL the app emits."""
+    conf = _load_gunicorn_conf()
+    assert conf.limit_request_line >= 4096
+    assert conf.limit_request_field_size >= 8192
