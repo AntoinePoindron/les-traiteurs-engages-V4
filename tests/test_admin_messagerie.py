@@ -16,6 +16,8 @@ before conftest switches DATABASE_URL to `traiteurs_test`.
 
 import uuid
 
+import pytest
+
 
 def _user_id(s, email):
     from sqlalchemy import select
@@ -267,6 +269,61 @@ def test_admin_message_to_inactive_recipient_is_rejected(client, login):
             s.commit()
         finally:
             s.close()
+
+
+@pytest.mark.parametrize("replier_email", ["alice@test.local", "cook@test.local"])
+def test_participant_can_reply_to_an_admin_initiated_conversation(
+    client, login, replier_email
+):
+    """A client or caterer must be able to answer the platform admin.
+    The business-relationship gate (VULN-04) is skipped when the
+    recipient is a super_admin — otherwise the reply 403s with
+    'Destinataire non autorisé', since the admin belongs to no company
+    and no caterer."""
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import Message
+
+    s = session_factory()
+    try:
+        admin_id = _user_id(s, "admin@test.local")
+        replier_id = _user_id(s, replier_email)
+        # The admin opens the conversation; its first message carries no
+        # client-side order / quote-request context.
+        tid = _seed_message(
+            s,
+            sender_id=admin_id,
+            recipient_id=replier_id,
+            body="Bonjour, une question sur votre demande.",
+        )
+        s.commit()
+    finally:
+        s.close()
+
+    try:
+        login(replier_email)
+        r = client.post(
+            "/api/messages",
+            json={"recipient_id": str(admin_id), "body": "Bonjour, oui ?"},
+        )
+        assert r.status_code == 201, r.data
+        # The reply must land in the SAME thread, not spawn a new one.
+        assert r.get_json()["thread_id"] == str(tid)
+
+        s = session_factory()
+        try:
+            reply = s.scalar(
+                select(Message).where(
+                    Message.thread_id == tid,
+                    Message.sender_id == replier_id,
+                )
+            )
+            assert reply is not None, "the reply must be persisted"
+        finally:
+            s.close()
+    finally:
+        _wipe_messages()
 
 
 # ---------------------------------------------------------------------------

@@ -331,13 +331,25 @@ def send_message():
     )
     thread_id = existing if existing else uuid.uuid4()
 
+    # The recipient must be a real, active account no matter who sends —
+    # otherwise the message lands on a ghost row no one can read.
+    is_admin = user.role == "super_admin"
+    recipient = db.get(User, recipient_id)
+    if recipient is None or not recipient.is_active:
+        return jsonify({"error": "Destinataire introuvable ou inactif."}), 404
+
     # VULN-04: gate every message on a currently-active business
     # relationship — not just the first message of a thread. Persisting
     # access on a stale thread would let a user keep messaging a contact
     # after they leave the company, after a QR is rejected, or after an
-    # order is deleted. super_admin bypasses outright.
+    # order is deleted.
     #
-    # Contexts to gate against:
+    # Two parties skip the business-relationship gate outright:
+    #   - a super_admin sender — a platform operator can reach anyone;
+    #   - any sender writing TO a super_admin — the platform admin is a
+    #     universal contact, so a client/caterer must be able to reply.
+    #
+    # Contexts to gate against otherwise:
     #   - if the caller passed order_id / quote_request_id explicitly,
     #     use them (single context).
     #   - otherwise, inherit from the thread's history: every distinct
@@ -346,8 +358,7 @@ def send_message():
     #     This preserves the standalone-Messagerie UX (no need to thread
     #     QR/order context through every reply) while re-validating the
     #     gate on every send.
-    is_admin = user.role == "super_admin"
-    if not is_admin:
+    if not is_admin and recipient.role != "super_admin":
         gate_contexts: list[tuple] = []
         if order_id or quote_request_id:
             gate_contexts.append((order_id, quote_request_id))
@@ -380,13 +391,6 @@ def send_message():
             for oid, qrid in gate_contexts
         ):
             return jsonify({"error": "Destinataire non autorise."}), 403
-    else:
-        # super_admin can open a conversation with anyone, but the
-        # recipient must be a real, active account — otherwise the
-        # message lands on a ghost row no one can read.
-        recipient = db.get(User, recipient_id)
-        if recipient is None or not recipient.is_active:
-            return jsonify({"error": "Destinataire introuvable ou inactif."}), 404
 
     msg = Message(
         thread_id=thread_id,
