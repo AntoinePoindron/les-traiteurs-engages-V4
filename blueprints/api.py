@@ -24,7 +24,6 @@ from models import (
     StripeEvent,
     User,
 )
-from services.audit import log_admin_action
 from services.notifications import (
     caterer_user_ids,
     company_admin_user_ids,
@@ -177,33 +176,26 @@ def stripe_webhook():
 def get_messages(thread_id):
     user = g.current_user
     db = get_db()
-    is_admin = user.role == "super_admin"
-    stmt = (
+    # Every role — super_admin included — only reads threads it takes
+    # part in. The admin is a real participant of its own conversations,
+    # not a platform-wide observer.
+    messages = db.scalars(
         select(Message)
         .where(Message.thread_id == thread_id)
+        .where(or_(Message.sender_id == user.id, Message.recipient_id == user.id))
         .options(joinedload(Message.sender))
         .order_by(Message.created_at.asc())
-    )
-    if not is_admin:
-        stmt = stmt.where(
-            or_(Message.sender_id == user.id, Message.recipient_id == user.id)
-        )
-    else:
-        log_admin_action(
-            db, user, "message.admin_view", target_type="thread", target_id=thread_id
-        )
-    messages = db.scalars(stmt).all()
+    ).all()
 
-    if not is_admin:
-        db.execute(
-            Message.__table__.update()
-            .where(
-                Message.thread_id == thread_id,
-                Message.recipient_id == user.id,
-                Message.is_read.is_(False),
-            )
-            .values(is_read=True)
+    db.execute(
+        Message.__table__.update()
+        .where(
+            Message.thread_id == thread_id,
+            Message.recipient_id == user.id,
+            Message.is_read.is_(False),
         )
+        .values(is_read=True)
+    )
     db.commit()
 
     result = []
@@ -388,6 +380,13 @@ def send_message():
             for oid, qrid in gate_contexts
         ):
             return jsonify({"error": "Destinataire non autorise."}), 403
+    else:
+        # super_admin can open a conversation with anyone, but the
+        # recipient must be a real, active account — otherwise the
+        # message lands on a ghost row no one can read.
+        recipient = db.get(User, recipient_id)
+        if recipient is None or not recipient.is_active:
+            return jsonify({"error": "Destinataire introuvable ou inactif."}), 404
 
     msg = Message(
         thread_id=thread_id,

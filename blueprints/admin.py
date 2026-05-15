@@ -19,14 +19,13 @@ from sqlalchemy.orm import joinedload, selectinload
 from blueprints.middleware import login_required, role_required
 from database import get_db
 from extensions import limiter
-from forms.caterer import AdminMessageForm, RejectionForm
+from forms.caterer import RejectionForm
 from models import (
     MEAL_TYPE_LABELS,
     Caterer,
     Company,
     CompanyEmployee,
     CompanyService,
-    Notification,
     Order,
     OrderStatus,
     Payment,
@@ -35,8 +34,6 @@ from models import (
     QuoteRequest,
     QuoteRequestStatus,
     QuoteStatus,
-    User,
-    UserRole,
 )
 from services import messagerie as messagerie_service
 from services import workflow
@@ -161,7 +158,6 @@ def qualification_detail(request_id):
         user=g.current_user,
         qr=qr,
         matches=matches,
-        message_form=AdminMessageForm(),
         meal_type_labels=MEAL_TYPE_LABELS,
     )
 
@@ -227,68 +223,6 @@ def qualification_reject(request_id):
     db.commit()
     flash("Demande rejetee.", "info")
     return redirect(url_for("admin.qualification"))
-
-
-@admin_bp.route("/qualification/<uuid:request_id>/message", methods=["POST"])
-@login_required
-@role_required("super_admin")
-def qualification_message(request_id):
-    """Super-admin sends a free-form message to the client_admin(s) of
-    the company that owns the quote request. Lands in their notification
-    feed (one Notification row per recipient), linked to the QR so a
-    click on the bell takes them straight to it."""
-    form = AdminMessageForm()
-    if not form.validate_on_submit():
-        flash("Le message ne peut pas etre vide.", "error")
-        return redirect(url_for("admin.qualification_detail", request_id=request_id))
-
-    db = get_db()
-    qr = db.get(QuoteRequest, request_id)
-    if not qr:
-        abort(404)
-
-    body = form.body.data.strip()
-    recipients = db.scalars(
-        select(User).where(
-            User.company_id == qr.company_id,
-            User.role == UserRole.client_admin,
-            User.is_active.is_(True),
-        )
-    ).all()
-
-    if not recipients:
-        flash(
-            "Aucun administrateur client actif sur cette entreprise — "
-            "le message n'a pas pu etre delivre.",
-            "error",
-        )
-        return redirect(url_for("admin.qualification_detail", request_id=request_id))
-
-    for recipient in recipients:
-        db.add(
-            Notification(
-                user_id=recipient.id,
-                type="admin_message",
-                title="Message de l'administrateur",
-                body=body,
-                related_entity_type="quote_request",
-                related_entity_id=qr.id,
-            )
-        )
-    log_admin_action(
-        db,
-        g.current_user,
-        "quote_request.message_client",
-        target_type="quote_request",
-        target_id=request_id,
-        extra={"recipients": len(recipients), "body_length": len(body)},
-    )
-    db.commit()
-    flash(
-        f"Message envoye a {len(recipients)} destinataire(s).",
-        "success",
-    )
-    return redirect(url_for("admin.qualification_detail", request_id=request_id))
 
 
 @admin_bp.route("/caterers")
@@ -797,15 +731,12 @@ def order_transition(order_id):
     return redirect(url_for("admin.order_detail", order_id=order_id))
 
 
-_MESSAGES_PAGE_SIZE = 25
-
-
 def _admin_messagerie_ctx(*, threads, active_thread_id, active):
     """Bundle the messagerie_ctx the unified template expects.
 
-    Super_admin always gets show_role_badges + read_only — they observe
-    rather than participate, and their role is the only one that needs
-    to disambiguate Client/Traiteur on the row labels.
+    The super_admin participates like any other role — its own
+    conversations, with a working composer. `show_role_badges` stays on
+    so Client/Traiteur rows stay disambiguated in the admin's inbox.
     """
     return {
         "threads": threads,
@@ -814,7 +745,7 @@ def _admin_messagerie_ctx(*, threads, active_thread_id, active):
         "list_endpoint": "admin.messages",
         "thread_endpoint": "admin.message_thread",
         "show_role_badges": True,
-        "read_only": True,
+        "read_only": False,
         "current_user_id": str(g.current_user.id),
     }
 
@@ -823,17 +754,9 @@ def _admin_messagerie_ctx(*, threads, active_thread_id, active):
 @login_required
 @role_required("super_admin")
 def messages():
-    """Paginated thread overview for the admin observer view.
-
-    VULN-21: paginated (no load-all) so a multi-thousand-message dataset
-    can't OOM. Heavy lifting lives in `services.messagerie.threads_for_admin`.
-    """
+    """Thread overview for the super_admin's own conversations."""
     db = get_db()
-    page = max(1, request.args.get("page", 1, type=int) or 1)
-    threads, total = messagerie_service.threads_for_admin(
-        db, page=page, page_size=_MESSAGES_PAGE_SIZE
-    )
-    total_pages = (total + _MESSAGES_PAGE_SIZE - 1) // _MESSAGES_PAGE_SIZE
+    threads = messagerie_service.threads_for_viewer(db, g.current_user)
     return render_template(
         "messagerie/page.html",
         user=g.current_user,
@@ -842,9 +765,6 @@ def messages():
             active_thread_id=None,
             active=None,
         ),
-        admin_page=page,
-        admin_total_pages=total_pages,
-        admin_total=total,
     )
 
 
@@ -853,16 +773,12 @@ def messages():
 @role_required("super_admin")
 def message_thread(thread_id):
     db = get_db()
-    page = max(1, request.args.get("page", 1, type=int) or 1)
     active = messagerie_service.active_thread_context(
         db, thread_id=thread_id, viewer=g.current_user
     )
     if active is None:
         abort(404)
-    threads, total = messagerie_service.threads_for_admin(
-        db, page=page, page_size=_MESSAGES_PAGE_SIZE
-    )
-    total_pages = (total + _MESSAGES_PAGE_SIZE - 1) // _MESSAGES_PAGE_SIZE
+    threads = messagerie_service.threads_for_viewer(db, g.current_user)
     return render_template(
         "messagerie/page.html",
         user=g.current_user,
@@ -871,9 +787,6 @@ def message_thread(thread_id):
             active_thread_id=str(thread_id),
             active=active,
         ),
-        admin_page=page,
-        admin_total_pages=total_pages,
-        admin_total=total,
     )
 
 
