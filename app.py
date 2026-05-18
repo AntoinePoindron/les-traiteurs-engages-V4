@@ -11,7 +11,7 @@ from flask import (
     session,
     url_for,
 )
-from sqlalchemy import func, select, text
+from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from whitenoise import WhiteNoise
@@ -22,11 +22,8 @@ from database import ScopedSession, get_db
 from extensions import csrf, limiter
 from logging_config import configure_logging, install_request_id_hooks
 from models import (
-    Caterer,
-    Company,
     DRINK_LABELS,
     MembershipStatus,
-    Order,
     OrderStatus,
     PaymentStatus,
     QRCStatus,
@@ -510,26 +507,9 @@ def create_app():
             }
             endpoint = role_dashboards.get(user.role, "client.dashboard")
             return redirect(url_for(endpoint))
-        db = get_db()
-        caterer_count = (
-            db.scalar(
-                select(func.count(Caterer.id)).where(Caterer.is_validated.is_(True))
-            )
-            or 0
-        )
-        company_count = db.scalar(select(func.count(Company.id))) or 0
-        order_count = (
-            db.scalar(
-                select(func.count(Order.id)).where(Order.status == OrderStatus.paid)
-            )
-            or 0
-        )
-        return render_template(
-            "landing.html",
-            caterer_count=caterer_count,
-            company_count=company_count,
-            order_count=order_count,
-        )
+        # Hero key figures are static marketing numbers (see landing.html),
+        # so the landing route does no DB work for anonymous visitors.
+        return render_template("landing.html")
 
     return app
 
