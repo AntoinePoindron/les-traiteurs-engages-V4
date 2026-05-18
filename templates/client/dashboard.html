@@ -52,7 +52,7 @@
           <i data-lucide="wallet" class="w-[18px] h-[18px]"></i>
         </div>
         <div>
-          <p class="kpi-figure">{{ "%.0f"|format(budget_spent_total or 0) }}&nbsp;&euro;</p>
+          <p class="kpi-figure">{{ (budget_spent_total or 0) | fr_amount }}&nbsp;&euro;</p>
           <p class="text-xs mt-0.5 text-mute">Budget consomm&#233;</p>
         </div>
       </div>
@@ -74,10 +74,10 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <p class="text-xs uppercase tracking-wider font-bold text-mute mb-2">Prix HT des achats inclusifs r&#233;alis&#233;s</p>
-          <p class="kpi-figure mb-3">{{ "%.0f"|format(social_impact.total_ht) }}&nbsp;&euro;</p>
+          <p class="kpi-figure mb-3">{{ social_impact.total_ht | fr_amount }}&nbsp;&euro;</p>
           <ul class="text-sm space-y-1.5 text-text-soft">
-            <li>dont <span class="font-bold text-text">{{ "%.0f"|format(social_impact.siae_ht) }}&nbsp;&euro;</span> aupr&#232;s de structures d'insertion (SIAE)</li>
-            <li>dont <span class="font-bold text-text">{{ "%.0f"|format(social_impact.stpa_ht) }}&nbsp;&euro;</span> aupr&#232;s du secteur prot&#233;g&#233; et adapt&#233; (STPA)</li>
+            <li>dont <span class="font-bold text-text">{{ social_impact.siae_ht | fr_amount }}&nbsp;&euro;</span> aupr&#232;s de structures d'insertion (SIAE)</li>
+            <li>dont <span class="font-bold text-text">{{ social_impact.stpa_ht | fr_amount }}&nbsp;&euro;</span> aupr&#232;s du secteur prot&#233;g&#233; et adapt&#233; (STPA)</li>
           </ul>
         </div>
 

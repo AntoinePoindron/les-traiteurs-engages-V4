@@ -132,6 +132,27 @@ def create_app():
         UserRole=UserRole,
     )
 
+
+    @app.template_filter("fr_amount")
+    def _fr_amount(value, decimals: int = 0) -> str:
+        """Render a number with French typography — narrow no-break space
+        as thousands separator, comma for the decimal point. `12345.6`
+        becomes `12 346` at decimals=0, `12 345,60` at
+        decimals=2. Falsy input renders as `0` so a template never blows
+        up on a missing aggregate."""
+        try:
+            numeric = float(value or 0)
+        except (TypeError, ValueError):
+            numeric = 0.0
+        formatted = f"{numeric:,.{decimals}f}"
+        # Python's `,` separator + `.` decimal → swap to FR conventions
+        # via a placeholder so the two operations don't collide.
+        return (
+            formatted.replace(",", " ")
+            .replace(".", ",")
+            .replace(" ", " ")
+        )
+
     from blueprints.admin import admin_bp
     from blueprints.api import api_bp
     from blueprints.auth import auth_bp
