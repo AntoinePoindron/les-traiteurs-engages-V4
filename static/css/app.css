@@ -36,6 +36,7 @@
   --c-cta-blush:   #FFDDDD;   /* landing CTA section pink-blush bg */
 
   /* Text */
+  --c-black:       #000;      /* pure black for legal-page headings */
   --c-text:        #1A1A1A;
   --c-text-soft:   #313131;
   --c-mute:        #6B7280;
@@ -729,7 +730,7 @@ textarea.wizard-field-error {
 .legal-page                 { color: var(--c-text); line-height: 1.6; }
 .legal-page h2              { font-family: 'Fraunces', serif; font-weight: 700;
                               font-size: 1.5rem; margin-top: 2rem;
-                              margin-bottom: 0.75rem; color: #000; }
+                              margin-bottom: 0.75rem; color: var(--c-black); }
 .legal-page h3              { font-weight: 700; font-size: 1.125rem;
                               margin-top: 1.5rem; margin-bottom: 0.5rem;
                               color: var(--c-text); }
