@@ -64,10 +64,13 @@ def _no_store(response):
     can re-submit a stale form. `no-store` evicts the response from
     bfcache (Chrome/Firefox) and from regular cache, forcing the
     browser to re-fetch on back/forward navigation.
+
+    Modern browsers honor `Cache-Control: no-store` on its own — the
+    `Pragma: no-cache` (HTTP/1.0) and `Expires: 0` headers we used to
+    add alongside are folklore here and some CDN middlewares re-
+    interpret them in surprising ways, so we keep this single header.
     """
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
+    response.headers["Cache-Control"] = "no-store"
     return response
 
 
