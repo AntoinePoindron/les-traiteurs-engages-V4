@@ -6,21 +6,6 @@ import uuid
 from flask import flash, g, redirect, render_template, request, session, url_for
 from sqlalchemy import func, select
 
-
-def _hash_invite_token(raw: str) -> str:
-    """SHA-256 hex digest of an invite token — what gets persisted."""
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
-
-
-def _stash_invite_raw(employee_id, raw: str) -> None:
-    """One-shot store of the raw invite token in the admin's session.
-
-    Persisted only long enough for /team to read it back and render the
-    copy-paste modal after a create/rotate redirect. The team page pops
-    the key so a refresh doesn't keep the raw lying around.
-    """
-    session[f"invite_raw:{employee_id}"] = raw
-
 from blueprints.client._helpers import own_service_id
 from blueprints.middleware import login_required, role_required
 from blueprints.scoping import (
@@ -37,6 +22,21 @@ from services.notifications import notify
 # Invite-link token lifetime. After this delay the token is considered
 # expired even if it's still in the DB; /signup/invite/<token> rejects it.
 INVITE_TOKEN_TTL_DAYS = 7
+
+
+def _hash_invite_token(raw: str) -> str:
+    """SHA-256 hex digest of an invite token — what gets persisted."""
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _stash_invite_raw(employee_id, raw: str) -> None:
+    """One-shot store of the raw invite token in the admin's session.
+
+    Persisted only long enough for /team to read it back and render the
+    copy-paste modal after a create/rotate redirect. The team page pops
+    the key so a refresh doesn't keep the raw lying around.
+    """
+    session[f"invite_raw:{employee_id}"] = raw
 
 
 def register(bp):
