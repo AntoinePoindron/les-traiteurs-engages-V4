@@ -140,9 +140,7 @@ def test_consume_token_rejects_already_used(session):
     session.flush()
 
     with pytest.raises(pr.ResetTokenInvalid):
-        pr.consume_token(
-            session, raw_token=raw, new_password="Y3t-Another-Password!"
-        )
+        pr.consume_token(session, raw_token=raw, new_password="Y3t-Another-Password!")
 
 
 def test_consume_token_rejects_expired(session):
@@ -154,9 +152,7 @@ def test_consume_token_rejects_expired(session):
     session.flush()
 
     with pytest.raises(pr.ResetTokenInvalid):
-        pr.consume_token(
-            session, raw_token=raw, new_password="N3w-Strong-Password!"
-        )
+        pr.consume_token(session, raw_token=raw, new_password="N3w-Strong-Password!")
 
 
 def test_consume_token_rejects_inactive_user(session):
@@ -168,9 +164,7 @@ def test_consume_token_rejects_inactive_user(session):
     session.flush()
 
     with pytest.raises(pr.ResetTokenInvalid):
-        pr.consume_token(
-            session, raw_token=raw, new_password="N3w-Strong-Password!"
-        )
+        pr.consume_token(session, raw_token=raw, new_password="N3w-Strong-Password!")
 
 
 # --- kick_off_reset (no account leak) -------------------------------------
@@ -300,9 +294,7 @@ def test_session_invalidated_after_password_reset(client):
             alice = _alice(s)
             _row, raw = pr.issue_token(s, user=alice)
             s.flush()
-            pr.consume_token(
-                s, raw_token=raw, new_password="Reset-Strong-Password1!"
-            )
+            pr.consume_token(s, raw_token=raw, new_password="Reset-Strong-Password1!")
             s.commit()
         finally:
             s.close()

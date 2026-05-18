@@ -54,9 +54,7 @@ def upgrade() -> None:
         if len(raw) == 64 and all(c in "0123456789abcdef" for c in raw):
             continue
         bind.execute(
-            sa.text(
-                "UPDATE password_reset_tokens SET token = :digest WHERE id = :id"
-            ),
+            sa.text("UPDATE password_reset_tokens SET token = :digest WHERE id = :id"),
             {"digest": _sha256_hex(raw), "id": row_id},
         )
 

@@ -311,9 +311,7 @@ def _allowed_recipients_for(db, user, *, order_id=None, quote_request_id=None):
             )
         # Same-caterer teammates stay reachable; competitors do not.
         allowed.update(
-            db.scalars(
-                select(User.id).where(User.caterer_id == user.caterer_id)
-            ).all()
+            db.scalars(select(User.id).where(User.caterer_id == user.caterer_id)).all()
         )
     allowed.discard(user.id)
     return allowed

@@ -289,9 +289,7 @@ def register(bp):
         )
         if existing_draft is not None:
             return redirect(
-                url_for(
-                    "caterer.quote_edit", qr_id=qr_id, q_id=existing_draft.id
-                )
+                url_for("caterer.quote_edit", qr_id=qr_id, q_id=existing_draft.id)
             )
         form = QuoteForm()
         if not form.validate_on_submit():
