@@ -24,6 +24,7 @@ from models import (
     StripeEvent,
     User,
 )
+from services.audit import log_admin_action
 from services.notifications import (
     caterer_user_ids,
     company_admin_user_ids,
@@ -402,6 +403,25 @@ def send_message():
     )
     db.add(msg)
     db.flush()
+
+    # Trace every admin-initiated outgoing message — the platform admin
+    # writing to a regular user is a sensitive action (support touch,
+    # qualification message, escalation) and must leave an audit row.
+    # Admin↔admin chatter is excluded as internal noise.
+    if is_admin and recipient.role != "super_admin":
+        log_admin_action(
+            db,
+            user,
+            "message.admin_send",
+            target_type="user",
+            target_id=recipient_id,
+            extra={
+                "thread_id": str(thread_id),
+                "body_length": len(body),
+                "order_id": str(order_id) if order_id else None,
+                "quote_request_id": str(quote_request_id) if quote_request_id else None,
+            },
+        )
 
     create_notification(
         db,
