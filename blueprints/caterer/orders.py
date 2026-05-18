@@ -8,6 +8,7 @@ from blueprints.middleware import (
     validated_caterer_required,
 )
 from blueprints.scoping import get_caterer_order
+from config import settings
 from database import get_db
 from extensions import limiter
 from models import MEAL_TYPE_LABELS, Order, OrderStatus, Quote, QuoteRequest
@@ -133,7 +134,15 @@ def register(bp):
             flash("Cette commande a deja ete marquee comme livree.", "info")
             return redirect(url_for("caterer.order_detail", order_id=order_id))
 
-        if caterer.stripe_account_id and caterer.stripe_charges_enabled:
+        # `settings.billing_enabled` est l'interrupteur global : tant qu'il est
+        # off, la facturation reste manuelle (admin pilote la transition via
+        # /admin/orders/<id>/transition) et aucune facture Stripe ne part,
+        # même si le traiteur est entièrement onboardé sur Connect.
+        if (
+            settings.billing_enabled
+            and caterer.stripe_account_id
+            and caterer.stripe_charges_enabled
+        ):
             order.status = OrderStatus.invoicing
             db.commit()
             from services.billing_tasks import send_invoice_for_order

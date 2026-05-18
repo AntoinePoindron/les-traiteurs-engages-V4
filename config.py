@@ -100,6 +100,12 @@ class Settings(BaseSettings):
     # can otherwise spoof X-Forwarded-For to bypass rate limits.
     trust_proxy_headers: bool = False
 
+    # Off = la livraison d'une commande ne déclenche PAS de facture Stripe ;
+    # l'admin pilote `delivered → invoiced → paid` manuellement depuis
+    # /admin/orders/<id>/transition et la facturation se fait hors plateforme.
+    # L'onboarding Stripe Connect des traiteurs reste actif quel que soit le flag.
+    billing_enabled: bool = False
+
     # Brevo (formerly Sendinblue) transactional email API. When the key
     # is unset, services.email logs the would-be email instead of sending
     # — keeps local dev / unit tests workable without a real account.
@@ -157,7 +163,9 @@ class Settings(BaseSettings):
     def _email_empty_to_default(cls, v):
         return v if (isinstance(v, str) and v) else "admin@traiteurs-engages.fr"
 
-    @field_validator("secure_cookies", "trust_proxy_headers", mode="before")
+    @field_validator(
+        "secure_cookies", "trust_proxy_headers", "billing_enabled", mode="before"
+    )
     @classmethod
     def _bool_empty_to_false(cls, v):
         if isinstance(v, str) and v == "":
