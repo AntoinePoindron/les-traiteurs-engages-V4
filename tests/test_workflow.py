@@ -329,7 +329,7 @@ def test_approve_unknown_request_raises_not_found(session):
 def test_reject_quote_request_marks_cancelled_with_reason(session):
     from sqlalchemy import select
 
-    qr_id = _seed_pending_review_qr(session, with_geo=True)
+    qr_id = _seed_pending_review_qr(session)
 
     workflow.reject_quote_request(session, request_id=qr_id, reason="hors zone")
     session.flush()
