@@ -539,10 +539,12 @@ def test_submit_quote_when_qrc_closed_raises(session):
         )
 
 
-def test_submit_quote_on_completed_request_raises_closed(session):
+def test_submit_quote_on_completed_request_raises_not_open(session):
     """Once the client has accepted a quote (QR `completed`), no other
     caterer may still transmit one — even with their own QRC left
-    `selected`. submit_quote must refuse on the QR status alone."""
+    `selected`. submit_quote must refuse on the QR status alone, with
+    QuoteRequestNotOpen (distinct from the 3-responders QuoteRequestClosed
+    so the blueprint can flash the right message)."""
     from sqlalchemy import select
 
     qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(session, n_caterers=1)
@@ -550,7 +552,7 @@ def test_submit_quote_on_completed_request_raises_closed(session):
     qr.status = QuoteRequestStatus.completed
     session.flush()
 
-    with pytest.raises(workflow.QuoteRequestClosed):
+    with pytest.raises(workflow.QuoteRequestNotOpen):
         workflow.submit_quote(
             session, request_id=qr_id, quote_id=qids[0], caterer=caterers[0]
         )

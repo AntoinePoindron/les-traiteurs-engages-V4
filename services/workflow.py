@@ -63,6 +63,13 @@ class QuoteRequestClosed(WorkflowError):
     du traiteur courant est passée en `QRCStatus.closed`."""
 
 
+class QuoteRequestNotOpen(WorkflowError):
+    """La demande n'est plus `sent_to_caterers` (devis accepté → `completed`,
+    annulée, ou tous les devis refusés). Distincte de `QuoteRequestClosed` :
+    la fermeture vient de la demande elle-même, pas de la règle des 3 ; le
+    message utilisateur diffère."""
+
+
 class OrderNotFound(WorkflowError):
     """La commande n'existe pas, n'appartient pas au caterer, ou n'est
     plus en statut `confirmed`."""
@@ -209,12 +216,9 @@ def accept_quote(
 
     qr.status = QuoteRequestStatus.completed
 
-    # The request is awarded — every other solicited caterer is out of the
-    # running. Close their QRC (unless already `rejected` or `closed`) so
-    # the caterer UI shows « Clôturée » and `submit_quote` refuses a late
-    # entry. The winning caterer's QRC is left as-is. Without this, a
-    # caterer who had not quoted kept a `selected` QRC, still saw the
-    # request as « Nouvelle », and could submit on a closed request.
+    # Close losing caterers' QRC so the caterer UI shows « Clôturée » and
+    # `submit_quote` refuses a late entry. `rejected` (caterer declined) and
+    # `closed` (3-responders rule) are terminal states — leave them alone.
     losing_qrcs = (
         db.execute(
             select(QuoteRequestCaterer).where(
@@ -397,20 +401,18 @@ def submit_quote(
     d'atteindre tous les deux le rang 3 (ou de glisser à 4).
 
     Lève QuoteNotFound (devis introuvable, mauvais caterer, ou pas en
-    `draft`) et QuoteRequestClosed (QRC `closed` ou ≥3 transmitted déjà).
+    `draft`), QuoteRequestClosed (QRC `closed` ou ≥3 transmitted déjà),
+    QuoteRequestNotOpen (demande plus en `sent_to_caterers`).
     """
-    # Verrou exclusif pour sérialiser les répondants concurrents — et avec
-    # `accept_quote`, qui clôt la demande.
+    # Verrou exclusif : sérialise les répondants concurrents et l'éventuel
+    # `accept_quote` en cours.
     qr = db.scalar(
         select(QuoteRequest).where(QuoteRequest.id == request_id).with_for_update()
     )
     if qr is None:
         raise QuoteNotFound
-    # Une demande qui n'est plus `sent_to_caterers` (devis accepté →
-    # `completed`, demande annulée, tous les devis refusés) n'accepte plus
-    # aucune soumission, même si la QRC de ce traiteur est restée ouverte.
     if qr.status != QuoteRequestStatus.sent_to_caterers:
-        raise QuoteRequestClosed
+        raise QuoteRequestNotOpen
 
     quote = db.scalar(
         select(Quote).where(
