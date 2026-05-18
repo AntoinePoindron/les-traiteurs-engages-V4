@@ -46,12 +46,34 @@ def _wipe_signup_users():
 
 
 def _wipe_signup_companies(siret_prefix: str = "9999"):
-    """Drop any Company seeded with a `terms-*` SIRET prefix."""
+    """Drop any Company seeded with a `terms-*` SIRET prefix.
+
+    Signup auto-seeds a CompanyService and CompanyEmployee row for a
+    freshly-created Company, so we drop those FK-referencing rows
+    first — otherwise the delete trips company_services_company_id_fkey
+    / company_employees_company_id_fkey.
+    """
+    from sqlalchemy import select
+
     from database import session_factory
-    from models import Company
+    from models import Company, CompanyEmployee, CompanyService
 
     s = session_factory()
     try:
+        company_ids = list(
+            s.scalars(select(Company.id).where(Company.siret.startswith(siret_prefix)))
+        )
+        if company_ids:
+            s.execute(
+                CompanyService.__table__.delete().where(
+                    CompanyService.company_id.in_(company_ids)
+                )
+            )
+            s.execute(
+                CompanyEmployee.__table__.delete().where(
+                    CompanyEmployee.company_id.in_(company_ids)
+                )
+            )
         s.execute(
             Company.__table__.delete().where(Company.siret.startswith(siret_prefix))
         )
