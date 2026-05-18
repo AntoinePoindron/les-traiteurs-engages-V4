@@ -23,14 +23,27 @@
   }
 
   function updateNotificationBadge() {
-    fetch('/api/notifications')
-      .then(function (r) { return r.json(); })
+    // The server pre-renders the count + visibility on every page load
+    // via the `_inject_notifications` context processor; this poll
+    // only refreshes the value live. A failed/non-JSON response leaves
+    // the SSR value intact rather than wiping the badge to 0.
+    fetch('/api/notifications', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
+        if (!data || typeof data.unread_count !== 'number') return;
+        var n = Math.max(0, data.unread_count);
         document.querySelectorAll('.notification-badge').forEach(function (badge) {
-          badge.classList.toggle('hidden', !(data.unread_count > 0));
+          // No-op short-circuit: avoid 4 DOM writes per tick when the
+          // count hasn't moved (the common case on idle tabs).
+          if (badge.dataset.count === String(n)) return;
+          var plural = n === 1 ? '' : 's';
+          badge.classList.toggle('hidden', n <= 0);
+          badge.textContent = n > 99 ? '99+' : String(n);
+          badge.setAttribute('data-count', String(n));
+          badge.setAttribute('aria-label', n + ' notification' + plural + ' non lue' + plural);
         });
       })
-      .catch(function () {});
+      .catch(function () { /* leave the SSR value intact */ });
   }
 
   var ACTIONS = {
@@ -164,8 +177,25 @@
     updateLayout();
     window.addEventListener('resize', updateLayout);
     if (document.querySelector('.notification-badge')) {
-      updateNotificationBadge();
-      setInterval(updateNotificationBadge, 30000);
+      // Pause the poll while the tab is hidden — saves a request every
+      // 30s on backgrounded tabs and runs a fresh fetch the moment the
+      // user comes back, so the count is current at the first glance.
+      var pollId = null;
+      function startPolling() {
+        if (pollId !== null) return;
+        updateNotificationBadge();
+        pollId = setInterval(updateNotificationBadge, 30000);
+      }
+      function stopPolling() {
+        if (pollId === null) return;
+        clearInterval(pollId);
+        pollId = null;
+      }
+      if (!document.hidden) startPolling();
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) stopPolling();
+        else startPolling();
+      });
     }
     initBackdropDismiss();
     initFlashToasts();

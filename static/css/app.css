@@ -429,6 +429,29 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 /* Badge sizes */
 .badge-xs { padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4; }
 
+/* Sidebar bell unread counter. Sits inside the 36px button (no
+   overhang — overhang pixels fall outside the button's hit area
+   and clicks there don't open the dropdown). The white box-shadow
+   ring lifts the pill off any sidebar shade; pointer-events:none
+   keeps the bell beneath clickable. */
+.notification-badge {
+  position: absolute;
+  top: 0.125rem;             /* 2px from the button's top edge */
+  right: 0.125rem;
+  min-width: 1rem;            /* 16px — bell glyph stays visible beneath */
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background-color: var(--c-coral-red);
+  color: white;
+  font-size: 0.625rem;        /* 10px — legible on a 16px pill */
+  font-weight: 700;
+  line-height: 1rem;
+  text-align: center;
+  box-shadow: 0 0 0 1.5px white; /* ring against any sidebar shade */
+  pointer-events: none;       /* clicks must reach the bell button beneath */
+}
+
 /* ============================================================
    Wizard validation error styles — appliquées par static/js/wizard.js
    au clic "Suivant" si des champs requis sont vides. Les classes

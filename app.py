@@ -413,6 +413,15 @@ def create_app():
             response.headers["Strict-Transport-Security"] = (
                 "max-age=31536000; includeSubDomains"
             )
+        # Authenticated responses carry per-user data (notification
+        # count in the bell badge, sidebar links, role-gated nav, user
+        # name in the topbar). Force shared caches — CDN, corporate
+        # proxy — to skip them so one user can't be served another's
+        # rendering. `setdefault` so views that need a specific
+        # Cache-Control (e.g., file downloads with their own policy)
+        # keep theirs.
+        if getattr(g, "current_user", None) is not None:
+            response.headers.setdefault("Cache-Control", "private, no-store")
         return response
 
     @app.errorhandler(404)

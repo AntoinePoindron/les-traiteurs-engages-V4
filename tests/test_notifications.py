@@ -168,6 +168,116 @@ def test_notifications_modal_escapes_body_against_xss(client, login):
 
 
 # ---------------------------------------------------------------------------
+# Bell badge — server-rendered visibility + count
+# ---------------------------------------------------------------------------
+
+
+def _bell_badge_html(body: str) -> str:
+    """Extract the `<span class="notification-badge ...">…</span>` span
+    (tag + text) from a rendered page body, or '' if not found."""
+    import re
+
+    m = re.search(
+        r'<span class="notification-badge[^"]*"[^>]*>.*?</span>',
+        body,
+        flags=re.DOTALL,
+    )
+    return m.group(0) if m else ""
+
+
+@pytest.fixture
+def seed_alice_unread():
+    """Seed N unread notifications for alice in a single bulk INSERT,
+    then wipe alice's notifications afterwards. 120 row-by-row adds
+    (the clamp test's worst case) was 100× slower than one INSERT…
+    VALUES; the bulk path also frees us from per-row `created_at`
+    autogeneration concerns since `server_default=now()` fires once.
+
+    Usage: pass `n` via indirect parametrization, fixture yields the
+    user id so the caller can ignore the seeding plumbing."""
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import Notification, User
+
+    def _seed(n: int):
+        s = session_factory()
+        try:
+            alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+            # Wipe first so the badge count reflects exactly `n`, not
+            # whatever leaked from prior tests sharing the DB.
+            s.execute(
+                Notification.__table__.delete().where(Notification.user_id == alice.id)
+            )
+            if n > 0:
+                s.execute(
+                    Notification.__table__.insert(),
+                    [
+                        {
+                            "user_id": alice.id,
+                            "type": "test_bell_badge",
+                            "title": f"badge test {i}",
+                            "body": None,
+                            "is_read": False,
+                        }
+                        for i in range(n)
+                    ],
+                )
+            s.commit()
+            return alice.id
+        finally:
+            s.close()
+
+    yield _seed
+
+    s = session_factory()
+    try:
+        alice = s.scalar(select(User).where(User.email == "alice@test.local"))
+        s.execute(
+            Notification.__table__.delete().where(Notification.user_id == alice.id)
+        )
+        s.commit()
+    finally:
+        s.close()
+
+
+@pytest.mark.parametrize(
+    "n, expect_hidden, expect_text",
+    [
+        # Zero unread: badge present in HTML but carries `hidden` —
+        # the previous shape left this to a JS fetch, so a single
+        # fetch hiccup blinded users to fresh notifs.
+        (0, True, "0"),
+        # Typical case: badge visible with the literal count.
+        (3, False, "3"),
+        # Clamp: past 99 we collapse to "99+" so the pill width stays
+        # bounded on a 36px button. `data-count` keeps the truth.
+        (120, False, "99+"),
+    ],
+    ids=["zero", "three", "clamped"],
+)
+def test_bell_badge_renders_unread_count(
+    client, login, seed_alice_unread, n, expect_hidden, expect_text
+):
+    seed_alice_unread(n)
+    login("alice@test.local")
+    r = client.get("/client/dashboard")
+    assert r.status_code == 200
+
+    badge = _bell_badge_html(r.data.decode("utf-8", errors="replace"))
+    assert badge, "bell badge must always be rendered, even at zero count"
+
+    has_hidden = "hidden" in badge
+    assert has_hidden is expect_hidden, (
+        f"badge `hidden` mismatch for n={n}: got {badge}"
+    )
+    assert f'data-count="{n}"' in badge
+    assert f">{expect_text}<" in badge.replace(" ", "").replace("\n", ""), (
+        f"badge text mismatch for n={n}: got {badge}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Fan-out — approve_quote_request notifies targets + requester
 # ---------------------------------------------------------------------------
 
