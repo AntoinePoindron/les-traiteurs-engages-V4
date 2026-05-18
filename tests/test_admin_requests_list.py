@@ -6,6 +6,12 @@ Verifies the three guard rails the review flagged as missing:
      fall back to "all" without leaking a SQL error.
   3. Pagination — large datasets stay paged at 25 rows / page; an
      out-of-range `?page=` clamps to the last page rather than 404.
+
+Test isolation: the `traiteurs_test` DB is rebuilt once per pytest
+session, so other tests may have left QuoteRequest rows. We track the
+ids we seed and delete only those — a table-wide truncate would crash
+on FK refs from quotes / QRCs other tests own. Count assertions are
+relative to a baseline grabbed before seeding.
 """
 
 
@@ -24,7 +30,6 @@ def _seed_request(status):
         Company,
         MealType,
         QuoteRequest,
-        QuoteRequestStatus,
         User,
     )
 
@@ -47,15 +52,37 @@ def _seed_request(status):
         s.close()
 
 
-def _wipe_test_requests():
-    """Drop every QuoteRequest seeded in this module so the count
-    assertions don't drift across test runs."""
+def _count_by_status(status) -> int:
+    """Number of QuoteRequest rows currently sitting in `status`."""
+    from sqlalchemy import func, select
+
     from database import session_factory
     from models import QuoteRequest
 
     s = session_factory()
     try:
-        s.execute(QuoteRequest.__table__.delete())
+        return (
+            s.scalar(
+                select(func.count(QuoteRequest.id)).where(QuoteRequest.status == status)
+            )
+            or 0
+        )
+    finally:
+        s.close()
+
+
+def _delete_quote_requests(ids):
+    """Drop ONLY the QuoteRequests this test seeded. Other tests may
+    hold quotes / QRCs that FK-reference QuoteRequest, so the brutal
+    `DELETE FROM quote_requests` we used to do crashed on cleanup."""
+    if not ids:
+        return
+    from database import session_factory
+    from models import QuoteRequest
+
+    s = session_factory()
+    try:
+        s.execute(QuoteRequest.__table__.delete().where(QuoteRequest.id.in_(list(ids))))
         s.commit()
     finally:
         s.close()
@@ -106,8 +133,10 @@ def test_unknown_status_falls_back_to_all(client, login):
     interesting back."""
     from models import QuoteRequestStatus
 
-    qr_id = _seed_request(QuoteRequestStatus.pending_review)
+    created: set[uuid.UUID] = set()
     try:
+        qr_id = _seed_request(QuoteRequestStatus.pending_review)
+        created.add(qr_id)
         login("admin@test.local")
         # Garbage value that's nowhere near any status enum.
         r = client.get("/admin/requests?status=' OR 1=1")
@@ -117,15 +146,16 @@ def test_unknown_status_falls_back_to_all(client, login):
             "fallback to 'all' should still surface every status"
         )
     finally:
-        _wipe_test_requests()
+        _delete_quote_requests(created)
 
 
 def test_approved_tab_is_addressable(client, login):
     """Audit follow-up: `approved` used to be missing from the tabs."""
     from models import QuoteRequestStatus
 
-    _seed_request(QuoteRequestStatus.approved)
+    created: set[uuid.UUID] = set()
     try:
+        created.add(_seed_request(QuoteRequestStatus.approved))
         login("admin@test.local")
         r = client.get("/admin/requests?status=approved")
         assert r.status_code == 200, r.data
@@ -134,7 +164,7 @@ def test_approved_tab_is_addressable(client, login):
             "knows the filter took effect"
         )
     finally:
-        _wipe_test_requests()
+        _delete_quote_requests(created)
 
 
 # ---------------------------------------------------------------------------
@@ -144,24 +174,38 @@ def test_approved_tab_is_addressable(client, login):
 
 def test_pagination_caps_each_page_at_25_rows(client, login):
     """The route must hard-cap to 25 rows/page so a large dataset
-    doesn't OOM the worker. Seed 30 rows, expect the first page to
-    surface a "page 1 / 2" hint."""
+    doesn't OOM the worker. Seed enough rows to land on at least two
+    pages and confirm the header announces the right counts — the
+    baseline accounts for any pre-existing `completed` rows other
+    tests may have left behind."""
     from models import QuoteRequestStatus
 
+    baseline = _count_by_status(QuoteRequestStatus.completed)
+    # Seed enough so that baseline+seeded > 25 even if other tests
+    # left some rows behind. 30 is the original review request and
+    # also generous against drift.
+    seeded = 30
+    total = baseline + seeded
+    expected_pages = (total + 24) // 25  # ceil(total / 25)
+    created: set[uuid.UUID] = set()
     try:
-        for _ in range(30):
-            _seed_request(QuoteRequestStatus.completed)
+        for _ in range(seeded):
+            created.add(_seed_request(QuoteRequestStatus.completed))
 
         login("admin@test.local")
         r = client.get("/admin/requests?status=completed")
         assert r.status_code == 200, r.data
-        # The header line announces "30 demandes · page 1 / 2".
-        assert b"30 demande" in r.data
-        assert b"page 1 / 2" in r.data, (
-            "with 30 rows and page size 25, the header must show 2 pages"
+        # Header announces "<total> demandes · page 1 / <expected_pages>".
+        assert f"{total} demande".encode() in r.data, (
+            f"header must announce the actual completed count "
+            f"({total}); body excerpt={r.data[:400]!r}"
+        )
+        assert f"page 1 / {expected_pages}".encode() in r.data, (
+            f"with {total} rows and page size 25, header must show "
+            f"{expected_pages} pages"
         )
     finally:
-        _wipe_test_requests()
+        _delete_quote_requests(created)
 
 
 def test_page_out_of_range_clamps_to_last(client, login):
@@ -169,8 +213,9 @@ def test_page_out_of_range_clamps_to_last(client, login):
     last real page, not get an empty list or a 404."""
     from models import QuoteRequestStatus
 
+    created: set[uuid.UUID] = set()
     try:
-        _seed_request(QuoteRequestStatus.completed)
+        created.add(_seed_request(QuoteRequestStatus.completed))
         login("admin@test.local")
         r = client.get("/admin/requests?status=completed&page=99")
         assert r.status_code == 200, r.data
@@ -179,7 +224,7 @@ def test_page_out_of_range_clamps_to_last(client, login):
             "out-of-range page should clamp to the last page, not render empty"
         )
     finally:
-        _wipe_test_requests()
+        _delete_quote_requests(created)
 
 
 # ---------------------------------------------------------------------------
