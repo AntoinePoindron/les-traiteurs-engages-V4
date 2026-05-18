@@ -156,6 +156,9 @@ DRINK_LABELS: dict[str, str] = {
 # Subset of DRINK_LABELS that counts as "alcoholic" for the legacy
 # `drinks_alcohol` flag — derived at save time so old templates and any
 # downstream consumer keep working without a per-template change.
+# If a new alcoholic entry is added to DRINK_LABELS (cocktails,
+# spiritueux, …) it MUST be mirrored here, otherwise the derived
+# `drinks_alcohol` flag will silently miss it.
 ALCOHOLIC_DRINKS: frozenset[str] = frozenset(
     {"drinks_bieres", "drinks_vins", "drinks_champagne"}
 )
