@@ -90,7 +90,12 @@ class Settings(BaseSettings):
     db_pool_timeout: int = 30
     db_pool_recycle: int = 1800
 
-    secure_cookies: bool = False
+    # Audit H-13 (2026-05-13): default flipped to True so HTTPS deployments
+    # don't lose Secure cookies + HSTS because the operator forgot the
+    # env var. Local dev (HTTP) MUST set SECURE_COOKIES=false explicitly
+    # — docker-compose passes `${SECURE_COOKIES:-}` which the validator
+    # below coerces to False on empty input, preserving local behaviour.
+    secure_cookies: bool = True
     # Only True behind a reverse proxy: with the flag on, direct clients
     # can otherwise spoof X-Forwarded-For to bypass rate limits.
     trust_proxy_headers: bool = False

@@ -67,7 +67,14 @@ CSP = (
     "connect-src 'self' https://api-adresse.data.gouv.fr; "
     "object-src 'none'; "
     "frame-ancestors 'none'; "
-    "base-uri 'self'"
+    "base-uri 'self'; "
+    # Audit M-12 (2026-05-13): without `form-action 'self'`, an HTML
+    # injection that lands a `<form action="https://evil/">` in the
+    # rendered page would POST credentials / CSRF tokens off-origin
+    # before any other layer (CSP frame-ancestors, SameSite, etc.)
+    # could complain. The same-origin lock matches what every form
+    # in this codebase actually does.
+    "form-action 'self'"
 )
 
 
@@ -393,7 +400,16 @@ def create_app():
             "geolocation=(), microphone=(), camera=(), payment=()"
         )
         response.headers["Content-Security-Policy"] = CSP
-        if settings.secure_cookies:
+        # Audit H-13 (2026-05-13): HSTS used to be gated on
+        # `settings.secure_cookies`. That coupled two independent
+        # protections — a self-host operator who forgot
+        # SECURE_COOKIES=true lost both the Secure cookie flag AND HSTS,
+        # so a single MITM downgrade went unchallenged. Decouple: emit
+        # HSTS whenever the connection is actually TLS (ProxyFix sets
+        # `request.is_secure` from `X-Forwarded-Proto: https`), with
+        # `secure_cookies` as the explicit operator override for
+        # deployments where TLS terminates on a path Flask can't see.
+        if request.is_secure or settings.secure_cookies:
             response.headers["Strict-Transport-Security"] = (
                 "max-age=31536000; includeSubDomains"
             )

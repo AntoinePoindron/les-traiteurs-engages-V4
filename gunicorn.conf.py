@@ -31,6 +31,27 @@ timeout = int(os.getenv("GUNICORN_TIMEOUT", "60"))
 reload = _RELOAD
 preload_app = not _RELOAD
 
+# Audit H-11 (2026-05-13): without `forwarded_allow_ips`, gunicorn
+# strips `X-Forwarded-*` from any request whose source IP isn't
+# 127.0.0.1 (its default). On Scalingo the dyno receives traffic from
+# the managed router on a non-loopback IP, so the headers vanished
+# before Werkzeug's ProxyFix could read them. Effect: every request's
+# `remote_addr` collapsed to the router's IP, the rate-limiter bucketed
+# all clients together, and one attacker on /login DoS'd the entire
+# user base by exhausting the shared 10/min window.
+#
+# `*` is safe ONLY behind a managed proxy that terminates TLS and
+# rewrites the headers itself (Scalingo, Caddy with the right config,
+# AWS ALB, etc.). Self-hosted operators behind a less-trusted proxy
+# must set `FORWARDED_ALLOW_IPS` to the trusted CIDR(s).
+forwarded_allow_ips = os.getenv("FORWARDED_ALLOW_IPS", "*")
+
+# Cap request line + per-header size. Defuses trivial DoS via absurdly
+# long URIs / headers, well above legitimate traffic — the longest URLs
+# the app emits (signed S3 presigns) sit around 2 KB.
+limit_request_line = int(os.getenv("GUNICORN_LIMIT_REQUEST_LINE", "8192"))
+limit_request_field_size = int(os.getenv("GUNICORN_LIMIT_REQUEST_FIELD_SIZE", "16384"))
+
 
 def post_fork(server, worker):
     import sys
