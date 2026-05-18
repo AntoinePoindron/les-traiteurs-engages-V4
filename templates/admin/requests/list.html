@@ -15,13 +15,13 @@
   </a>
 </div>
 
-{# Status tabs — pure link navigation, no JS. Active tab is rendered
-   with the same `step-dot--current` accent vocabulary as elsewhere. #}
+{# Status tabs — pure link navigation, no JS. The `.tab-pill` class
+   carries the visual vocabulary (cf. static/css/app.css) so this
+   markup stays focused on which tab is active. #}
 <div class="bg-white rounded-lg p-1 mb-6 inline-flex flex-wrap gap-1">
   {% for tab_slug, tab_label in status_tabs.items() %}
   <a href="{{ url_for('admin.requests_list', status=tab_slug) }}"
-     class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors
-            {% if tab_slug == current_tab %}bg-navy text-white{% else %}text-text-soft hover:bg-cream{% endif %}">
+     class="tab-pill {% if tab_slug == current_tab %}tab-pill--current{% endif %}">
     {{ tab_label }}
   </a>
   {% endfor %}
