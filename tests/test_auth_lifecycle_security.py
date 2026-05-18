@@ -173,15 +173,35 @@ def _seed_user_in_state(*, email: str, is_active: bool, membership):
         s.close()
 
 
+def _wipe_oracle_users():
+    """Drop every `oracle-*@test.local` seeded by `_seed_user_in_state`.
+
+    The seeded users are functional today (unique emails per case) but
+    leak across the pytest session — three rows per test run accumulate
+    in `traiteurs_test`. Aligning on the try/finally cleanup pattern
+    used by `test_session_invalidated_after_password_reset` keeps the
+    DB state local to each test."""
+    from database import session_factory
+    from models import User
+
+    s = session_factory()
+    try:
+        s.execute(User.__table__.delete().where(User.email.like("oracle-%@test.local")))
+        s.commit()
+    finally:
+        s.close()
+
+
 def _extract_flash_block(html: str) -> str:
     """Return the snippet of HTML that the user sees as the login-page
     flash. We use this to compare three responses byte-for-byte minus
     request-bound noise (CSRF token, server timestamps).
 
-    The flash markup lives in components/flash_messages.html as a
-    `<div role="alert">...</div>`. Falling back to the whole body if the
-    role marker isn't found so the assertion still has something to
-    compare on rather than silently passing."""
+    The flash macro renders error toasts with `role="alert"` — that
+    attribute is the stable anchor we extract on. The fallback to the
+    whole body stays as a safety net so the assertion still has
+    *something* to compare on if the markup ever changes; better to
+    over-compare than silently pass on an empty match."""
     import re
 
     m = re.search(r'<div[^>]*role="alert"[^>]*>.*?</div>', html, flags=re.DOTALL)
@@ -200,32 +220,37 @@ def test_login_flash_identical_for_all_inactive_states(client):
         ("oracle-rejected@test.local", True, MembershipStatus.rejected),
     ]
 
-    flashes: list[str] = []
-    for email, active, membership in cases:
-        password = _seed_user_in_state(
-            email=email, is_active=active, membership=membership
-        )
-        r = client.post(
-            "/login",
-            data={"email": email, "password": password},
-            follow_redirects=False,
-        )
-        assert r.status_code == 200, (
-            f"non-200 for {email}: got {r.status_code}, leaks state on its own"
-        )
-        flashes.append(_extract_flash_block(r.data.decode("utf-8", errors="replace")))
+    try:
+        flashes: list[str] = []
+        for email, active, membership in cases:
+            password = _seed_user_in_state(
+                email=email, is_active=active, membership=membership
+            )
+            r = client.post(
+                "/login",
+                data={"email": email, "password": password},
+                follow_redirects=False,
+            )
+            assert r.status_code == 200, (
+                f"non-200 for {email}: got {r.status_code}, leaks state on its own"
+            )
+            flashes.append(
+                _extract_flash_block(r.data.decode("utf-8", errors="replace"))
+            )
 
-    # All three must be byte-identical. If a future refactor reintroduces
-    # any state-specific copy this assertion goes red.
-    assert flashes[0] == flashes[1] == flashes[2], (
-        "login flash MUST be identical across inactive states; got distinct "
-        "payloads:\n - disabled:\n"
-        + flashes[0]
-        + "\n - pending:\n"
-        + flashes[1]
-        + "\n - rejected:\n"
-        + flashes[2]
-    )
+        # All three must be byte-identical. If a future refactor reintroduces
+        # any state-specific copy this assertion goes red.
+        assert flashes[0] == flashes[1] == flashes[2], (
+            "login flash MUST be identical across inactive states; got distinct "
+            "payloads:\n - disabled:\n"
+            + flashes[0]
+            + "\n - pending:\n"
+            + flashes[1]
+            + "\n - rejected:\n"
+            + flashes[2]
+        )
+    finally:
+        _wipe_oracle_users()
 
 
 def test_login_flash_does_not_leak_state_keywords(client):
@@ -234,18 +259,21 @@ def test_login_flash_does_not_leak_state_keywords(client):
     'refusee', 'en attente') so a careless reintroduction is caught."""
     from models import MembershipStatus
 
-    password = _seed_user_in_state(
-        email="oracle-keyword@test.local",
-        is_active=False,
-        membership=MembershipStatus.active,
-    )
-    r = client.post(
-        "/login",
-        data={"email": "oracle-keyword@test.local", "password": password},
-        follow_redirects=False,
-    )
-    body = r.data.decode("utf-8", errors="replace").lower()
-    for forbidden in ("desactive", "rattachement", "refus", "en attente"):
-        assert forbidden not in body, (
-            f"flash leaks the '{forbidden}' keyword — H-2 oracle is back"
+    try:
+        password = _seed_user_in_state(
+            email="oracle-keyword@test.local",
+            is_active=False,
+            membership=MembershipStatus.active,
         )
+        r = client.post(
+            "/login",
+            data={"email": "oracle-keyword@test.local", "password": password},
+            follow_redirects=False,
+        )
+        body = r.data.decode("utf-8", errors="replace").lower()
+        for forbidden in ("desactive", "rattachement", "refus", "en attente"):
+            assert forbidden not in body, (
+                f"flash leaks the '{forbidden}' keyword — H-2 oracle is back"
+            )
+    finally:
+        _wipe_oracle_users()
