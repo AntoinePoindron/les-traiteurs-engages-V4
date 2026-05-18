@@ -52,7 +52,9 @@ def _wipe_signup_companies(siret_prefix: str = "9999"):
 
     s = session_factory()
     try:
-        s.execute(Company.__table__.delete().where(Company.siret.startswith(siret_prefix)))
+        s.execute(
+            Company.__table__.delete().where(Company.siret.startswith(siret_prefix))
+        )
         s.commit()
     finally:
         s.close()
@@ -222,7 +224,9 @@ def test_signup_invite_refuses_without_accept_terms(client):
         _wipe_signup_users()
         s = session_factory()
         try:
-            s.execute(CompanyEmployee.__table__.delete().where(CompanyEmployee.id == emp_id))
+            s.execute(
+                CompanyEmployee.__table__.delete().where(CompanyEmployee.id == emp_id)
+            )
             s.commit()
         finally:
             s.close()
