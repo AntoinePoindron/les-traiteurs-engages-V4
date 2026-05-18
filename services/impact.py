@@ -100,12 +100,16 @@ def compute_social_impact(
     « budget consommé » affiche au même endroit — sinon un client_user
     verrait un total impact incohérent avec son propre KPI budget.
     """
-    # Une seule requête par bucket : on aurait pu faire un GROUP BY
-    # structure_type et reconstruire côté Python, mais avec 4 valeurs
-    # d'enum stables et un découpage SIAE/STPA fixé, trois sommes
-    # ciblées restent lisibles et évitent d'avoir à mapper le résultat.
-    base_stmt = (
-        select(func.coalesce(func.sum(Quote.total_amount_ht), 0))
+    # Le dashboard est une page chaude — une seule requête groupée
+    # tient en une round-trip, là où trois sommes ciblées multipliaient
+    # par 3 la charge DB à chaque chargement. Le GROUP BY renvoie au
+    # plus 4 lignes (les 4 valeurs de l'enum), on bucketise SIAE/STPA
+    # côté Python.
+    stmt = (
+        select(
+            Caterer.structure_type,
+            func.coalesce(func.sum(Quote.total_amount_ht), 0),
+        )
         .select_from(Order)
         .join(Quote, Order.quote_id == Quote.id)
         .join(QuoteRequest, Quote.quote_request_id == QuoteRequest.id)
@@ -114,28 +118,21 @@ def compute_social_impact(
             Order.status == OrderStatus.paid,
             QuoteRequest.company_id == company_id,
         )
+        .group_by(Caterer.structure_type)
     )
     if requester_user_id is not None:
-        base_stmt = base_stmt.where(QuoteRequest.user_id == requester_user_id)
+        stmt = stmt.where(QuoteRequest.user_id == requester_user_id)
 
-    total_ht = Decimal(str(db.execute(base_stmt).scalar_one() or 0))
-
-    siae_ht = Decimal(
-        str(
-            db.execute(
-                base_stmt.where(Caterer.structure_type.in_(SIAE_STRUCTURE_TYPES))
-            ).scalar_one()
-            or 0
-        )
-    )
-    stpa_ht = Decimal(
-        str(
-            db.execute(
-                base_stmt.where(Caterer.structure_type.in_(STPA_STRUCTURE_TYPES))
-            ).scalar_one()
-            or 0
-        )
-    )
+    total_ht = Decimal(0)
+    siae_ht = Decimal(0)
+    stpa_ht = Decimal(0)
+    for structure_type, amount in db.execute(stmt).all():
+        bucket = Decimal(amount or 0)
+        total_ht += bucket
+        if structure_type in SIAE_STRUCTURE_TYPES:
+            siae_ht += bucket
+        elif structure_type in STPA_STRUCTURE_TYPES:
+            stpa_ht += bucket
 
     # `int(total_ht)` tronque côté Decimal ; on veut un arrondi propre
     # à l'heure entière comme la plateforme officielle (round Python
