@@ -242,7 +242,7 @@ def qualification_approve(request_id):
         "quote_request.approve",
         target_type="quote_request",
         target_id=request_id,
-        extra={"matched_caterers": len(qrcs)},
+        extra={"fanout_size": len(qrcs)},
     )
     db.commit()
     if qrcs:
