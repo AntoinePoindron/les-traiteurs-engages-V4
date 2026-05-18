@@ -557,6 +557,11 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/wizard.js') }}"></script>
+{# `v=` : cache-buster manuel. Les fichiers JS ne sont pas hashés et sont
+   servis avec `Cache-Control: max-age=3600` — sans ce paramètre, un
+   navigateur qui a déjà `wizard.js` en cache ne le recharge pas pendant
+   une heure, même après un déploiement. Incrémenter `v` à chaque
+   modification de `wizard.js`. #}
+<script src="{{ url_for('static', filename='js/wizard.js', v=2) }}"></script>
 <script src="{{ url_for('static', filename='js/address-autocomplete.js') }}" defer></script>
 {% endblock %}

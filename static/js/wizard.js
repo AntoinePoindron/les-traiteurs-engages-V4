@@ -301,6 +301,42 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Le wizard est un seul <form> a 7 etapes. Toute soumission qui part
+  // avant l'etape finale (typiquement : Entree dans un champ declenche
+  // la soumission implicite du navigateur) enverrait les etapes
+  // suivantes vides. Le handler `submit` est la garde definitive : il
+  // intercepte TOUTE tentative de soumission, quel qu'en soit le
+  // declencheur (Entree, bouton, script). La soumission reelle ne part
+  // que depuis le bouton « Soumettre » de l'etape 7.
+  if (form) {
+    form.addEventListener('submit', function (ev) {
+      if (currentStep < totalSteps) {
+        ev.preventDefault();
+      }
+    });
+
+    // En complement : Entree dans un champ ligne-unique avance d'une
+    // etape (comme « Suivant », validation incluse) au lieu de ne rien
+    // faire. Les <textarea> gardent Entree = retour a la ligne ; les
+    // boutons restent cliquables normalement.
+    form.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      var t = ev.target;
+      if (!t || !t.tagName) return;
+      var isLineField =
+        t.tagName === 'SELECT' ||
+        (t.tagName === 'INPUT' &&
+          t.type !== 'button' &&
+          t.type !== 'submit' &&
+          t.type !== 'reset');
+      if (!isLineField) return;
+      ev.preventDefault();
+      if (currentStep < totalSteps && nextBtn) {
+        nextBtn.click();
+      }
+    });
+  }
+
   // Budget sync: bidirectional between budget_global and budget_per_person
   var budgetGlobal = document.getElementById('budget_global');
   var budgetPerPerson = document.getElementById('budget_per_person');
