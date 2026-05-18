@@ -181,9 +181,7 @@ def login():
                     "user_id": str(user.id),
                     "is_active": user.is_active,
                     "membership_status": (
-                        getattr(
-                            user.membership_status, "value", user.membership_status
-                        )
+                        getattr(user.membership_status, "value", user.membership_status)
                         if user.membership_status
                         else None
                     ),
