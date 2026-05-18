@@ -277,7 +277,7 @@ def qualification_approve(request_id):
             "dans le catalogue. Pensez a contacter le client.",
             "info",
         )
-    return redirect(url_for("admin.qualification"))
+    return redirect(url_for("admin.requests_list"))
 
 
 @admin_bp.route("/qualification/<uuid:request_id>/reject", methods=["POST"])
@@ -307,7 +307,7 @@ def qualification_reject(request_id):
     )
     db.commit()
     flash("Demande rejetee.", "info")
-    return redirect(url_for("admin.qualification"))
+    return redirect(url_for("admin.requests_list"))
 
 
 @admin_bp.route("/caterers")
