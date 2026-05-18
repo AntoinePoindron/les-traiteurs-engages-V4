@@ -87,7 +87,13 @@ _QR_OPTIONAL_FIELDS = (
 
 
 def apply_quote_request_form(qr, form):
-    """Copy validated form fields onto a QuoteRequest instance."""
+    """Copy validated form fields onto a QuoteRequest instance.
+
+    Does NOT cover the wizard step-5 drink checkboxes — those live
+    outside WTForms (no FieldList for dynamic checkbox groups) and are
+    persisted by `apply_drinks(qr, request.form)`. Every handler that
+    creates or edits a QuoteRequest must call both.
+    """
     for field in _QR_DIRECT_FIELDS:
         setattr(qr, field, getattr(form, field).data)
     for field in _QR_OPTIONAL_FIELDS:
