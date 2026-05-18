@@ -516,18 +516,6 @@ textarea.wizard-field-error {
   font-style: italic;
 }
 
-/* Badge "Lancement" sur la section sombre */
-.landing-root .badge-launch {
-  display: inline-block;
-  border: 1.5px solid white;
-  border-radius: 8px;
-  padding: 0.4rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 400;
-  color: white;
-  letter-spacing: 0.02em;
-}
-
 /* Soulignement decoratif (pinceau) sur les titres */
 .landing-root .title-deco {
   position: relative;
