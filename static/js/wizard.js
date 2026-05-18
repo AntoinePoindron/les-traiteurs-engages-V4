@@ -301,14 +301,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Entree dans un champ ne doit jamais soumettre le formulaire
-  // multi-etapes : la soumission implicite du navigateur enverrait les
-  // etapes suivantes vides. Signale sur l'etape Budget mais commun a
-  // toute etape ayant un champ saisissable (un seul <form>, un bouton
-  // type="submit"). On bloque Entree et, hors etape finale, on avance
-  // comme un clic sur « Suivant » (validation incluse). Les <textarea>
-  // gardent Entree = retour a la ligne ; les boutons restent cliquables.
+  // Le wizard est un seul <form> a 7 etapes. Toute soumission qui part
+  // avant l'etape finale (typiquement : Entree dans un champ declenche
+  // la soumission implicite du navigateur) enverrait les etapes
+  // suivantes vides. Le handler `submit` est la garde definitive : il
+  // intercepte TOUTE tentative de soumission, quel qu'en soit le
+  // declencheur (Entree, bouton, script). La soumission reelle ne part
+  // que depuis le bouton « Soumettre » de l'etape 7.
   if (form) {
+    form.addEventListener('submit', function (ev) {
+      if (currentStep < totalSteps) {
+        ev.preventDefault();
+      }
+    });
+
+    // En complement : Entree dans un champ ligne-unique avance d'une
+    // etape (comme « Suivant », validation incluse) au lieu de ne rien
+    // faire. Les <textarea> gardent Entree = retour a la ligne ; les
+    // boutons restent cliquables normalement.
     form.addEventListener('keydown', function (ev) {
       if (ev.key !== 'Enter') return;
       var t = ev.target;
