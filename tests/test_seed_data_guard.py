@@ -17,9 +17,12 @@ import pytest
 
 @pytest.fixture
 def seed_data_module(monkeypatch):
-    """Reload `seed_data` after wiping any inherited markers so the
-    `_DEV_OPT_IN_MARKERS` snapshot at import time is reproducible.
-    `monkeypatch` undoes the env changes between tests."""
+    """Wipe any inherited dev markers before each test so the guard
+    starts from a clean slate. `_refuse_in_production` reads `os.getenv`
+    on every call (no module-level snapshot), so the `importlib.reload`
+    isn't strictly required — it's belt-and-suspenders against any
+    future regression that would cache the markers at import time.
+    `monkeypatch` rolls back the env changes between tests."""
     monkeypatch.delenv("FLASK_DEBUG", raising=False)
     monkeypatch.delenv("SEED_FIXTURES_ALLOW", raising=False)
     import seed_data
