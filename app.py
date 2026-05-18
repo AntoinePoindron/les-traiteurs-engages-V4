@@ -76,7 +76,7 @@ CSP = (
     # before any other layer (CSP frame-ancestors, SameSite, etc.)
     # could complain. The same-origin lock matches what every form
     # in this codebase actually does.
-    "form-action 'self'"
+    "form-action 'self';"
 )
 
 
