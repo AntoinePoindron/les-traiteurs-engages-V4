@@ -13,7 +13,7 @@ post-deploy expectation is that anyone who needs the data re-saves the
 request from the wizard.
 
 Revision ID: e7c8a2f4b6d1
-Revises: a6f3b8e2d4c7
+Revises: f4c8b9a3d7e5
 Create Date: 2026-05-13
 """
 
@@ -24,7 +24,11 @@ from alembic import op
 
 
 revision: str = "e7c8a2f4b6d1"
-down_revision: Union[str, Sequence[str], None] = "a6f3b8e2d4c7"
+# Re-parented onto f4c8b9a3d7e5 (PR #61 submission_token) once that
+# migration landed on main — both originally branched from a6f3b8e2d4c7,
+# which produced a two-headed migration graph that alembic refuses to
+# resolve as "head" on its own.
+down_revision: Union[str, Sequence[str], None] = "f4c8b9a3d7e5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
