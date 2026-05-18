@@ -15,7 +15,18 @@ csrf = CSRFProtect()
 
 
 def _is_truthy_env(name: str) -> bool:
-    return os.getenv(name, "").strip().lower() in ("1", "true", "yes")
+    # Match the truthy set Pydantic v2 accepts for bool fields, so
+    # `FLASK_DEBUG=on` and `LIMITER_ALLOW_MEMORY=t` behave the same here
+    # as on the Settings model in config.py — operators shouldn't need
+    # to learn a per-helper truthy dialect.
+    return os.getenv(name, "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "y",
+        "on",
+        "t",
+    )
 
 
 def _limiter_storage_uri() -> str:
