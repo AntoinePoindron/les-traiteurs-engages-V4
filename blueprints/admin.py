@@ -150,6 +150,7 @@ def qualification():
 _REQUEST_STATUS_TABS: dict[str, str] = {
     "all": "Toutes",
     QuoteRequestStatus.pending_review.value: "En attente",
+    QuoteRequestStatus.approved.value: "Approuvées",
     QuoteRequestStatus.sent_to_caterers.value: "Envoyées",
     QuoteRequestStatus.completed.value: "Terminées",
     QuoteRequestStatus.quotes_refused.value: "Devis refusés",
