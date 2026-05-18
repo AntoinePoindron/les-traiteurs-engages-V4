@@ -294,7 +294,7 @@ def test_signup_invite_redemption_creates_user_and_consumes_token(client):
     )
     resp = client.post(
         f"/signup/invite/{token}",
-        data={"password": "VeryStrongPassword1!"},
+        data={"password": "VeryStrongPassword1!", "accept_terms": "on"},
         follow_redirects=False,
     )
     assert resp.status_code == 302, (
@@ -332,7 +332,7 @@ def test_signup_invite_token_is_single_use(client):
 
     first = client.post(
         f"/signup/invite/{token}",
-        data={"password": "FirstUseStrong1!"},
+        data={"password": "FirstUseStrong1!", "accept_terms": "on"},
         follow_redirects=False,
     )
     assert first.status_code == 302
@@ -356,6 +356,7 @@ def test_signup_invite_ignores_tampered_email_in_post(client):
         f"/signup/invite/{token}",
         data={
             "password": "TamperResistant1!",
+            "accept_terms": "on",
             "email": "evil@attacker.tld",
             "first_name": "Mallory",
             "last_name": "Hacker",
@@ -386,7 +387,7 @@ def test_signup_invite_weak_password_rejected(client):
     )
     resp = client.post(
         f"/signup/invite/{token}",
-        data={"password": "short"},
+        data={"password": "short", "accept_terms": "on"},
         follow_redirects=False,
     )
     # validate_password rejects → form re-rendered, token still alive.
@@ -437,7 +438,7 @@ def test_signup_invite_collision_with_existing_user_redirects_to_login(client):
 
     resp = client.post(
         f"/signup/invite/{token}",
-        data={"password": "AnotherStrongOne1!"},
+        data={"password": "AnotherStrongOne1!", "accept_terms": "on"},
         follow_redirects=False,
     )
     assert resp.status_code == 302
@@ -486,7 +487,7 @@ def test_signup_invite_handles_integrity_error_at_flush(client, monkeypatch):
 
     resp = client.post(
         f"/signup/invite/{token}",
-        data={"password": "RaceResistantPwd1!"},
+        data={"password": "RaceResistantPwd1!", "accept_terms": "on"},
         follow_redirects=False,
     )
 

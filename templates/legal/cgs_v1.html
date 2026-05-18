@@ -1,0 +1,730 @@
+{% extends "base.html" %}
+
+{% block title %}{{ version.title }} - Les Traiteurs Engagés{% endblock %}
+
+{# Same body whether the visitor is signed in (block content, rendered
+   inside the dashboard sidebar layout) or not (block public_content,
+   rendered without the sidebar). Defining both via `self.body()` keeps
+   the markup in one place. #}
+{% block public_content %}<div class="p-6 max-w-7xl mx-auto">{{ self.body() }}</div>{% endblock %}
+
+{% block content %}{{ self.body() }}{% endblock %}
+
+{% block body %}
+<article class="legal-page bg-white rounded-lg p-8 max-w-3xl mx-auto">
+  <header class="mb-8">
+    <h1 class="font-display font-bold text-3xl text-black">
+      Conditions générales de services de la Plateforme des Traiteurs
+    </h1>
+    <p class="text-xs mt-2 text-mute">
+      Version « {{ version.slug }} » — en vigueur depuis le
+      {{ version.effective_at.strftime('%d/%m/%Y') }}.
+    </p>
+  </header>
+
+  <p>
+    La Plateforme des Traiteurs est un outil de mise en relation entre des traiteurs
+    et des clients développé et déployé par le GIP Plateforme de l'inclusion.
+  </p>
+
+  <p>
+    Le présent document a pour objet de définir les conditions générales applicables
+    à l'utilisation de La plateforme des Traiteurs (ci-après la «&nbsp;Plateforme&nbsp;»),
+    opérée par la Plateforme de l'inclusion, groupement d'intérêt public constitué
+    conformément à l'arrêté du 19 avril 2022 portant approbation de la convention
+    constitutive du groupement d'intérêt public «&nbsp;Plateforme de l'inclusion&nbsp;»,
+    dont le siège social est situé 127 RUE DE GRENELLE 75007 PARIS, immatriculé sous
+    le numéro SIRET 13003013300016 (ci-après le «&nbsp;GIP&nbsp;»). La plateforme a
+    pour vocation de faciliter la mise en relation entre des clients (personnes
+    physiques ou morales ayant besoin d'un traiteur) et des traiteurs (engagés ou
+    solidaires proposant des prestations de traiteur), au moyen d'un algorithme de
+    correspondance reposant sur des critères objectifs définis par le GIP de
+    l'inclusion (type de prestation proposée par le traiteur, prix, nombre de
+    personnes à l'évènement et situation géographique).
+  </p>
+
+  <p>
+    Le GIP agit en qualité d'opérateur de la Plateforme et non de partie aux contrats
+    conclus entre les clients et les traiteurs.
+  </p>
+
+  <h2>Article 1. Définitions</h2>
+
+  <p>Au sens des présentes CGS, les termes identifiés par une majuscule ont la signification suivante&nbsp;:</p>
+
+  <ul>
+    <li>
+      <strong>Algorithme de mise en relation</strong>&nbsp;: désigne le système
+      automatisé développé par le GIP Plateforme de l'inclusion qui analyse les
+      critères renseignés par les Utilisateurs afin de proposer des correspondances
+      entre des Clients et des Traiteurs selon des critères objectifs définis par le GIP.
+    </li>
+    <li>
+      <strong>Client</strong>&nbsp;: désigne toute personne physique ou morale, de
+      droit privé ou public, qui s'inscrit sur la Plateforme afin d'être mis en
+      relation contractuelle avec un ou plusieurs traiteurs.
+    </li>
+    <li>
+      <strong>Traiteurs</strong>&nbsp;: désigne toute personne physique ou morale,
+      professionnelle ou habilitée, proposant des prestations de service de traiteur
+      à des Clients sur la Plateforme.
+    </li>
+    <li>
+      <strong>Utilisateur(s)</strong>&nbsp;: désigne toute personne ayant créé un
+      compte sur la Plateforme des Traiteurs, qu'il s'agisse d'un client ou d'un traiteur.
+    </li>
+    <li><strong>CGS</strong>&nbsp;: désigne les présentes conditions générales d'utilisation.</li>
+    <li>
+      <strong>Compte utilisateur</strong>&nbsp;: désigne l'espace personnel et
+      sécurisé créé par tout utilisateur lors de son inscription sur la Plateforme,
+      permettant l'accès aux services.
+    </li>
+    <li>
+      <strong>Contrat de prestation</strong>&nbsp;: désigne le contrat conclu
+      directement entre un Client et un Prestataire (Traiteur engagé ou solidaire) à
+      l'issue d'une mise en relation, auquel le GIP La Plateforme de l'inclusion
+      n'est pas partie.
+    </li>
+    <li>
+      <strong>Données</strong>&nbsp;: désigne l'ensemble des informations, données
+      et contenus fournis par un Utilisateur dans le cadre de l'utilisation de la
+      Plateforme, y compris des Données à caractère personnel.
+    </li>
+    <li>
+      <strong>Données à caractère personnel</strong>&nbsp;: désigne toute
+      information permettant, directement ou indirectement, l'identification d'une
+      personne physique au sens du RGPD.
+    </li>
+    <li>
+      <strong>GIP</strong>&nbsp;: désigne le GIP la Plateforme de l'inclusion,
+      opérateur de la Plateforme, tel que défini au préambule.
+    </li>
+    <li>
+      <strong>La Plateforme des traiteurs</strong>&nbsp;: désigne la plateforme
+      numérique mise en place par le GIP Plateforme de l'inclusion, permettant la
+      mise en relation entre des Clients et des Traiteurs.
+    </li>
+    <li>
+      <strong>Services</strong>&nbsp;: désigne l'ensemble des fonctionnalités
+      proposées par la Plateforme des Traiteurs, incluant notamment l'inscription,
+      la création d'un compte et d'un profil, et la mise en relation via un
+      algorithme de clients et traiteurs.
+    </li>
+  </ul>
+
+  <h2>Article 2. Objet et champ d'application</h2>
+
+  <p>
+    Les présentes CGS ont pour objet de définir les conditions d'accès et
+    d'utilisation de la Plateforme des Traiteurs ainsi que les droits et obligations
+    des parties dans le cadre de l'utilisation des Services.
+  </p>
+
+  <p>
+    Les CGS s'appliquent à tout Utilisateur qui crée un Compte sur la Plateforme des
+    Traiteurs et s'y inscrit qu'il s'agisse d'un Client ou d'un Traiteur.
+  </p>
+
+  <p>
+    En validant son inscription, l'Utilisateur reconnaît avoir pris connaissance des
+    présentes CGS, les avoir comprises et les accepter sans réserve.
+  </p>
+
+  <h2>Article 3. Accès à la plateforme et inscription</h2>
+
+  <h3>3.1. Conditions d'accès</h3>
+
+  <p>L'accès à la Plateforme est réservé&nbsp;:</p>
+  <ul>
+    <li>
+      <strong>Pour les Prestataires</strong>&nbsp;: tout Traiteur professionnel
+      engagé ou solidaire satisfaisant aux conditions d'habilitation, ou de
+      qualification définie par le GIP Plateforme de l'Inclusion.
+    </li>
+  </ul>
+
+  <h3>3.2. Création du Compte Utilisateur</h3>
+
+  <p>
+    L'inscription sur la Plateforme est gratuite. Elle implique la fourniture
+    d'informations exactes, complètes et à jour, notamment&nbsp;:
+  </p>
+  <ul>
+    <li>
+      <strong>Pour les Prestataires</strong>&nbsp;: nom, prénom, adresse e-mail,
+      dénomination sociale, numéro SIRET, type de structure, domaines d'intervention,
+      disponibilités et situation géographique.
+    </li>
+  </ul>
+
+  <p>
+    L'Utilisateur (Traiteur) est seul responsable de la confidentialité de ses
+    identifiants de connexion et s'engage à prévenir le GIP la Plateforme de
+    l'Inclusion de toute utilisation non autorisée de son Compte ou de ses informations.
+  </p>
+
+  <h3>3.3. Vérification des Traiteurs</h3>
+
+  <h4>Contrôles de cohérence</h4>
+  <p>
+    Le GIP Plateforme de l'inclusion peut effectuer des contrôles de cohérence
+    à postériori visant à limiter les risques d'usurpation d'identité ou de la
+    qualité de traiteur solidaire. Il prend tout moyen raisonnable pour s'assurer de
+    cette qualité.
+  </p>
+
+  <h4>Contrôles en cas de signalement d'un traiteur</h4>
+  <p>
+    Le GIP Plateforme de l'inclusion s'engage à effectuer une vérification
+    systématique en cas de signalement d'un traiteur.
+  </p>
+
+  <h4>Obligation de diligence des utilisateurs</h4>
+  <p>
+    Les Utilisateurs s'engagent à être diligent dans la détection de fraudeurs
+    potentiels, notamment, préalablement à toute contractualisation avec un traiteur
+    solidaire.
+  </p>
+
+  <h4>Signalement des traiteurs par les utilisateurs</h4>
+  <p>
+    En cas de suspicion concernant un traiteur, soit qu'il n'entre pas dans le
+    qualificatif de traiteur solidaire, soit qu'il s'agisse d'un autre type
+    d'usurpation d'identité ou de qualité, l'utilisateur en ayant connaissance
+    signale le traiteur au GIP Plateforme de l'Inclusion par tout moyen. Le
+    signalement s'accompagne de tout élément susceptible de confirmer le sérieux
+    de la suspicion.
+  </p>
+
+  <h4>Suspension de compte ou déréférencement</h4>
+  <p>
+    En cas de manquement lié aux dispositions légales, réglementaires ou liées aux
+    présentes Conditions générales d'utilisation, l'éditeur peut suspendre ou
+    supprimer le compte d'un traiteur ou d'utilisateurs rattachés à un traiteur.
+  </p>
+  <p>
+    L'utilisateur ou le traiteur s'engage à ne pas usurper l'identité d'un tiers,
+    par quelques moyens que ce soit, mais particulièrement en utilisant ses accès,
+    ses données ou des informations qu'il aurait en sa possession. Toute suspicion
+    d'usurpation d'identité peut entraîner une décision de suspension du compte et
+    de toutes les actions associées, y compris pendant la phase de vérification des
+    faits allégués.
+  </p>
+  <p>
+    L'éditeur informe le candidat de l'ouverture de la procédure de sanction et lui
+    précise les motifs de la décision prévue. Le candidat mis en cause dispose d'un
+    délai de 15 jours pour apporter le contradictoire via le service. La suspension
+    de compte ou déréférencement a lieu de manière conservatoire jusqu'à la
+    décision finale de l'éditeur.
+  </p>
+  <p>
+    À l'issue de ce délai, l'éditeur communique sa décision via le service dans un
+    délai raisonnable. La décision comprend les motifs de la décision et précise
+    les faits reprochés. Il informe, conformément aux dispositions en vigueur, les
+    délais et voies de recours. Il désactive tout accès au compte immédiatement à
+    la suite de la décision.
+  </p>
+
+  <h2>Article 4. Description des services</h2>
+
+  <h3>4.1. Services proposés</h3>
+
+  <p>La Plateforme propose les Services suivants&nbsp;:</p>
+  <ul>
+    <li>Création d'un Compte Utilisateur.</li>
+    <li>Permettre aux utilisateurs de renseigner des données pour établir leur profil Client ou Traiteur.</li>
+    <li>Une mise en relation via un algorithme de correspondance (matching) entre des Clients et des Prestataires.</li>
+    <li>Une solution de paiement intermédiaire.</li>
+    <li>Un service de messagerie sécurisée entre Clients et Traiteurs mise en relation.</li>
+  </ul>
+
+  <h3>4.2. Rôle du GIP Plateforme de l'Inclusion</h3>
+
+  <p>
+    Le GIP Plateforme de l'inclusion agit en qualité d'intermédiaire technique. Il
+    n'est pas partie aux Contrats de prestation de service conclus entre Clients et
+    Traiteurs, et n'intervient pas dans la négociation, l'exécution ou le règlement
+    des litiges relatifs à ces contrats.
+  </p>
+
+  <p>
+    Le GIP Plateforme de l'inclusion s'assure simplement de la mise en relation
+    entre des Clients et Traiteurs qui seraient compatibles selon des critères
+    objectifs. Ainsi, le GIP ne garantit pas qu'une mise en relation aboutira à la
+    conclusion d'un Contrat de prestation de service de traiteur, ni que les
+    services du Traiteur satisferont les attentes du Client.
+  </p>
+
+  <p>
+    Dans le cadre de la mise en relation entre les traiteurs et les clients, la
+    Plateforme des Traiteurs recourt à un algorithme de similarité permettant
+    d'identifier et de proposer des correspondances pertinentes. Cet algorithme
+    opère cette mise en relation en se fondant sur plusieurs critères, tels que le
+    type de prestation proposée, le prix, le nombre de personnes présentes ou
+    encore la localisation géographique.
+  </p>
+
+  <p>
+    Ce traitement algorithmique présente un degré de contribution intermédiaire
+    dans la prise de décision finale. Il permet en effet d'opérer une pré-sélection
+    des traiteurs, ainsi qu'une priorisation des résultats en fonction des critères
+    de l'algorithme, sans pour autant constituer une décision entièrement automatisée.
+  </p>
+
+  <h2>Article 5. Critères de mise en relation</h2>
+
+  <p>L'algorithme prend en compte les critères suivants&nbsp;:</p>
+  <ul>
+    <li>
+      <strong>Critère de distance géographique</strong>&nbsp;: situation
+      géographique du Client (adresse postale) et zone où le Traiteur effectue ses
+      prestations de service.
+    </li>
+    <li>
+      <strong>Critère financier</strong>&nbsp;: budget du Client (prix maximum fixé
+      par le client) et tarifs du Traiteur.
+    </li>
+    <li>
+      <strong>Adéquation entre les besoins exprimés par le Client et la prestation
+      de service proposée par le Traiteur</strong>&nbsp;: capacités quantitatives
+      et qualitatives du Traiteur comparé au nombre de personnes présentes à
+      l'évènement du Client ainsi que ses attentes en termes de qualité.
+    </li>
+    <li>Disponibilités respectives du Client et du Traiteur.</li>
+  </ul>
+
+  <p>Les données utilisées pour ce traitement sont principalement collectées directement auprès des utilisateurs&nbsp;:</p>
+  <ul>
+    <li>Les informations fournies par les Clients lors de leur inscription et de la formulation de leur demande.</li>
+    <li>Les informations communiquées par les Traiteurs lors de leur référencement sur la Plateforme.</li>
+    <li>Les éventuelles données complémentaires issues du site du marché de l'inclusion.</li>
+  </ul>
+
+  <h2>Article 6. Obligations des Utilisateurs</h2>
+
+  <p>Tout Utilisateur s'engage à&nbsp;:</p>
+  <ul>
+    <li>Fournir des informations exactes et complètes lors de son inscription, et de régulièrement les mettre à jour afin de profiter au mieux des services fournis la Plateforme des Traiteurs.</li>
+    <li>Ne pas détourner l'utilisation de la plateforme à des fins illicites.</li>
+    <li>Informer sans délai le GIP de toute anomalie, dysfonctionnement ou utilisation frauduleuse de la Plateforme dont il aurait connaissance.</li>
+    <li>Informer sans délai le GIP en cas d'utilisation non autorisée de son compte ou de ses informations.</li>
+    <li>Honorer ses engagements pris à l'égard de la partie avec laquelle il est entré en relation contractuelle.</li>
+  </ul>
+
+  <p>Les Traiteurs s'engagent par ailleurs à&nbsp;:</p>
+  <ul>
+    <li>Respecter les normes d'hygiène et sécurité alimentaire, d'étiquetage, de stockage, d'équipement et de maintenir à jour ses licences et autres autorisations (notamment licences de débit de boisson, autorisations de transport de produits alimentaires).</li>
+    <li>Respecter les autres obligations légales et règlementaires applicables à son activité.</li>
+    <li>Honorer leurs engagements envers les Clients avec lesquels ils entrent en relation contractuelle, sauf cas de force majeure.</li>
+  </ul>
+
+  <h2>Article 7. Conditions financières</h2>
+
+  <h3>7.1. Modalités de paiement</h3>
+
+  <p>
+    <strong>Accès à la plateforme</strong> — l'accès à la Plateforme des Traiteurs
+    est gratuit.
+  </p>
+
+  <p>
+    <strong>Accès aux services</strong> — le service de mise en relation entre
+    Clients et Traiteurs fourni par la Plateforme est payant.
+  </p>
+
+  <p>
+    <strong>Détermination du prix</strong> — des prix différenciés selon les acteurs
+    sont mis en place. Les règles de détermination de ces prix sont objectives. En
+    effet, la Plateforme en sa qualité de mandataire des Traiteurs est rémunérée
+    pour son service de mise en relation. Il en résulte que dans le cadre de la
+    prestation de service fournie par le Traiteur, le Traiteur verse une commission
+    de 10&nbsp;% du montant hors taxe de la Prestation à la Plateforme pour son
+    service de mise en relation. Dans la mesure où la Plateforme est mandataire de
+    facturation du Traiteur, cette commission est simplement déduite du montant
+    total reversé au traiteur pour sa Prestation.
+  </p>
+
+  <p>
+    <strong>Modalités de paiement</strong> — le GIP Plateforme de l'inclusion
+    utilise les services d'un prestataire de paiement sécurisé sur le site de la
+    Plateforme des Traiteurs pour garantir la sécurité des transactions et leur
+    efficacité. En effet, dans le cadre de sa prestation de service, le GIP de
+    l'inclusion utilise «&nbsp;Stripe&nbsp;» une solution de paiement unifiée et
+    mondiale qui permet à toutes les entreprises, d'accepter des paiements en ligne
+    et en personne, partout dans le monde. Ses conditions générales de service
+    s'appliquent.
+  </p>
+
+  <h3>7.2. Modalités de facturation et mandat de facturation</h3>
+
+  <p>
+    Toute prestation de services fait l'objet d'un devis détaillé émis par le
+    Traiteur via la Plateforme et adressé au Client. Le contrat est réputé formé dès
+    l'acceptation électronique du devis par le Client sur la Plateforme. En cas de
+    refus du devis, la demande est caduque et aucune prestation ne pourra être exigée.
+  </p>
+
+  <p>
+    Une fois la prestation réalisée conformément aux termes du devis, le Traiteur
+    s'engage à notifier la clôture de l'événement sur l'interface de la Plateforme
+    (bouton «&nbsp;Prestation terminée&nbsp;» ou équivalent). Cette action déclenche
+    le processus de facturation.
+  </p>
+
+  <p>
+    Le Client reconnaît et accepte que la facturation est intégralement gérée par
+    le prestataire de services de paiement Stripe.
+  </p>
+
+  <ul>
+    <li>La facture est générée automatiquement par Stripe sur la base des éléments du devis préalablement acceptés.</li>
+    <li>Le Traiteur mandate expressément la Plateforme et Stripe pour émettre ladite facture en son nom et pour son compte.</li>
+  </ul>
+
+  <p>
+    Les factures sont établies sur la base des informations communiquées par le
+    Client&nbsp;; il appartient à celui-ci de vérifier leur exactitude avant la
+    validation de la commande. Toute demande de correction devra être formulée dans
+    un délai de 15 jours, sous réserve des règles fiscales applicables, et sans
+    que celle-ci puisse advenir une fois la facture mise en paiement. À défaut, la
+    facture est réputée acceptée, sous réserve des règles impératives applicables.
+  </p>
+
+  <p>
+    Le traiteur demeure seul responsable de l'exactitude des données transmises,
+    de ses obligations de facturation et de ses obligations en matière de TVA.
+  </p>
+
+  <p>
+    Pour pouvoir percevoir ses fonds, le Traiteur a l'obligation impérative de créer
+    et de maintenir un compte Stripe Connect actif et lié à son profil sur la Plateforme.
+  </p>
+
+  <p>
+    À défaut de compte Stripe configuré et validé selon les modalités exigées par
+    Stripe, la génération de la facture et le transfert des fonds vers le compte
+    bancaire du Traiteur seront techniquement impossibles. La responsabilité de la
+    Plateforme ne pourra être engagée en cas de retard de paiement dû au défaut de
+    configuration du compte Stripe par le Traiteur.
+  </p>
+
+  <p>
+    Le paiement s'effectue via l'interface de paiement sécurisée Stripe dédiée. Le
+    règlement est considéré comme effectué dès confirmation par Stripe de la
+    réception des fonds. Les délais de virement effectifs sur le compte bancaire
+    du Traiteur dépendent des conditions générales de Stripe et de la configuration
+    du compte.
+  </p>
+
+  <p>
+    Le traiteur mandate expressément l'éditeur pour établir matériellement, en son
+    nom et pour son compte, les factures relatives aux prestations réalisées par
+    l'intermédiaire de la Plateforme. Le paiement via la plateforme vaut paiement
+    au traiteur.
+  </p>
+
+  <p>
+    La facturation a lieu après la réalisation de la prestation afférente. Elle
+    comprend également une facture secondaire comprenant les commissions de
+    l'éditeur. Les deux factures peuvent être visualisées en une seule facture
+    émise par le GIP.
+  </p>
+
+  <p>
+    Les factures ainsi émises reproduisent les informations fiscales et
+    commerciales transmises par le traiteur et comportent, le cas échéant, une
+    mention du type&nbsp;: «&nbsp;Facture établie par [GIP Plateforme de
+    l'inclusion] au nom et pour le compte de [Nom du Traiteur]&nbsp;».
+  </p>
+
+  <p>Les factures sont mises à disposition du Client et du traiteur par voie électronique.</p>
+
+  <p>
+    La facture est mise à disposition du Client par voie électronique dans son
+    espace client et/ou adressée à l'adresse e-mail renseignée lors de la commande.
+  </p>
+
+  <p>
+    Le prix de la prestation de service fournie par le Traiteur déduit de la
+    commission de mise en relation versée par le Client (5&nbsp;% du montant hors
+    taxe de la prestation) et celle devant être versée par le Traiteur (10&nbsp;%
+    du montant hors taxe de la prestation), est ensuite reversé au Traiteur par le
+    GIP de l'inclusion.
+  </p>
+
+  <h3>7.3. Retard de paiement</h3>
+
+  <p>
+    Conformément aux dispositions de l'article L.&nbsp;441-10 du Code de commerce,
+    tout retard de paiement fera courir, sans préavis et de plein droit, une
+    indemnité forfaitaire de recouvrement telle que déterminée par décret et des
+    intérêts de retard dont le taux correspondra au taux appliqué par la Banque
+    Centrale Européenne lors de sa dernière opération de refinancement, majoré de
+    dix points.
+  </p>
+
+  <p>
+    Nonobstant les intérêts de retard calculés selon les conditions précitées, le
+    GIP se réserve le droit, après une relance de paiement adressée par courriel à
+    l'Utilisateur restée sans effet plus de dix (10) jours calendaires suivant la
+    date de notification de la relance, de suspendre l'accès à tout ou partie des
+    Services, sans que cela n'ouvre droit à indemnité ni recours au profit de
+    l'Utilisateur. L'Utilisateur ne retrouvera l'accès aux Services qu'au règlement
+    de toutes les sommes dues, en principal et intérêts.
+  </p>
+
+  <p>
+    En cas de retards de paiement non régularisés, le GIP Plateforme de l'inclusion
+    disposera, après notification de l'Utilisateur avec les moyens qu'elle jugera
+    appropriés, de la faculté de résilier le Contrat aux torts exclusifs de
+    l'Utilisateur ou d'exercer de toute autre voie de droit visant à obtenir
+    réparation du préjudice qu'elle aura subi.
+  </p>
+
+  <h3>7.4. Évolution des tarifs</h3>
+
+  <p>
+    Tout prix proposé par un traiteur préalablement à la mise en relation par la
+    plateforme ne peut être modifié à la hausse après ladite mise en relation.
+  </p>
+
+  <p>
+    Une telle modification ne peut le faire qu'avec l'accord exprès du client ou
+    sur sa demande explicite. En cas d'augmentation de sa grille tarifaire dans
+    ces cas, le Traiteur s'engage à en informer préalablement le Client pour que
+    ce dernier puisse, le cas échéant, demander la résiliation des Services et/ou
+    du Contrat avant de subir ladite augmentation tarifaire.
+  </p>
+
+  <p>
+    L'éditeur se réserve le droit de ne pas facturer la commission prise sur le
+    tarif. Cela n'est pas considéré comme une «&nbsp;évolution&nbsp;» au sens des
+    présentes conditions générales.
+  </p>
+
+  <p>
+    La violation de la présente clause entraîne la suspension du traiteur sur la
+    plateforme, après son information par l'éditeur.
+  </p>
+
+  <h3>7.5. Opération de paiements mal exécutés</h3>
+
+  <p>
+    En cas d'opération de paiement mal exécuté exclusivement imputable au
+    prestataire de service de paiement tiers ou au client, la responsabilité de
+    l'éditeur ne pourra être recherchée.
+  </p>
+
+  <p>Ne peuvent engager la responsabilité de la plateforme, les erreurs ou opérations de paiement mal exécutés dans les cas suivants&nbsp;:</p>
+  <ul>
+    <li>Indisponibilité du service de paiement&nbsp;;</li>
+    <li>Échec d'autorisation bancaire&nbsp;;</li>
+    <li>Erreur de saisie d'IBAN, de carte ou d'identifiant par le client&nbsp;;</li>
+    <li>Blocage anti-fraude du PSP ou de la banque&nbsp;;</li>
+    <li>Défaut de transmission, retard bancaire, rejet carte, SCA/3DS échouée&nbsp;;</li>
+    <li>Bug ou indisponibilité chez le PSP, l'émetteur ou le teneur de compte.</li>
+  </ul>
+
+  <h3>7.6. Annulation du service et conséquences sur le prix</h3>
+
+  <p>
+    En cas d'annulation de la prestation, la facture n'est pas réalisée et la
+    prestation de mise en relation n'est pas facturée.
+  </p>
+
+  <p>
+    Lorsque le remboursement d'une somme est dû en raison de l'annulation d'une
+    facture, de l'indisponibilité d'un service ou d'une instruction émise par le
+    Client conformément aux présentes, l'éditeur ou le prestataire de service de
+    paiement procédera audit remboursement sur le moyen de paiement utilisé lors
+    de la transaction initiale, sous réserve des contraintes techniques,
+    réglementaires et bancaires applicables.
+  </p>
+
+  <h3>7.7. Clause pénale</h3>
+
+  <p>
+    La présente clause ne s'applique qu'en cas d'inexécution d'une obligation
+    essentielle du présent contrat par l'une des parties. Sauf inexécution
+    définitive rendant toute régularisation impossible, la clause pénale ne pourra
+    être mise en œuvre qu'à l'expiration d'un délai de quinze (15) jours
+    calendaires suivant réception par la partie défaillante d'une mise en demeure
+    écrite précisant le manquement reproché et l'invitant à y remédier.
+  </p>
+
+  <p>
+    À défaut de régularisation dans ce délai, la partie défaillante sera redevable
+    d'une indemnité forfaitaire égale à 10&nbsp;% du montant hors taxes de
+    l'obligation inexécutée, ou du montant qui était dû, sans pouvoir être
+    inférieure à 300&nbsp;euros ni supérieure à 5&nbsp;000&nbsp;euros, sauf montant
+    différent expressément prévu aux conditions particulières lorsque la nature
+    de l'opération le justifie.
+  </p>
+
+  <p>
+    En cas d'exécution partielle, l'indemnité sera réduite à proportion de
+    l'intérêt que cette exécution partielle aura procuré au créancier.
+  </p>
+
+  <p>
+    Pour un même manquement, la présente indemnité ne se cumule pas avec toute
+    autre pénalité, indemnité forfaitaire, dépôt conservé à titre de sanction ou
+    majoration contractuelle ayant le même objet réparateur.
+  </p>
+
+  <h2>Article 8. Protection des données à caractère personnel</h2>
+
+  <p>
+    Dans le cadre de l'exploitation de la Plateforme des Traiteurs, le GIP la
+    Plateforme de l'inclusion agit en qualité de responsable de traitement au sens
+    du Règlement (UE) 2016/679 (RGPD) et de la loi Informatique et Libertés
+    n°&nbsp;78-17 du 6 janvier 1978.
+  </p>
+
+  <p>
+    Le GIP Plateforme de l'Inclusion s'engage à traiter les Données à caractère
+    personnel conformément aux termes de la politique de confidentialité de la
+    Plateforme des Traiteurs&nbsp;:
+    <a href="https://traiteurs-engages.inclusion.gouv.fr/">
+      https://traiteurs-engages.inclusion.gouv.fr/
+    </a>.
+  </p>
+
+  <p>
+    Enfin, l'Utilisateur peut, de manière autonome, ou via contact avec le support,
+    demander la suppression de son Compte et de ses données à tout moment, en
+    application des CGS. L'Utilisateur est informé que tous les droits d'utilisation
+    concédés sur lesdits Services cesseront immédiatement.
+  </p>
+
+  <h2>Article 9. Sécurité, disponibilité et support technique</h2>
+
+  <p>
+    Le GIP met en œuvre des mesures techniques et organisationnelles appropriées
+    pour garantir la sécurité, la confidentialité et l'intégrité des données
+    traitées sur la Plateforme des Traiteurs.
+  </p>
+
+  <p>La plateforme est disponible en continu.</p>
+
+  <p>
+    Le GIP Plateforme de l'inclusion apportera un support électronique aux
+    utilisateurs quant à l'utilisation de la Plateforme. Le GIP fera ses meilleurs
+    efforts pour tenter de répondre à la requête des utilisateurs dans les meilleurs
+    délais, sans que la résolution définitive de celle-ci ne puisse être garantie.
+  </p>
+
+  <h2>Article 10. Responsabilité</h2>
+
+  <h3>10.1. Responsabilité du GIP</h3>
+
+  <h4>a) Limitation de responsabilité</h4>
+  <p>
+    Le GIP ne saurait être tenu responsable de l'absence de mise en relation ou de
+    la non-disponibilité d'un traiteur correspondant aux critères d'un Client. Par
+    ailleurs, la mise en relation via l'algorithme de deux utilisateurs ne garantit
+    pas l'entrée en relation contractuelle de ceux-ci.
+  </p>
+
+  <h4>b) Exclusion de responsabilité</h4>
+  <p>
+    La responsabilité du GIP Plateforme de l'Inclusion est limitée aux dommages
+    directs causés par une faute de sa part dans le cadre de ses missions
+    d'opérateur de la Plateforme des Traiteurs.
+  </p>
+
+  <p>Le GIP ne saurait être tenu responsable&nbsp;:</p>
+  <ul>
+    <li>Des dommages résultant de l'inexécution ou de la mauvaise exécution d'un Contrat de prestation de service de Traiteur entre un Client et un Traiteur&nbsp;;</li>
+    <li>De l'utilisation illicite du service par quelque partie que ce soit&nbsp;;</li>
+    <li>Des informations inexactes ou fallacieuses fournies par les Utilisateurs&nbsp;;</li>
+    <li>Du choix des Utilisateurs à la suite des propositions algorithmiques de mise en relation (ie. si le Client ou le Traiteur refuse d'entrer en relation contractuelle avec l'utilisateur qui lui a été proposé).</li>
+  </ul>
+
+  <p>
+    Sa responsabilité ne peut être retenue sur les litiges relevant de la
+    négociation, l'exécution ou le règlement des litiges relatifs à ces contrats
+    conformément à l'article 4.2 des présentes conditions générales.
+  </p>
+
+  <h3>10.2. Responsabilité des Utilisateurs</h3>
+
+  <p>Chaque Traiteur est seul responsable&nbsp;:</p>
+  <ul>
+    <li>Des informations qu'il indique ou transmet sur la Plateforme.</li>
+    <li>De l'utilisation de son compte et de la confidentialité de ses identifiants.</li>
+    <li>Des engagements pris dans le cadre d'un contrat de prestation de service de Traiteur (pour le Traiteur, le fait d'effectuer la prestation dans les conditions prévues par le contrat).</li>
+    <li>Du choix d'entrer en relation contractuelle ou non avec le Client qui lui est recommandé via l'algorithme.</li>
+    <li>Dans le cadre du mandat de facturation, le Traiteur (mandant) conserve l'entière responsabilité de ses obligations en matière de facturation et de leurs conséquences fiscales. Le Traiteur ne peut s'exonérer de cette responsabilité en cas de défaillance de son mandataire (Plateforme).</li>
+  </ul>
+
+  <h2>Article 11. Modification, suspension et résiliation</h2>
+
+  <h3>11.1. Modification des présentes conditions générales</h3>
+
+  <p>
+    Le GIP Plateforme de l'inclusion se réserve le droit de modifier les présentes
+    Conditions générales de services à tout moment. Toute modification sera
+    notifiée aux Utilisateurs par écrit, par tout moyen dans un délai raisonnable,
+    et la nouvelle version sera disponible en ligne sur la Plateforme des Traiteurs.
+  </p>
+
+  <p>
+    Tout Utilisateur peut résilier son Compte à tout moment, depuis son espace
+    personnel ou en adressant une demande au GIP Plateforme de l'Inclusion.
+  </p>
+
+  <h3>11.2. Suspension et résiliation des présentes conditions générales</h3>
+
+  <p>
+    Le GIP se réserve le droit de suspendre ou résilier l'accès à la Plateforme
+    des Traiteurs à tout Utilisateur, de plein droit et sans indemnité, en cas
+    de&nbsp;:
+  </p>
+  <ul>
+    <li>Violation des présentes Conditions générales&nbsp;;</li>
+    <li>Fourniture d'informations fallacieuses ou trompeuses&nbsp;;</li>
+    <li>Comportement qui serait contraire aux dispositions légales et réglementaires&nbsp;;</li>
+    <li>Inactivité prolongée, dans l'hypothèse où l'Utilisateur ne se connecte pas pendant une durée de 2 ans.</li>
+  </ul>
+
+  <p>La résiliation entraîne la suppression du compte Utilisateur et de ses données.</p>
+
+  <p>
+    Toutefois, les obligations nées avant la résiliation, en particulier les
+    contrats de prestation de service de Traiteurs conclus avant la suppression du
+    compte subsistent jusqu'à leur terme et doivent être honorés.
+  </p>
+
+  <h2>Article 12. Force majeure</h2>
+
+  <p>
+    Ni le GIP Plateforme de l'Inclusion, ni les utilisateurs ne pourront être tenus
+    responsables d'un manquement à leurs obligations, lorsque ce manquement résulte
+    d'un événement de force majeure au sens du Code civil. En cas de survenance
+    d'un événement de force majeure entraînant l'impossibilité temporaire pour
+    l'une des Parties d'exécuter ses obligations, celle-ci doit notifier l'autre
+    partie dans un délai de 7 jours.
+  </p>
+
+  <h2>Article 13. Médiation et résolution des litiges</h2>
+
+  <p>
+    La relation entre le GIP Plateforme de l'inclusion, opérateur de la Plateforme
+    des traiteurs et les Utilisateurs est régie par le droit français.
+  </p>
+
+  <p>
+    Pour toute réclamation concernant l'utilisation de la Plateforme, veuillez
+    contacter
+    <a href="mailto:pauline.desmoulins@inclusion.fr">pauline.desmoulins@inclusion.fr</a>.
+  </p>
+
+  <p>
+    En l'absence de résolution amiable, tout litige relatif à l'Accord sera soumis
+    aux tribunaux compétents situés dans le ressort territorial du siège social du
+    GIP de l'inclusion, y compris dans les procédures de référé, d'assignation,
+    ou les affaires faisant intervenir plusieurs défendeurs.
+  </p>
+</article>
+{% endblock %}

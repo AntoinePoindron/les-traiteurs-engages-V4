@@ -92,6 +92,12 @@
     for (var i = 0; i < fields.length; i++) {
       var f = fields[i];
       if (f.offsetParent === null) continue; // hidden by role toggle
+      // Checkboxes carry value="on" even when unchecked, so the trim()
+      // heuristic always passes for them — branch explicitly on `checked`.
+      if (f.type === 'checkbox') {
+        if (!f.checked) return false;
+        continue;
+      }
       if (!String(f.value || '').trim()) return false;
     }
     var rules = passwordRules(document.getElementById('password').value);

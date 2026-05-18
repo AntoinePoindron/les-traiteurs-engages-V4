@@ -36,6 +36,7 @@
   --c-cta-blush:   #FFDDDD;   /* landing CTA section pink-blush bg */
 
   /* Text */
+  --c-black:       #000;      /* pure black for legal-page headings */
   --c-text:        #1A1A1A;
   --c-text-soft:   #313131;
   --c-mute:        #6B7280;
@@ -721,4 +722,34 @@ textarea.wizard-field-error {
   .landing-root .lg\:text-left       { text-align: left; }
   .landing-root .lg\:px-8            { padding-left: 2rem; padding-right: 2rem; }
 }
+
+/* --- Legal pages (CGS, future privacy policy, etc.) ----------------
+   Single hook `.legal-page` scopes the typography rules so the rest of
+   the app keeps its compact dashboard look. Articles/sections nest h2
+   (= article), h3 (= sub-section), h4 (= deeper rubric). */
+.legal-page                 { color: var(--c-text); line-height: 1.6; }
+.legal-page h2              { font-family: 'Fraunces', serif; font-weight: 700;
+                              font-size: 1.5rem; margin-top: 2rem;
+                              margin-bottom: 0.75rem; color: var(--c-black); }
+.legal-page h3              { font-weight: 700; font-size: 1.125rem;
+                              margin-top: 1.5rem; margin-bottom: 0.5rem;
+                              color: var(--c-text); }
+.legal-page h4              { font-weight: 700; font-size: 1rem;
+                              margin-top: 1rem; margin-bottom: 0.25rem;
+                              color: var(--c-text); }
+.legal-page p               { margin-bottom: 0.75rem; }
+.legal-page ul              { list-style: disc; padding-left: 1.5rem;
+                              margin-bottom: 0.75rem; }
+.legal-page li              { margin-bottom: 0.25rem; }
+.legal-page strong          { font-weight: 700; color: var(--c-text); }
+
+/* Inline navy link inside body copy (forms, signup checkbox, legal
+   page anchors, …). `underline` + `text-navy` aren't in our curated
+   Tailwind bundle, so anchors must opt into this class to be visibly
+   linkable. `.legal-page a` inherits the same treatment automatically
+   so paragraph links there don't need to repeat the class. */
+.text-link,
+.legal-page a               { color: var(--c-navy); text-decoration: underline; }
+.text-link:hover,
+.legal-page a:hover         { opacity: 0.8; }
 

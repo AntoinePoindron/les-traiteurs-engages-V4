@@ -266,6 +266,37 @@ class Caterer(DietaryMixin, Base):
     payments: Mapped[list["Payment"]] = relationship(back_populates="caterer")
 
 
+class TermsVersion(Base):
+    """Registry of CGS (Conditions Générales de Services) versions.
+
+    The version's actual *text* lives in a Jinja template — see
+    `template_name`. The DB row only carries the metadata Flask needs
+    to (a) know which version is current at any point in time and
+    (b) record on each User which version they accepted at signup.
+
+    New versions are seeded via Alembic data-migration so the audit
+    trail of "what did v2 add" lives in git, ligne à ligne.
+    """
+
+    __tablename__ = "terms_versions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    # Stable identifier used in URLs (e.g. `/cgs/v1`) and as the lookup
+    # key from migrations. Lowercase, no spaces.
+    slug: Mapped[str] = mapped_column(String(50), unique=True)
+    # Display title — what users see at the top of the page.
+    title: Mapped[str] = mapped_column(String(255))
+    # Jinja template path that renders the actual CGS body. Living
+    # in templates/legal/cgs_<slug>.html keeps the text in git.
+    template_name: Mapped[str] = mapped_column(String(255))
+    # Date from which this version is considered in force. Used by
+    # `services.terms.current_terms_version` to pick the right row.
+    effective_at: Mapped[datetime.date] = mapped_column(Date)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -290,6 +321,14 @@ class User(Base):
     # for users who have never reset — matches sessions issued before the
     # column existed, so the deploy doesn't force-logout anyone.
     password_changed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
+    # CGS acceptance trace. Nullable on purpose: pre-existing users created
+    # before the CGS gate landed are left untouched (staging-only platform,
+    # no real users in the wild yet — see PR description for the call). Any
+    # new signup is required to fill both columns at creation time.
+    terms_accepted_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("terms_versions.id")
+    )
+    terms_accepted_at: Mapped[datetime.datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()
     )
@@ -299,6 +338,7 @@ class User(Base):
 
     company: Mapped[Company | None] = relationship(back_populates="users")
     caterer: Mapped[Caterer | None] = relationship(back_populates="users")
+    terms_accepted_version: Mapped["TermsVersion | None"] = relationship()
     quote_requests: Mapped[list["QuoteRequest"]] = relationship(back_populates="user")
     notifications: Mapped[list["Notification"]] = relationship(back_populates="user")
     sent_messages: Mapped[list["Message"]] = relationship(

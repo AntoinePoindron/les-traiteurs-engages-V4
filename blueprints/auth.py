@@ -24,6 +24,7 @@ from services.notifications import (
     super_admin_user_ids,
 )
 from services.slugs import generate_invoice_prefix
+from services.terms import current_terms_version, is_terms_accepted
 
 logger = logging.getLogger(__name__)
 
@@ -212,9 +213,21 @@ def signup():
         first_name = request.form.get("first_name", "").strip()
         last_name = request.form.get("last_name", "").strip()
         siret = request.form.get("siret", "").strip()
+        # The signup form ships a single checkbox `accept_terms` whose
+        # presence is enforced server-side (HTML5 `required` is only a
+        # UX hint — a curl POST would bypass it).
+        accept_terms = is_terms_accepted(request.form)
 
         if not all([role, email, password, first_name, last_name, siret]):
             flash("Veuillez remplir tous les champs obligatoires.", "error")
+            return render_template("auth/signup.html")
+
+        if not accept_terms:
+            flash(
+                "Vous devez accepter les conditions générales de services pour "
+                "créer un compte.",
+                "error",
+            )
             return render_template("auth/signup.html")
 
         if len(siret) != 14 or not siret.isdigit():
@@ -229,6 +242,10 @@ def signup():
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
         db = get_db()
+        # Resolve the CGS version once so every code path below records
+        # the same id + timestamp, even if midnight ticks between calls.
+        active_terms = current_terms_version(db)
+        accepted_at = datetime.datetime.utcnow()
 
         # VULN-28: always execute both lookups so timing is identical
         # regardless of whether email or SIRET already exists.
@@ -257,6 +274,8 @@ def signup():
                     role=UserRole.client_user,
                     company_id=existing_company.id,
                     membership_status=MembershipStatus.pending,
+                    terms_accepted_version_id=active_terms.id,
+                    terms_accepted_at=accepted_at,
                 )
                 db.add(user)
                 db.flush()
@@ -303,6 +322,8 @@ def signup():
                 role=UserRole.client_admin,
                 company_id=company.id,
                 membership_status=MembershipStatus.active,
+                terms_accepted_version_id=active_terms.id,
+                terms_accepted_at=accepted_at,
             )
             db.add(user)
             db.flush()
@@ -377,6 +398,8 @@ def signup():
                 role=UserRole.caterer,
                 caterer_id=caterer.id,
                 membership_status=MembershipStatus.active,
+                terms_accepted_version_id=active_terms.id,
+                terms_accepted_at=accepted_at,
             )
             db.add(user)
             db.flush()
@@ -450,6 +473,7 @@ def signup_invite(token: str):
 
     if request.method == "POST":
         password = request.form.get("password", "")
+        accept_terms = is_terms_accepted(request.form)
         if not password:
             flash("Veuillez renseigner un mot de passe.", "error")
             return render_template(
@@ -461,8 +485,18 @@ def signup_invite(token: str):
             return render_template(
                 "auth/signup_invite.html", token=token, employee=employee
             )
+        if not accept_terms:
+            flash(
+                "Vous devez accepter les conditions générales de services pour "
+                "créer un compte.",
+                "error",
+            )
+            return render_template(
+                "auth/signup_invite.html", token=token, employee=employee
+            )
 
         db = get_db()
+        active_terms = current_terms_version(db)
         # Email + name come straight from the CompanyEmployee row the
         # admin pre-filled — a tampered POST that smuggles different
         # values is ignored. Race-safe: re-check user_id under the
@@ -484,6 +518,8 @@ def signup_invite(token: str):
             role=UserRole.client_user,
             company_id=employee.company_id,
             membership_status=MembershipStatus.active,
+            terms_accepted_version_id=active_terms.id,
+            terms_accepted_at=datetime.datetime.utcnow(),
         )
         db.add(new_user)
 
