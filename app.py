@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import timedelta
 
@@ -46,6 +47,7 @@ from models import (
 _BLOCKED_MEMBERSHIP_STATUSES = {MembershipStatus.pending, MembershipStatus.rejected}
 
 configure_logging()
+logger = logging.getLogger(__name__)
 
 
 CSP = (
@@ -81,6 +83,27 @@ CSP = (
 def create_app():
     app = Flask(__name__)
     app.secret_key = config.SECRET_KEY
+
+    # Audit H-13 follow-up: shout at the operator when TLS hardening
+    # looks incomplete. Both checks are warnings, not hard failures —
+    # a legitimate self-host on a private HTTP-only network is rare but
+    # valid, so we don't refuse to boot. The signal lands in the same
+    # log stream as `_limiter_storage_uri`'s warning so a misconfigured
+    # deploy surfaces them together rather than failing silently in
+    # production.
+    if not settings.secure_cookies and os.getenv("FLASK_DEBUG") != "1":
+        logger.warning(
+            "SECURE_COOKIES=false outside dev: session cookies are emitted "
+            "without the Secure flag and HSTS is gated on request.is_secure. "
+            "Set SECURE_COOKIES=true when serving over TLS."
+        )
+    if not settings.trust_proxy_headers and not settings.secure_cookies:
+        logger.warning(
+            "TRUST_PROXY_HEADERS=false combined with SECURE_COOKIES=false: "
+            "behind a TLS-terminating reverse proxy, request.is_secure cannot "
+            "read X-Forwarded-Proto and HSTS will not be emitted. Set "
+            "TRUST_PROXY_HEADERS=true once the proxy is trusted."
+        )
 
     # Whitenoise serves /static/* at the WSGI layer, before Flask routing —
     # avoids waking the full Flask stack (request middleware, blueprint
