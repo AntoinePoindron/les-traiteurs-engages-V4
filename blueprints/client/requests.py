@@ -292,7 +292,8 @@ def register(bp):
         )
         # When the wizard is opened from a specific caterer profile
         # (?caterer_id=...), prefill target_caterer so the form ships the
-        # demand straight to that caterer and bypasses admin matching.
+        # demand straight to that caterer and bypasses admin qualification
+        # fan-out.
         target_caterer = _resolve_target_caterer(db, request.args.get("caterer_id"))
 
         # Build the list of prestation options the wizard's step 1 will

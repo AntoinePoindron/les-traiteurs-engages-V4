@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
-{% from "components/structure_type_badge.html" import structure_type_badge %}
 {% from "components/ui.html" import back_button %}
 {% from "components/send_message_modal.html" import send_message_modal %}
 
@@ -22,6 +21,13 @@
       <p class="text-sm font-medium text-black">{{ qr.company.name }}</p>
       <p class="text-xs mt-1 text-mute">SIRET : {{ qr.company.siret }}</p>
       {% if qr.company.city %}<p class="text-xs text-mute">{{ qr.company.city }}</p>{% endif %}
+      {% if qr.user %}
+      <div class="mt-4 pt-4 border-t border-soft">
+        <p class="text-xs font-bold uppercase text-mute mb-1">Demande creee par</p>
+        <p class="text-sm font-medium text-black">{{ qr.user.first_name }} {{ qr.user.last_name }}</p>
+        <p class="text-xs mt-1 text-mute">{{ qr.user.email }}</p>
+      </div>
+      {% endif %}
     </div>
 
     <div class="bg-white rounded-lg p-6">
@@ -152,35 +158,34 @@
   </div>
 
   <div class="space-y-6">
+    {# Caterers who effectively sent a quote on this request — drafts are
+       excluded since the client never sees them. Empty until the first
+       caterer pushes their devis through. #}
+    {% set sent_quotes = qr.quotes | rejectattr('status', 'equalto', QuoteStatus.draft) | list %}
+    {% if sent_quotes %}
     <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4">Traiteurs notifies</h2>
-      <p class="font-display font-bold text-3xl text-black">{{ matches|length }}</p>
+      <h2 class="font-display font-bold text-lg text-black mb-4">Devis envoyes</h2>
+      <p class="font-display font-bold text-3xl text-black">{{ sent_quotes|length }}</p>
       <p class="text-xs mt-1 text-mute">
-        traiteur{{ 's' if matches|length != 1 }} cible{{ 's' if matches|length != 1 }} par le matching automatique
+        traiteur{{ 's' if sent_quotes|length != 1 }} ayant envoye un devis
       </p>
-
-      {% if matches %}
       <div class="mt-4">
-        {% for caterer, distance in matches %}
+        {% for q in sent_quotes %}
         <div class="flex items-center gap-3 py-3.5 border-t border-soft">
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-black">{{ caterer.name }}</p>
-            <p class="text-xs text-mute">{{ distance }} km &middot; {{ caterer.capacity_min or '?' }}-{{ caterer.capacity_max or '?' }} pers.</p>
+            <p class="text-sm font-medium text-black">{{ q.caterer.name }}</p>
+            <p class="text-xs text-mute">
+              {{ q.caterer.city or '?' }}
+              &middot; {{ q.reference }}
+              &middot; {{ "%.2f"|format(q.total_amount_ht or 0) }} EUR HT
+            </p>
           </div>
-          {{ structure_type_badge(caterer.structure_type) }}
+          {{ status_badge(q.status) }}
         </div>
         {% endfor %}
       </div>
-      {% else %}
-      <div class="mt-4 rounded-lg p-4 flex items-start gap-3 bg-cream">
-        <i data-lucide="info" class="w-5 h-5 text-text-soft mt-0.5"></i>
-        <div>
-          <p class="text-sm font-medium text-text">Aucun matching specifique.</p>
-          <p class="text-xs mt-1 text-mute">A la validation, la demande sera envoyee a l'ensemble des traiteurs valides du catalogue.</p>
-        </div>
-      </div>
-      {% endif %}
     </div>
+    {% endif %}
 
     {% if qr.status == QuoteRequestStatus.pending_review %}
     <div class="bg-white rounded-lg p-6">

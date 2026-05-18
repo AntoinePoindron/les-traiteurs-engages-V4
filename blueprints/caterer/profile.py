@@ -58,10 +58,11 @@ def _parse_offering_specs(form) -> dict:
 def _aggregate_legacy_fields(caterer, specs: dict) -> None:
     """Mirror per-offering specs onto the legacy global columns.
 
-    Search/matching still reads caterer.capacity_min/max, price_per_person_min
-    and min_advance_days, so we recompute them from the per-offering specs
-    (min of mins, max of maxes) — keeping both surfaces consistent without a
-    bigger refactor.
+    Search and the public catalogue filters still read
+    caterer.capacity_min/max, price_per_person_min and min_advance_days,
+    so we recompute them from the per-offering specs (min of mins, max
+    of maxes) — keeping both surfaces consistent without a bigger
+    refactor.
     """
     if not specs:
         return
