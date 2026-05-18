@@ -16,6 +16,7 @@ from models import (
     QuoteStatus,
     UserRole,
 )
+from services.impact import compute_social_impact
 
 
 def register(bp):
@@ -132,6 +133,25 @@ def register(bp):
             budget_total_stmt = budget_total_stmt.where(own_only)
         budget_spent_total = db.execute(budget_total_stmt).scalar_one()
 
+        # « Impact social » : montant HT réellement dépensé (orders en
+        # `paid` uniquement) ventilé SIAE / STPA, plus une estimation
+        # d'heures d'insertion financées. Même scoping que le KPI
+        # budget : admin = entreprise complète, client_user = ses
+        # propres demandes uniquement. Montants convertis en float pour
+        # rester homogène avec `budget_spent_total` côté template — le
+        # filtre Jinja `%f` n'aime pas les Decimal.
+        impact = compute_social_impact(
+            db,
+            company_id=user.company_id,
+            requester_user_id=None if is_admin else user.id,
+        )
+        social_impact = {
+            "total_ht": float(impact.total_ht),
+            "siae_ht": float(impact.siae_ht),
+            "stpa_ht": float(impact.stpa_ht),
+            "hours_financed": impact.hours_financed,
+        }
+
         return render_template(
             "client/dashboard.html",
             user=user,
@@ -140,6 +160,7 @@ def register(bp):
             recent_requests=recent_requests,
             budget_data=budget_data,
             budget_spent_total=float(budget_spent_total),
+            social_impact=social_impact,
             order_status_labels=ORDER_STATUS_LABELS,
             meal_type_labels=MEAL_TYPE_LABELS,
         )
