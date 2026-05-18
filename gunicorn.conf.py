@@ -47,8 +47,9 @@ preload_app = not _RELOAD
 forwarded_allow_ips = os.getenv("FORWARDED_ALLOW_IPS", "*")
 
 # Cap request line + per-header size. Defuses trivial DoS via absurdly
-# long URIs / headers, well above legitimate traffic — the longest URLs
-# the app emits (signed S3 presigns) sit around 2 KB.
+# long URIs / headers, well above legitimate traffic — uploads now flow
+# through the in-app `/uploads/<key>` proxy (no S3 presign in the URL),
+# so the longest path the app emits sits well under 1 KB.
 limit_request_line = int(os.getenv("GUNICORN_LIMIT_REQUEST_LINE", "8192"))
 limit_request_field_size = int(os.getenv("GUNICORN_LIMIT_REQUEST_FIELD_SIZE", "16384"))
 
