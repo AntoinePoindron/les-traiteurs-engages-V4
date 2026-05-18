@@ -105,6 +105,14 @@ class Settings(BaseSettings):
     # links, order links). Falls back to localhost in dev.
     base_url: str = "http://localhost:8000"
 
+    # Comma-separated list of super_admin emails that regular users
+    # (client/caterer) are allowed to address without a prior business
+    # relationship. When unset, every active super_admin is contactable —
+    # backwards-compatible with the v1 messagerie. When set, only the
+    # listed inbox is exposed as a support contact; messages to any other
+    # super_admin still require an active order/QR gate.
+    support_user_emails: str | None = None
+
     @field_validator(
         "stripe_secret_key",
         "stripe_publishable_key",
@@ -176,3 +184,8 @@ BREVO_API_KEY = (
 MAIL_FROM_EMAIL = settings.mail_from_email
 MAIL_FROM_NAME = settings.mail_from_name
 BASE_URL = settings.base_url.rstrip("/")
+SUPPORT_USER_EMAILS = frozenset(
+    e.strip().lower()
+    for e in (settings.support_user_emails or "").split(",")
+    if e.strip()
+)

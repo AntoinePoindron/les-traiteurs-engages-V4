@@ -347,8 +347,12 @@ def send_message():
     #
     # Two parties skip the business-relationship gate outright:
     #   - a super_admin sender — a platform operator can reach anyone;
-    #   - any sender writing TO a super_admin — the platform admin is a
-    #     universal contact, so a client/caterer must be able to reply.
+    #   - any sender writing TO a designated support inbox — the platform
+    #     admin is a universal contact, so a client/caterer must be able
+    #     to reply or open a ticket. When `SUPPORT_USER_EMAILS` is set,
+    #     only the listed super_admin addresses qualify as "support";
+    #     other super_admin accounts still require the business gate so a
+    #     random staffer can't be enumerated as a free-form contact.
     #
     # Contexts to gate against otherwise:
     #   - if the caller passed order_id / quote_request_id explicitly,
@@ -359,7 +363,11 @@ def send_message():
     #     This preserves the standalone-Messagerie UX (no need to thread
     #     QR/order context through every reply) while re-validating the
     #     gate on every send.
-    if not is_admin and recipient.role != "super_admin":
+    recipient_is_support = recipient.role == "super_admin" and (
+        not config.SUPPORT_USER_EMAILS
+        or recipient.email.lower() in config.SUPPORT_USER_EMAILS
+    )
+    if not is_admin and not recipient_is_support:
         gate_contexts: list[tuple] = []
         if order_id or quote_request_id:
             gate_contexts.append((order_id, quote_request_id))
