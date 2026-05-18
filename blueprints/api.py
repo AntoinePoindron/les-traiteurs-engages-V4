@@ -87,86 +87,108 @@ def stripe_webhook():
         except (KeyError, TypeError):
             return default
 
-    # Atomic dedup: insert the event.id inside its own transaction. A UNIQUE
-    # violation means we've seen this event before (Stripe retry, out-of-order
-    # redelivery, or signature-window replay attack). Audit finding #3.
+    # Atomic dedup + business mutations: the StripeEvent INSERT and every
+    # mutation it gates MUST share one transaction. Audit C-1 (2026-05-13):
+    # the previous shape committed the dedup row first, so if the business
+    # commit failed the dedup row survived — Stripe's retry hit the UNIQUE
+    # violation, returned 200, and the payment was permanently lost.
+    #
+    # `flush()` raises IntegrityError on duplicate without persisting the
+    # row outside the surrounding transaction; on the happy path the
+    # single `commit()` at the end makes both INSERT and mutations durable
+    # atomically. On exception we `rollback()` and return 500 so Stripe
+    # retries — the dedup row is undone with everything else.
     db = get_db()
+    db.add(StripeEvent(id=event_id, event_type=event_type))
     try:
-        db.add(StripeEvent(id=event_id, event_type=event_type))
-        db.commit()
+        db.flush()
     except IntegrityError:
         db.rollback()
         logger.info("Ignoring duplicate Stripe event %s (%s)", event_id, event_type)
         return jsonify({"status": "duplicate"}), 200
 
-    if event_type == "invoice.paid":
-        stripe_invoice_id = _field(data_object, "id")
-        payment = db.scalar(
-            select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
-        )
-        if payment:
-            payment.status = PaymentStatus.succeeded
-            payment.stripe_charge_id = _field(data_object, "charge")
-            order = db.scalar(select(Order).where(Order.id == payment.order_id))
-            if order:
-                order.status = OrderStatus.paid
-                # Notify both sides that the cycle is closed. The
-                # caterer's payout is processed downstream by Stripe
-                # Connect; we just confirm receipt here.
-                qr = order.quote.quote_request
-                notify_users(
-                    db,
-                    company_admin_user_ids(db, qr.company_id),
-                    type="order_paid",
-                    title="Paiement enregistré",
-                    body="Le paiement de votre commande a été enregistré. Merci !",
-                    related_entity_type="order",
-                    related_entity_id=order.id,
+    # Audit C-2 (2026-05-13): wrap the body so an exception in
+    # `notify_review_invite`, a flush failure, or any future side-effect
+    # cannot leak an HTML 500 page into the Stripe dashboard. Stripe sees
+    # a structured 500 with the event_id and retries; ops sees a logged
+    # exception they can grep on.
+    try:
+        if event_type == "invoice.paid":
+            stripe_invoice_id = _field(data_object, "id")
+            payment = db.scalar(
+                select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
+            )
+            if payment:
+                payment.status = PaymentStatus.succeeded
+                payment.stripe_charge_id = _field(data_object, "charge")
+                order = db.scalar(select(Order).where(Order.id == payment.order_id))
+                if order:
+                    order.status = OrderStatus.paid
+                    # Notify both sides that the cycle is closed. The
+                    # caterer's payout is processed downstream by Stripe
+                    # Connect; we just confirm receipt here.
+                    qr = order.quote.quote_request
+                    notify_users(
+                        db,
+                        company_admin_user_ids(db, qr.company_id),
+                        type="order_paid",
+                        title="Paiement enregistré",
+                        body="Le paiement de votre commande a été enregistré. Merci !",
+                        related_entity_type="order",
+                        related_entity_id=order.id,
+                    )
+                    notify_users(
+                        db,
+                        caterer_user_ids(db, order.quote.caterer_id),
+                        type="order_paid",
+                        title="Paiement reçu",
+                        body="Le paiement de la commande a été reçu et sera viré sous peu.",
+                        related_entity_type="order",
+                        related_entity_id=order.id,
+                    )
+                    # Invite the original requester to review the caterer.
+                    # The helper is idempotent (skips on retry/redelivery).
+                    from services.reviews import notify_review_invite
+
+                    notify_review_invite(db, order=order)
+
+        elif event_type == "invoice.payment_failed":
+            stripe_invoice_id = _field(data_object, "id")
+            payment = db.scalar(
+                select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
+            )
+            if payment and payment.status not in _TERMINAL_PAID_STATES:
+                payment.status = PaymentStatus.failed
+            elif payment:
+                logger.warning(
+                    "Ignoring stale invoice.payment_failed for payment %s (current status: %s)",
+                    payment.id,
+                    payment.status,
                 )
-                notify_users(
-                    db,
-                    caterer_user_ids(db, order.quote.caterer_id),
-                    type="order_paid",
-                    title="Paiement reçu",
-                    body="Le paiement de la commande a été reçu et sera viré sous peu.",
-                    related_entity_type="order",
-                    related_entity_id=order.id,
+
+        elif event_type == "account.updated":
+            account_id = _field(data_object, "id")
+            caterer = db.scalar(
+                select(Caterer).where(Caterer.stripe_account_id == account_id)
+            )
+            if caterer:
+                caterer.stripe_charges_enabled = _field(
+                    data_object, "charges_enabled", False
                 )
-                # Invite the original requester to review the caterer.
-                # The helper is idempotent (skips on retry/redelivery).
-                from services.reviews import notify_review_invite
+                caterer.stripe_payouts_enabled = _field(
+                    data_object, "payouts_enabled", False
+                )
 
-                notify_review_invite(db, order=order)
         db.commit()
-
-    elif event_type == "invoice.payment_failed":
-        stripe_invoice_id = _field(data_object, "id")
-        payment = db.scalar(
-            select(Payment).where(Payment.stripe_invoice_id == stripe_invoice_id)
+    except Exception:
+        db.rollback()
+        logger.exception(
+            "Stripe webhook handler failed",
+            extra={"event_id": event_id, "event_type": event_type},
         )
-        if payment and payment.status not in _TERMINAL_PAID_STATES:
-            payment.status = PaymentStatus.failed
-        elif payment:
-            logger.warning(
-                "Ignoring stale invoice.payment_failed for payment %s (current status: %s)",
-                payment.id,
-                payment.status,
-            )
-        db.commit()
-
-    elif event_type == "account.updated":
-        account_id = _field(data_object, "id")
-        caterer = db.scalar(
-            select(Caterer).where(Caterer.stripe_account_id == account_id)
-        )
-        if caterer:
-            caterer.stripe_charges_enabled = _field(
-                data_object, "charges_enabled", False
-            )
-            caterer.stripe_payouts_enabled = _field(
-                data_object, "payouts_enabled", False
-            )
-        db.commit()
+        # JSON 500 (not HTML): Stripe shows the body in its dashboard, and
+        # the event_id lets ops correlate with the rolled-back transaction.
+        return jsonify({"error": "internal", "event_id": event_id}), 500
 
     return jsonify({"status": "ok"}), 200
 

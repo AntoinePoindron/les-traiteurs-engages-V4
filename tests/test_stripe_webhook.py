@@ -269,6 +269,101 @@ def test_payment_failed_after_paid_does_not_downgrade(client, monkeypatch):
     )
 
 
+def test_business_failure_rolls_back_dedup_row_so_retry_can_succeed(
+    client, monkeypatch
+):
+    """Audit C-1/C-2 (2026-05-13). When the body raises mid-processing,
+    the handler must roll back EVERYTHING including the StripeEvent
+    dedup row — otherwise Stripe's retry hits the surviving row, the
+    handler returns 200 'duplicate', and the payment is permanently lost.
+
+    We force `notify_review_invite` to raise, then check:
+        (1) the first call returns 500 (not 200),
+        (2) the payment is still in `pending` (no half-applied mutation),
+        (3) NO StripeEvent row was persisted for this event.id,
+        (4) a clean retry of the exact same event.id processes normally
+            and the payment becomes succeeded.
+    """
+    import config
+
+    monkeypatch.setattr(config, "STRIPE_WEBHOOK_SECRET", TEST_SECRET)
+
+    invoice_id = f"in_test_{uuid.uuid4().hex[:16]}"
+    event_id = f"evt_fault_{uuid.uuid4().hex[:16]}"
+    order_id, payment_id = _seed_order_with_payment(invoice_id)
+
+    payload = _event(
+        "invoice.paid",
+        {"id": invoice_id, "charge": "ch_fault_test"},
+        event_id=event_id,
+    )
+    header = _sign(payload, TEST_SECRET)
+
+    # Force the very last side-effect of the `invoice.paid` branch to
+    # explode. Anything between the dedup INSERT and the final commit()
+    # raising would trigger the same regression — review_invite is just
+    # the rightmost, easiest hook to monkeypatch.
+    import services.reviews as reviews_module
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("simulated downstream failure (C-1 fault injection)")
+
+    monkeypatch.setattr(reviews_module, "notify_review_invite", _boom)
+
+    # (1) first delivery: must NOT 200. Stripe needs a non-2xx to retry.
+    resp = client.post(
+        "/api/webhooks/stripe",
+        data=payload,
+        headers={"Content-Type": "application/json", "Stripe-Signature": header},
+    )
+    assert resp.status_code == 500, (
+        f"fault must propagate as 500 (so Stripe retries); got {resp.status_code} "
+        f"body={resp.get_data(as_text=True)[:300]}"
+    )
+    assert resp.is_json, "non-JSON 500 leaks an HTML page into Stripe's dashboard"
+    assert resp.get_json().get("event_id") == event_id
+
+    # (2) payment must remain pending — partial mutations are unacceptable.
+    from models import PaymentStatus
+
+    after_fault = _load_payment(payment_id)
+    assert after_fault.status == PaymentStatus.pending, (
+        f"payment must NOT be half-applied; got {after_fault.status}"
+    )
+
+    # (3) StripeEvent row must NOT survive. If it did, retry would 200-dedup.
+    from sqlalchemy import select
+
+    from database import session_factory
+    from models import StripeEvent
+
+    s = session_factory()
+    try:
+        ev = s.scalar(select(StripeEvent).where(StripeEvent.id == event_id))
+        assert ev is None, (
+            "dedup row survived a rolled-back transaction — retry will silently no-op"
+        )
+    finally:
+        s.close()
+
+    # (4) clear the fault and retry the same event.id. The handler must
+    #     now process it cleanly (this is exactly what Stripe does on its
+    #     exponential-backoff retry schedule).
+    monkeypatch.undo()
+    monkeypatch.setattr(config, "STRIPE_WEBHOOK_SECRET", TEST_SECRET)
+
+    retry = client.post(
+        "/api/webhooks/stripe",
+        data=payload,
+        headers={"Content-Type": "application/json", "Stripe-Signature": header},
+    )
+    assert retry.status_code == 200, (
+        f"retry must succeed once the fault clears; got {retry.status_code}"
+    )
+    final = _load_payment(payment_id)
+    assert final.status == PaymentStatus.succeeded
+
+
 def test_duplicate_event_id_is_idempotent(client, monkeypatch):
     """Replaying the exact same event.id a second time must be a no-op.
 
