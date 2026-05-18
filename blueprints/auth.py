@@ -168,17 +168,24 @@ def login():
             MembershipStatus.rejected,
         )
         if not user.is_active or inactive_membership:
-            # `membership_status` is mapped to a String column so the
-            # value returned by SQLAlchemy is a plain str (the enum
-            # inherits from str), not a MembershipStatus instance —
-            # `.value` would AttributeError. Coerce explicitly.
+            # `membership_status` round-trips as either a plain str
+            # (SQLAlchemy reading the String column — the enum inherits
+            # from str) or a MembershipStatus instance (in-memory before
+            # commit, freshly assigned). `getattr(..., "value", v)`
+            # collapses both cases to the bare token ("pending"), where
+            # `str()` would render "MembershipStatus.pending" for the
+            # enum branch and leak the implementation detail into logs.
             logger.info(
                 "login refused for non-active account",
                 extra={
                     "user_id": str(user.id),
                     "is_active": user.is_active,
                     "membership_status": (
-                        str(user.membership_status) if user.membership_status else None
+                        getattr(
+                            user.membership_status, "value", user.membership_status
+                        )
+                        if user.membership_status
+                        else None
                     ),
                 },
             )
