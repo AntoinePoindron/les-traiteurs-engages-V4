@@ -31,6 +31,7 @@ from models import (
     Quote,
     QuoteRequest,
     QuoteRequestCaterer,
+    QuoteRequestStatus,
     QuoteStatus,
 )
 from services import workflow
@@ -239,6 +240,14 @@ def register(bp):
         qrc = get_caterer_qrc(qr_id, caterer.id)
         qr = qrc.quote_request
         _ = qr.company
+        # Check QR status before the QRC-closed branch so an awarded
+        # request shows the right message, not the 3-responders one.
+        if qr.status != QuoteRequestStatus.sent_to_caterers:
+            flash(
+                "Cette demande est cloturee : elle n'accepte plus de devis.",
+                "info",
+            )
+            return redirect(url_for("caterer.request_detail", qr_id=qr_id))
         # Closed = the 3-first-responders rule shut this caterer out before
         # they could submit. Block the editor entry point so they don't
         # waste effort drafting a quote that the workflow will refuse.
@@ -364,6 +373,14 @@ def register(bp):
                     "info",
                 )
                 return redirect(url_for("caterer.request_detail", qr_id=qr_id))
+            except workflow.QuoteRequestNotOpen:
+                db.commit()
+                flash(
+                    "Devis enregistre en brouillon. La demande n'accepte "
+                    "plus de devis : un autre traiteur a deja ete retenu.",
+                    "info",
+                )
+                return redirect(url_for("caterer.request_detail", qr_id=qr_id))
             from services import email_triggers
 
             email_triggers.quote_received(db, quote=quote, caterer=caterer)
@@ -474,6 +491,14 @@ def register(bp):
                     "info",
                 )
                 return redirect(url_for("caterer.request_detail", qr_id=qr_id))
+            except workflow.QuoteRequestNotOpen:
+                db.commit()
+                flash(
+                    "Devis mis a jour en brouillon. La demande n'accepte "
+                    "plus de devis : un autre traiteur a deja ete retenu.",
+                    "info",
+                )
+                return redirect(url_for("caterer.request_detail", qr_id=qr_id))
             from services import email_triggers
 
             email_triggers.quote_received(db, quote=quote, caterer=caterer)
@@ -565,6 +590,14 @@ def register(bp):
             flash(
                 "La demande a ete cloturee : trois autres traiteurs ont deja "
                 "envoye leur devis. Votre devis reste enregistre en brouillon.",
+                "info",
+            )
+            return redirect(url_for("caterer.request_detail", qr_id=qr_id))
+        except workflow.QuoteRequestNotOpen:
+            db.commit()
+            flash(
+                "La demande n'accepte plus de devis : un autre traiteur a "
+                "deja ete retenu. Votre devis reste enregistre en brouillon.",
                 "info",
             )
             return redirect(url_for("caterer.request_detail", qr_id=qr_id))

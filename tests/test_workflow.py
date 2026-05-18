@@ -266,6 +266,46 @@ def test_accept_quote_for_other_company_raises_request_not_found(session):
         )
 
 
+def test_accept_quote_closes_losing_caterers_qrc(session):
+    """When the client accepts a quote, every other solicited caterer is
+    out of the running: their QRC flips to `closed` so the caterer UI
+    shows « Clôturée » and submit_quote refuses a late entry. The winning
+    caterer's QRC is left untouched.
+
+    Regression: accept_quote closed the QuoteRequest and refused sibling
+    quotes but never touched the QRC rows — a caterer who hadn't quoted
+    yet kept a `selected` QRC, still saw « Nouvelle », and could submit.
+    """
+    from sqlalchemy import select
+
+    qr_id, caterers, quote_ids = _seed_qr_with_qrcs_and_drafts(
+        session, n_caterers=3, prior_transmitted=1
+    )
+    # caterer[0] is the only one who submitted — make its quote acceptable.
+    winning_quote = session.scalar(select(Quote).where(Quote.id == quote_ids[0]))
+    winning_quote.status = QuoteStatus.sent
+    winning_quote.valid_until = _dt.date.today() + _dt.timedelta(days=7)
+    session.flush()
+    alice = session.scalar(select(User).where(User.email == "alice@test.local"))
+
+    workflow.accept_quote(session, request_id=qr_id, quote_id=quote_ids[0], user=alice)
+    session.flush()
+
+    qrcs = {
+        qrc.caterer_id: qrc
+        for qrc in session.scalars(
+            select(QuoteRequestCaterer).where(
+                QuoteRequestCaterer.quote_request_id == qr_id
+            )
+        )
+    }
+    assert qrcs[caterers[0].id].status == QRCStatus.transmitted_to_client, (
+        "the winning caterer's QRC must not be closed"
+    )
+    assert qrcs[caterers[1].id].status == QRCStatus.closed
+    assert qrcs[caterers[2].id].status == QRCStatus.closed
+
+
 # --- approve_quote_request / reject_quote_request -------------------------
 
 
@@ -496,6 +536,25 @@ def test_submit_quote_when_qrc_closed_raises(session):
     with pytest.raises(workflow.QuoteRequestClosed):
         workflow.submit_quote(
             session, request_id=qr_id, quote_id=qids[3], caterer=caterers[3]
+        )
+
+
+def test_submit_quote_on_completed_request_raises_not_open(session):
+    """Once the client has accepted a quote (QR `completed`), no other
+    caterer may still transmit one — even with their own QRC left
+    `selected`. submit_quote must refuse on the QR status alone, with
+    QuoteRequestNotOpen (distinct from the 3-responders QuoteRequestClosed
+    so the blueprint can flash the right message)."""
+    from sqlalchemy import select
+
+    qr_id, caterers, qids = _seed_qr_with_qrcs_and_drafts(session, n_caterers=1)
+    qr = session.scalar(select(QuoteRequest).where(QuoteRequest.id == qr_id))
+    qr.status = QuoteRequestStatus.completed
+    session.flush()
+
+    with pytest.raises(workflow.QuoteRequestNotOpen):
+        workflow.submit_quote(
+            session, request_id=qr_id, quote_id=qids[0], caterer=caterers[0]
         )
 
 

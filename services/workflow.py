@@ -63,6 +63,13 @@ class QuoteRequestClosed(WorkflowError):
     du traiteur courant est passée en `QRCStatus.closed`."""
 
 
+class QuoteRequestNotOpen(WorkflowError):
+    """La demande n'est plus `sent_to_caterers` (devis accepté → `completed`,
+    annulée, ou tous les devis refusés). Distincte de `QuoteRequestClosed` :
+    la fermeture vient de la demande elle-même, pas de la règle des 3 ; le
+    message utilisateur diffère."""
+
+
 class OrderNotFound(WorkflowError):
     """La commande n'existe pas, n'appartient pas au caterer, ou n'est
     plus en statut `confirmed`."""
@@ -208,6 +215,25 @@ def accept_quote(
     db.flush()
 
     qr.status = QuoteRequestStatus.completed
+
+    # Close losing caterers' QRC so the caterer UI shows « Clôturée » and
+    # `submit_quote` refuses a late entry. `rejected` (caterer declined) and
+    # `closed` (3-responders rule) are terminal states — leave them alone.
+    losing_qrcs = (
+        db.execute(
+            select(QuoteRequestCaterer).where(
+                QuoteRequestCaterer.quote_request_id == request_id,
+                QuoteRequestCaterer.caterer_id != accepted.caterer_id,
+                QuoteRequestCaterer.status.not_in(
+                    (QRCStatus.rejected, QRCStatus.closed)
+                ),
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for losing_qrc in losing_qrcs:
+        losing_qrc.status = QRCStatus.closed
 
     # Tell the winning caterer they got the deal. The losing caterers
     # already got their `status -> refused` flip silently — sending them
@@ -375,12 +401,18 @@ def submit_quote(
     d'atteindre tous les deux le rang 3 (ou de glisser à 4).
 
     Lève QuoteNotFound (devis introuvable, mauvais caterer, ou pas en
-    `draft`) et QuoteRequestClosed (QRC `closed` ou ≥3 transmitted déjà).
+    `draft`), QuoteRequestClosed (QRC `closed` ou ≥3 transmitted déjà),
+    QuoteRequestNotOpen (demande plus en `sent_to_caterers`).
     """
-    # Verrou exclusif pour sérialiser les répondants concurrents.
-    db.execute(
-        select(QuoteRequest.id).where(QuoteRequest.id == request_id).with_for_update()
+    # Verrou exclusif : sérialise les répondants concurrents et l'éventuel
+    # `accept_quote` en cours.
+    qr = db.scalar(
+        select(QuoteRequest).where(QuoteRequest.id == request_id).with_for_update()
     )
+    if qr is None:
+        raise QuoteNotFound
+    if qr.status != QuoteRequestStatus.sent_to_caterers:
+        raise QuoteRequestNotOpen
 
     quote = db.scalar(
         select(Quote).where(
@@ -441,11 +473,10 @@ def submit_quote(
     # The quote reaches the client whenever the QRC flips to
     # `transmitted_to_client` (rank 1, 2 or 3). Notify the requester
     # for every transmission, not just the closing-third one.
-    qr_obj = db.get(QuoteRequest, request_id)
-    if qr_obj is not None and qr_obj.user_id is not None:
+    if qr.user_id is not None:
         notify(
             db,
-            user_id=qr_obj.user_id,
+            user_id=qr.user_id,
             type="quote_received",
             title="Nouveau devis reçu",
             body=f"{caterer.name} vient de vous envoyer un devis.",
