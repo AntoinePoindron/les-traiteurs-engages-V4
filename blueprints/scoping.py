@@ -48,11 +48,16 @@ def own_requests_filter(user):
 # ---------------------------------------------------------------------------
 
 
-def get_company_request(request_id, user):
+def get_company_request(request_id, user, *, for_update: bool = False):
     """Fetch a QuoteRequest the `user` is allowed to see, or abort 404.
 
     `user` is the current User; admin sees the whole company, client_user
     sees only their own demands.
+
+    `for_update=True` (defaults to False) acquires a row-level lock
+    until the surrounding transaction commits. Use it on routes that
+    perform a status-gated mutation (e.g. the client edit handler vs.
+    a concurrent admin approval) to close the read-then-write race.
     """
     db = get_db()
     stmt = select(QuoteRequest).where(
@@ -62,6 +67,8 @@ def get_company_request(request_id, user):
     own_only = own_requests_filter(user)
     if own_only is not None:
         stmt = stmt.where(own_only)
+    if for_update:
+        stmt = stmt.with_for_update()
     qr = db.execute(stmt).scalar_one_or_none()
     if not qr:
         abort(404)
