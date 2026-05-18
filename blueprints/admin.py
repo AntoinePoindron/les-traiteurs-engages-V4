@@ -159,6 +159,9 @@ _REQUEST_STATUS_TABS: dict[str, str] = {
 }
 
 
+_REQUESTS_PAGE_SIZE = 25
+
+
 @admin_bp.route("/requests")
 @login_required
 @role_required("super_admin")
@@ -169,27 +172,41 @@ def requests_list():
     work-to-do view); this page is the full read-only registry, with
     a tab filter on `status`. The detail link reuses
     `/qualification/<id>` since that route already accepts any status.
+
+    Paginated to 25 rows/page — mirrors `/admin/messages` (cf.
+    `_MESSAGES_PAGE_SIZE`, VULN-21 rationale): rendering 10k+ rows in
+    one go OOMs the worker and chokes the browser; pure SQL paging
+    keeps the registry usable as the platform grows.
     """
     db = get_db()
     status_filter = request.args.get("status", "all")
     if status_filter not in _REQUEST_STATUS_TABS:
         status_filter = "all"
+    page = max(1, request.args.get("page", 1, type=int) or 1)
 
-    # Sort: pending_review first (highest priority for the admin),
-    # then the rest by created_at DESC. SQL `CASE` keeps the priority
-    # bucket out of the regular date ordering.
-    pending_priority = case(
-        (QuoteRequest.status == QuoteRequestStatus.pending_review, 0),
-        else_=1,
-    )
-    stmt = (
-        select(QuoteRequest)
-        .options(joinedload(QuoteRequest.company))
-        .order_by(pending_priority, QuoteRequest.created_at.desc())
-    )
+    # Sort: pending_review first only on the "all" tab (highest-priority
+    # work-to-do floats up). Once the user is on a status-specific tab,
+    # all rows share the filter so the CASE is dead weight — drop it to
+    # keep the SQL plan clean.
+    stmt = select(QuoteRequest).options(joinedload(QuoteRequest.company))
+    count_stmt = select(func.count(QuoteRequest.id))
     if status_filter != "all":
         stmt = stmt.where(QuoteRequest.status == status_filter)
-    rows = db.scalars(stmt).all()
+        count_stmt = count_stmt.where(QuoteRequest.status == status_filter)
+        stmt = stmt.order_by(QuoteRequest.created_at.desc())
+    else:
+        pending_priority = case(
+            (QuoteRequest.status == QuoteRequestStatus.pending_review, 0),
+            else_=1,
+        )
+        stmt = stmt.order_by(pending_priority, QuoteRequest.created_at.desc())
+
+    total = db.scalar(count_stmt) or 0
+    total_pages = max(1, (total + _REQUESTS_PAGE_SIZE - 1) // _REQUESTS_PAGE_SIZE)
+    page = min(page, total_pages)
+    rows = db.scalars(
+        stmt.limit(_REQUESTS_PAGE_SIZE).offset((page - 1) * _REQUESTS_PAGE_SIZE)
+    ).all()
 
     return render_template(
         "admin/requests/list.html",
@@ -198,6 +215,9 @@ def requests_list():
         status_tabs=_REQUEST_STATUS_TABS,
         current_tab=status_filter,
         meal_type_labels=MEAL_TYPE_LABELS,
+        page=page,
+        total_pages=total_pages,
+        total=total,
     )
 
 
