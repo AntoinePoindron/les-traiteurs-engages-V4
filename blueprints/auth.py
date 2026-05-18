@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 
 import bcrypt
@@ -23,6 +24,8 @@ from services.notifications import (
     super_admin_user_ids,
 )
 from services.slugs import generate_invoice_prefix
+
+logger = logging.getLogger(__name__)
 
 
 # Same TTL the team handler uses when generating the token. Kept here so
@@ -150,25 +153,42 @@ def login():
         if not user or not password_ok:
             flash("Email ou mot de passe incorrect.", "error")
             return render_template("auth/login.html")
-        if not user.is_active:
-            flash("Votre compte est desactive.", "error")
-            return render_template("auth/login.html")
-        # Pending = client_user signed up against an existing SIRET, awaiting
-        # the company admin's approval. Rejected = explicitly refused. Either
-        # way: never issue a session — they would otherwise be able to read
-        # private company data (quote requests, orders, messages).
-        if user.membership_status == MembershipStatus.pending:
-            flash(
-                "Votre rattachement est en attente de validation par "
-                "l'administrateur de votre structure. Vous pourrez vous "
-                "connecter une fois votre acces approuve.",
-                "info",
+        # Audit H-2 (2026-05-13): three distinct flashes for three
+        # inactive states (`is_active=False`, `pending`, `rejected`) gave
+        # an attacker with a leaked password a side-channel to map out
+        # HR status and confirm SIRET-membership matches. Collapse all
+        # three into one opaque message; the real reason still lands in
+        # the structured log for support to consult on demand.
+        # Pending = client_user signed up against an existing SIRET,
+        # awaiting the company admin's approval. Rejected = explicitly
+        # refused. Either way: never issue a session — they would
+        # otherwise read private company data.
+        inactive_membership = user.membership_status in (
+            MembershipStatus.pending,
+            MembershipStatus.rejected,
+        )
+        if not user.is_active or inactive_membership:
+            # `membership_status` round-trips as either a plain str
+            # (SQLAlchemy reading the String column — the enum inherits
+            # from str) or a MembershipStatus instance (in-memory before
+            # commit, freshly assigned). `getattr(..., "value", v)`
+            # collapses both cases to the bare token ("pending"), where
+            # `str()` would render "MembershipStatus.pending" for the
+            # enum branch and leak the implementation detail into logs.
+            logger.info(
+                "login refused for non-active account",
+                extra={
+                    "user_id": str(user.id),
+                    "is_active": user.is_active,
+                    "membership_status": (
+                        getattr(user.membership_status, "value", user.membership_status)
+                        if user.membership_status
+                        else None
+                    ),
+                },
             )
-            return render_template("auth/login.html")
-        if user.membership_status == MembershipStatus.rejected:
             flash(
-                "Votre demande de rattachement a ete refusee. "
-                "Contactez l'administrateur de votre structure.",
+                "Connexion impossible. Contactez l'administrateur de votre structure.",
                 "error",
             )
             return render_template("auth/login.html")

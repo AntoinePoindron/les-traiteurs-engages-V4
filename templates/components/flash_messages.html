@@ -7,8 +7,14 @@
 <div class="fixed top-4 left-0 right-0 z-50 px-4" style="pointer-events:none;">
   <div class="max-w-2xl mx-auto space-y-3">
     {% for category, message in messages %}
+    {# `role="alert"` interrompt le lecteur d'écran sur les erreurs
+       (chemin critique). `role="status"` est le pendant non-disruptif
+       pour les confirmations / infos. Plus accessoirement, ça donne
+       aux tests de sécurité (test_login_flash_*) une ancre robuste
+       pour extraire le toast d'erreur sans dépendre du DOM voisin. #}
     <div class="flash-toast flex items-center justify-between px-4 py-3 rounded-xl text-sm border shadow-lg
       {% if category == 'success' %}text-green-800 bg-flash-success border-flash-success{% elif category == 'error' %}text-red-800 bg-error-light border-error{% else %}text-text bg-info border-info{% endif %}"
+      role="{% if category == 'error' %}alert{% else %}status{% endif %}"
       data-flash-category="{{ category }}"
       style="pointer-events:auto;">
       <div class="flex items-center gap-2">

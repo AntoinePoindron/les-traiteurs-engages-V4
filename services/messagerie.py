@@ -157,118 +157,28 @@ def threads_for_viewer(db: Session, viewer) -> list[dict]:
     ]
 
 
-def threads_for_admin(db: Session, *, page: int, page_size: int):
-    """Paginated thread list for the super_admin observer view.
-
-    Each thread is summarised from the perspective of "the participant
-    that isn't the platform" — picks the caterer-side participant when
-    one exists (so the admin sees a caterer-keyed row), otherwise the
-    sender. Returns (rows, total).
-    """
-    total = db.scalar(select(func.count(func.distinct(Message.thread_id)))) or 0
-
-    summaries = db.execute(
-        select(
-            Message.thread_id.label("thread_id"),
-            func.max(Message.created_at).label("last_at"),
-        )
-        .group_by(Message.thread_id)
-        .order_by(func.max(Message.created_at).desc())
-        .limit(page_size)
-        .offset((page - 1) * page_size)
-    ).all()
-    if not summaries:
-        return [], total
-
-    thread_ids = [s.thread_id for s in summaries]
-
-    last_messages = (
-        db.execute(
-            select(Message)
-            .where(Message.thread_id.in_(thread_ids))
-            .order_by(Message.thread_id, Message.created_at.desc())
-            .distinct(Message.thread_id)
-        )
-        .scalars()
-        .all()
-    )
-    last_by_thread = {m.thread_id: m for m in last_messages}
-
-    user_ids = set()
-    for m in last_messages:
-        user_ids.add(m.sender_id)
-        user_ids.add(m.recipient_id)
-    users = (
-        {
-            u.id: u
-            for u in db.execute(select(User).where(User.id.in_(user_ids)))
-            .scalars()
-            .all()
-        }
-        if user_ids
-        else {}
-    )
-
-    rows: list[dict] = []
-    for tid in thread_ids:
-        msg = last_by_thread.get(tid)
-        if not msg:
-            continue
-        sender = users.get(msg.sender_id)
-        recipient = users.get(msg.recipient_id)
-        # Pick the caterer-side participant as the "subject" of the row
-        # when one exists; otherwise default to the sender.
-        if sender and sender.role == UserRole.caterer:
-            other_user = sender
-        elif recipient and recipient.role == UserRole.caterer:
-            other_user = recipient
-        else:
-            other_user = sender or recipient
-        rows.append(
-            _summarise_thread(
-                viewer_id=None,
-                other_user=other_user,
-                last_message=msg,
-                unread=0,  # admin view doesn't track per-admin unread
-            )
-        )
-    return rows, total
-
-
 def active_thread_context(db: Session, *, thread_id, viewer) -> dict | None:
     """Build the "active" pane dict (right side) for a given thread.
 
     Returns None if the viewer has no access (no message in the thread
-    that they sent or received) — caller maps to abort(404).
-    Super_admin sees every thread regardless of participation.
+    that they sent or received) — caller maps to abort(404). Every role,
+    super_admin included, is gated on participation: the admin reads and
+    replies to its own conversations, not the whole platform's.
     """
-    base_q = select(Message).where(Message.thread_id == thread_id)
-    if viewer.role != UserRole.super_admin:
-        base_q = base_q.where(
-            or_(Message.sender_id == viewer.id, Message.recipient_id == viewer.id)
-        )
-    first_msg = db.scalar(base_q)
+    first_msg = db.scalar(
+        select(Message)
+        .where(Message.thread_id == thread_id)
+        .where(or_(Message.sender_id == viewer.id, Message.recipient_id == viewer.id))
+    )
     if not first_msg:
         return None
 
-    if viewer.role == UserRole.super_admin:
-        # Mirror the row-pick rule: caterer side wins when possible.
-        sender = db.get(User, first_msg.sender_id)
-        recipient = db.get(User, first_msg.recipient_id)
-        if sender and sender.role == UserRole.caterer:
-            other_user = sender
-        elif recipient and recipient.role == UserRole.caterer:
-            other_user = recipient
-        else:
-            other_user = sender or recipient
-    else:
-        other_id = (
-            first_msg.recipient_id
-            if first_msg.sender_id == viewer.id
-            else first_msg.sender_id
-        )
-        other_user = db.get(User, other_id) if other_id else None
-
+    other_id = (
+        first_msg.recipient_id
+        if first_msg.sender_id == viewer.id
+        else first_msg.sender_id
+    )
+    other_user = db.get(User, other_id) if other_id else None
     if other_user is None:
         return None
 

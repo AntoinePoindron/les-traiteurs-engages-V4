@@ -8,11 +8,12 @@ alembic upgrade head
 # Skipped automatically when ADMIN_INITIAL_PASSWORD is unset.
 python init_db.py
 
-# Seeding demo data is opt-in via env. Never run in prod.
-if [ "${ENABLE_DEMO_SEED}" = "1" ]; then
-    echo "ENABLE_DEMO_SEED=1 — seeding demo data..."
-    python seed_data.py || true
-fi
+# Audit C-3 follow-up (2026-05-13): the ENABLE_DEMO_SEED hook used to
+# live here was a sibling of the Procfile postdeploy block this PR
+# removed — same exposure, same `|| true` that would have swallowed
+# seed_data.py's new SystemExit(2) guard. Demo seeding is now strictly
+# operator-initiated: `docker compose exec app python seed_data.py`
+# under the dev overlay. Never wired into the boot path again.
 
 echo "Starting gunicorn..."
 # Bind, workers, threads, timeout, --preload, and the SQLAlchemy fork-safety

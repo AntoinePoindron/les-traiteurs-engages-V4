@@ -256,6 +256,36 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 }
 
 /* ============================================================
+   Dashboard KPI primitives
+   ------------------------------------------------------------
+   Two repeating motifs on the client/caterer dashboards:
+   - `.icon-badge`  : rounded square holding a lucide glyph at
+                      the top-left of a KPI card.
+   - `.kpi-figure`  : the big serif number underneath.
+   Naming them once keeps the dashboard markup focused on
+   structure (which KPI it is) rather than visual tokens.
+   ============================================================ */
+.icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;        /* w-9  */
+  height: 2.25rem;       /* h-9  */
+  border-radius: 0.5rem; /* rounded-lg */
+  background-color: var(--c-navy-soft);
+  color: var(--c-navy);
+  flex-shrink: 0;
+}
+
+.kpi-figure {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 1.875rem;   /* text-3xl */
+  line-height: 2.25rem;
+  color: var(--c-text);
+}
+
+/* ============================================================
    Brand utilities (token-backed)
    Mirror Tailwind's API but resolve to brand tokens.
    These live HERE, not in tailwind.css, so tailwind.css
@@ -428,6 +458,29 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 
 /* Badge sizes */
 .badge-xs { padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.4; }
+
+/* Sidebar bell unread counter. Sits inside the 36px button (no
+   overhang — overhang pixels fall outside the button's hit area
+   and clicks there don't open the dropdown). The white box-shadow
+   ring lifts the pill off any sidebar shade; pointer-events:none
+   keeps the bell beneath clickable. */
+.notification-badge {
+  position: absolute;
+  top: 0.125rem;             /* 2px from the button's top edge */
+  right: 0.125rem;
+  min-width: 1rem;            /* 16px — bell glyph stays visible beneath */
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background-color: var(--c-coral-red);
+  color: white;
+  font-size: 0.625rem;        /* 10px — legible on a 16px pill */
+  font-weight: 700;
+  line-height: 1rem;
+  text-align: center;
+  box-shadow: 0 0 0 1.5px white; /* ring against any sidebar shade */
+  pointer-events: none;       /* clicks must reach the bell button beneath */
+}
 
 /* ============================================================
    Wizard validation error styles — appliquées par static/js/wizard.js

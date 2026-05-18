@@ -1,4 +1,6 @@
 import datetime
+import os
+import sys
 import uuid
 
 import bcrypt
@@ -30,7 +32,37 @@ from models import (
     UserRole,
 )
 
+# Markers that opt-in to seeding a database with the dev-grade fixtures
+# below. Either is sufficient:
+#   * FLASK_DEBUG=1            — set by docker-compose.dev.yml, so a
+#                                local `docker compose exec app python
+#                                seed_data.py` just works.
+#   * SEED_FIXTURES_ALLOW=1    — explicit opt-in for CI / a freshly
+#                                rebuilt staging that needs demo data.
+# Outside both, the seeder refuses to run. Audit C-3 (2026-05-13):
+# the Procfile's `if SEED_FIXTURES=true` postdeploy chain has been
+# removed, but a stray `scalingo run python seed_data.py` would
+# otherwise still execute. This guard fail-closes inside the seeder.
+_DEV_OPT_IN_MARKERS = ("FLASK_DEBUG", "SEED_FIXTURES_ALLOW")
+
 PASSWORD_HASH = bcrypt.hashpw(b"password123", bcrypt.gensalt()).decode()
+
+
+def _refuse_in_production():
+    """Bail out unless one of the dev opt-in markers is set. Called first
+    thing inside `seed()` so importing this module never has a side effect
+    (tests import freely; only running the seeder triggers the check)."""
+    enabled = any(
+        os.getenv(m, "").strip().lower() in ("1", "true", "yes")
+        for m in _DEV_OPT_IN_MARKERS
+    )
+    if enabled:
+        return
+    sys.stderr.write(
+        "seed_data.py refuses to run: set FLASK_DEBUG=1 (local dev) or "
+        "SEED_FIXTURES_ALLOW=1 (CI / staging seed) to enable.\n"
+    )
+    raise SystemExit(2)
 
 
 def _ensure_admin_employee_rows(db):
@@ -80,6 +112,7 @@ def _ensure_admin_employee_rows(db):
 
 
 def seed():
+    _refuse_in_production()
     with get_session() as db:
         if db.scalar(select(Company).where(Company.name == "Acme Solutions")):
             print("Seed data already exists, skipping.")
@@ -526,7 +559,6 @@ def seed():
     print("  Orders: 1 confirmed")
     print("  Messages: 3")
     print("  Notifications: 3")
-    print("  All passwords: password123")
 
 
 if __name__ == "__main__":

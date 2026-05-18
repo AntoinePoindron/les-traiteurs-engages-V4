@@ -52,3 +52,11 @@ tasks.md
 
 # Local-only compose overrides (not used in any deployment)
 docker-compose.local.yml
+
+# Dev-only fixture seeder + demo helpers. Audit C-3 (2026-05-13): even
+# though seed() now refuses to run outside FLASK_DEBUG=1 /
+# SEED_FIXTURES_ALLOW=1, keeping these out of the prod image is one
+# extra layer between a compromised Scalingo console and the demo
+# accounts they create.
+seed_data.py
+scripts/

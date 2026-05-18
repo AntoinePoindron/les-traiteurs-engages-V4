@@ -2,6 +2,7 @@
 {% from "components/status_badge.html" import status_badge %}
 {% from "components/structure_type_badge.html" import structure_type_badge %}
 {% from "components/ui.html" import back_button %}
+{% from "components/send_message_modal.html" import send_message_modal %}
 
 {% block title %}Qualification #{{ qr.id | string | truncate(8, True, '') }} - Les Traiteurs Engages{% endblock %}
 
@@ -107,7 +108,7 @@
         {% endif %}
         {% if qr.wants_waitstaff %}
         <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
-          <i data-lucide="users" class="w-3 h-3"></i> Service/personnel
+          <i data-lucide="users" class="w-3 h-3"></i> Service en salle
         </span>
         {% endif %}
         {% if qr.wants_equipment %}
@@ -122,7 +123,10 @@
         {% endif %}
         {% if qr.wants_setup %}
         <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
-          <i data-lucide="package" class="w-3 h-3"></i> Installation
+          <i data-lucide="package" class="w-3 h-3"></i>
+          Installation{% if qr.service_setup_time %}
+            &middot; à {{ qr.service_setup_time.strftime('%H:%M') }}
+          {% endif %}
         </span>
         {% endif %}
         {% if qr.wants_cleanup %}
@@ -131,6 +135,19 @@
         </span>
         {% endif %}
       </div>
+      {# Guard each detail line on its `wants_*` flag so a stale value
+         left over after the checkbox was unticked never surfaces as an
+         orphan paragraph below the pills. #}
+      {% if qr.wants_waitstaff and qr.service_waitstaff_details %}
+      <p class="text-xs mt-3 text-mute">
+        <span class="font-bold">Service en salle :</span> {{ qr.service_waitstaff_details }}
+      </p>
+      {% endif %}
+      {% if qr.wants_setup and qr.service_setup_details %}
+      <p class="text-xs mt-2 text-mute">
+        <span class="font-bold">Installation :</span> {{ qr.service_setup_details }}
+      </p>
+      {% endif %}
     </div>
   </div>
 
@@ -176,7 +193,7 @@
             Valider la demande
           </button>
         </form>
-        <button type="button" data-action="dialog-open" data-target="message-dialog"
+        <button type="button" data-action="dialog-open" data-target="admin-client-message-modal"
           class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold btn-ghost-navy">
           <i data-lucide="message-square" class="w-4 h-4"></i>
           Envoyer un message au client
@@ -189,27 +206,12 @@
       </div>
     </div>
 
-    <dialog id="message-dialog" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
-      <div class="p-6">
-        <h3 class="font-display font-bold text-lg text-black mb-2">Envoyer un message au client</h3>
-        <p class="text-sm mb-4 text-mute">Le message sera delivre dans les notifications de tous les administrateurs de {{ qr.company.name }}.</p>
-        <form method="POST" action="{{ url_for('admin.qualification_message', request_id=qr.id) }}">
-          {{ message_form.csrf_token }}
-          <textarea name="body" rows="5" required minlength="1" maxlength="5000"
-            class="w-full rounded-lg px-3 py-2.5 text-sm text-black mb-4 input-soft"
-            placeholder="Votre message..."></textarea>
-          <div class="flex items-center justify-end gap-3">
-            <button type="button" data-action="dialog-close" data-target="message-dialog"
-              class="px-4 py-2 text-sm font-bold rounded-full btn-ghost-navy">
-              Annuler
-            </button>
-            <button type="submit" class="px-4 py-2 text-sm font-bold text-white rounded-full bg-navy">
-              Envoyer
-            </button>
-          </div>
-        </form>
-      </div>
-    </dialog>
+    {{ send_message_modal(
+         modal_id="admin-client-message-modal",
+         recipient_user_id=qr.user_id,
+         recipient_name=qr.company.name,
+         quote_request_id=qr.id,
+         thread_endpoint="admin.message_thread") }}
 
     <dialog id="reject-dialog" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
       <div class="p-6">
@@ -235,34 +237,19 @@
     {% else %}
     <div class="bg-white rounded-lg p-6">
       <h2 class="font-display font-bold text-lg text-black mb-4">Actions</h2>
-      <button type="button" data-action="dialog-open" data-target="message-dialog"
+      <button type="button" data-action="dialog-open" data-target="admin-client-message-modal"
         class="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold btn-ghost-navy">
         <i data-lucide="message-square" class="w-4 h-4"></i>
         Envoyer un message au client
       </button>
     </div>
 
-    <dialog id="message-dialog" class="rounded-lg p-0 backdrop:bg-black/50 max-w-md w-full" data-backdrop-dismiss>
-      <div class="p-6">
-        <h3 class="font-display font-bold text-lg text-black mb-2">Envoyer un message au client</h3>
-        <p class="text-sm mb-4 text-mute">Le message sera delivre dans les notifications de tous les administrateurs de {{ qr.company.name }}.</p>
-        <form method="POST" action="{{ url_for('admin.qualification_message', request_id=qr.id) }}">
-          {{ message_form.csrf_token }}
-          <textarea name="body" rows="5" required minlength="1" maxlength="5000"
-            class="w-full rounded-lg px-3 py-2.5 text-sm text-black mb-4 input-soft"
-            placeholder="Votre message..."></textarea>
-          <div class="flex items-center justify-end gap-3">
-            <button type="button" data-action="dialog-close" data-target="message-dialog"
-              class="px-4 py-2 text-sm font-bold rounded-full btn-ghost-navy">
-              Annuler
-            </button>
-            <button type="submit" class="px-4 py-2 text-sm font-bold text-white rounded-full bg-navy">
-              Envoyer
-            </button>
-          </div>
-        </form>
-      </div>
-    </dialog>
+    {{ send_message_modal(
+         modal_id="admin-client-message-modal",
+         recipient_user_id=qr.user_id,
+         recipient_name=qr.company.name,
+         quote_request_id=qr.id,
+         thread_endpoint="admin.message_thread") }}
     {% endif %}
   </div>
 </div>

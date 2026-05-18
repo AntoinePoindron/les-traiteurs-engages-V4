@@ -1,7 +1,7 @@
 """Create 4 demo requests showcasing each caterer-side status flow.
 
 After running this script, log in as the ESAT demo caterer
-(contact@saveurs-solidaires.fr / password123) and visit /caterer/requests
+(`contact@saveurs-solidaires.fr` — credentials in `seed_data.py`) and visit /caterer/requests
 to see one row per badge: Nouvelle, Devis envoyé, Devis refusé, Commande
 créée. Each row's detail page exercises a different layout branch in
 templates/caterer/requests/detail.html.
@@ -330,7 +330,7 @@ def main():
 
         print()
         print("Demo requests created for caterer ESAT.")
-        print("Login: contact@saveurs-solidaires.fr / password123")
+        print("Login: contact@saveurs-solidaires.fr (password in seed_data.py).")
         print()
         print("Visit /caterer/requests to see all four:")
         print("  1. Nouvelle           - Dejeuner 25 pers., Paris")
