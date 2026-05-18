@@ -399,3 +399,98 @@ def test_qualification_message_route_is_removed(client, login):
     assert r.status_code == 404, (
         "the qualification_message route must be gone (replaced by conversations)"
     )
+
+
+# ---------------------------------------------------------------------------
+# IDOR — JSON API `/api/messages/<thread_id>` must gate the admin too
+# ---------------------------------------------------------------------------
+
+
+def test_admin_cannot_read_a_thread_it_does_not_participate_in_via_json_api(
+    client, login
+):
+    """The HTML view is already gated by `active_thread_context`. The
+    JSON endpoint serves the message body straight to the browser, so
+    its filter must be the same — a super_admin who isn't sender nor
+    recipient of any message in the thread gets an empty list, never
+    the participants' content."""
+    from database import session_factory
+
+    s = session_factory()
+    try:
+        alice_id = _user_id(s, "alice@test.local")
+        cook_id = _user_id(s, "cook@test.local")
+        tid = _seed_message(
+            s,
+            sender_id=alice_id,
+            recipient_id=cook_id,
+            body="confidentiel client↔traiteur",
+        )
+        s.commit()
+    finally:
+        s.close()
+
+    try:
+        login("admin@test.local")
+        r = client.get(f"/api/messages/{tid}")
+        assert r.status_code == 200, r.data
+        payload = r.get_json()
+        assert payload["messages"] == [], (
+            "the JSON API must filter out messages the admin is not a "
+            "party to — not echo every row keyed on thread_id"
+        )
+    finally:
+        _wipe_messages()
+
+
+# ---------------------------------------------------------------------------
+# Support-inbox allowlist — only whitelisted super_admin are open contacts
+# ---------------------------------------------------------------------------
+
+
+def test_client_cannot_address_a_non_support_super_admin(client, login):
+    """When `SUPPORT_USER_EMAILS` is set, only the listed admin inboxes
+    bypass the VULN-04 business-relationship gate. A second super_admin
+    that isn't on the list must still 403 if the sender has no order/QR
+    binding them — otherwise the env-level allowlist would be cosmetic."""
+    from sqlalchemy import select
+
+    import config
+    from database import session_factory
+    from models import User, UserRole
+
+    s = session_factory()
+    try:
+        spare = User(
+            email=f"ops-{uuid.uuid4().hex[:8]}@test.local",
+            password_hash="x",
+            first_name="Op",
+            last_name="S",
+            role=UserRole.super_admin,
+        )
+        s.add(spare)
+        s.commit()
+        spare_id = spare.id
+    finally:
+        s.close()
+
+    # Lock the allowlist to a single inbox that isn't the spare admin —
+    # mirrors a prod where `SUPPORT_USER_EMAILS=support@…` is set.
+    original = config.SUPPORT_USER_EMAILS
+    config.SUPPORT_USER_EMAILS = frozenset({"support@test.local"})
+    try:
+        login("alice@test.local")
+        r = client.post(
+            "/api/messages",
+            json={"recipient_id": str(spare_id), "body": "hello?"},
+        )
+        assert r.status_code == 403, r.data
+    finally:
+        config.SUPPORT_USER_EMAILS = original
+        _wipe_messages()
+        s = session_factory()
+        try:
+            s.execute(User.__table__.delete().where(User.id == spare_id))
+            s.commit()
+        finally:
+            s.close()
