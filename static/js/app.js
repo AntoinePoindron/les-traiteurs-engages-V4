@@ -27,7 +27,6 @@
     // via the `_inject_notifications` context processor; this poll
     // only refreshes the value live. A failed/non-JSON response leaves
     // the SSR value intact rather than wiping the badge to 0.
-    if (document.hidden) return; // skip work on backgrounded tabs
     fetch('/api/notifications', { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
@@ -178,8 +177,25 @@
     updateLayout();
     window.addEventListener('resize', updateLayout);
     if (document.querySelector('.notification-badge')) {
-      updateNotificationBadge();
-      setInterval(updateNotificationBadge, 30000);
+      // Pause the poll while the tab is hidden — saves a request every
+      // 30s on backgrounded tabs and runs a fresh fetch the moment the
+      // user comes back, so the count is current at the first glance.
+      var pollId = null;
+      function startPolling() {
+        if (pollId !== null) return;
+        updateNotificationBadge();
+        pollId = setInterval(updateNotificationBadge, 30000);
+      }
+      function stopPolling() {
+        if (pollId === null) return;
+        clearInterval(pollId);
+        pollId = null;
+      }
+      if (!document.hidden) startPolling();
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) stopPolling();
+        else startPolling();
+      });
     }
     initBackdropDismiss();
     initFlashToasts();
