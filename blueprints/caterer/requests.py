@@ -31,6 +31,7 @@ from models import (
     Quote,
     QuoteRequest,
     QuoteRequestCaterer,
+    QuoteRequestStatus,
     QuoteStatus,
 )
 from services import workflow
@@ -239,6 +240,16 @@ def register(bp):
         qrc = get_caterer_qrc(qr_id, caterer.id)
         qr = qrc.quote_request
         _ = qr.company
+        # A request no longer open for quoting (client accepted a quote →
+        # `completed`, cancelled, or all quotes refused) takes no new
+        # devis. Checked before the QRC-closed branch so an awarded
+        # request shows this message rather than the 3-responders one.
+        if qr.status != QuoteRequestStatus.sent_to_caterers:
+            flash(
+                "Cette demande est cloturee : elle n'accepte plus de devis.",
+                "info",
+            )
+            return redirect(url_for("caterer.request_detail", qr_id=qr_id))
         # Closed = the 3-first-responders rule shut this caterer out before
         # they could submit. Block the editor entry point so they don't
         # waste effort drafting a quote that the workflow will refuse.

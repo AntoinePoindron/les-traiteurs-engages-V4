@@ -209,6 +209,28 @@ def accept_quote(
 
     qr.status = QuoteRequestStatus.completed
 
+    # The request is awarded — every other solicited caterer is out of the
+    # running. Close their QRC (unless already `rejected` or `closed`) so
+    # the caterer UI shows « Clôturée » and `submit_quote` refuses a late
+    # entry. The winning caterer's QRC is left as-is. Without this, a
+    # caterer who had not quoted kept a `selected` QRC, still saw the
+    # request as « Nouvelle », and could submit on a closed request.
+    losing_qrcs = (
+        db.execute(
+            select(QuoteRequestCaterer).where(
+                QuoteRequestCaterer.quote_request_id == request_id,
+                QuoteRequestCaterer.caterer_id != accepted.caterer_id,
+                QuoteRequestCaterer.status.not_in(
+                    (QRCStatus.rejected, QRCStatus.closed)
+                ),
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for losing_qrc in losing_qrcs:
+        losing_qrc.status = QRCStatus.closed
+
     # Tell the winning caterer they got the deal. The losing caterers
     # already got their `status -> refused` flip silently — sending them
     # « un autre traiteur a été choisi » mails would be spammy and isn't
@@ -377,10 +399,18 @@ def submit_quote(
     Lève QuoteNotFound (devis introuvable, mauvais caterer, ou pas en
     `draft`) et QuoteRequestClosed (QRC `closed` ou ≥3 transmitted déjà).
     """
-    # Verrou exclusif pour sérialiser les répondants concurrents.
-    db.execute(
-        select(QuoteRequest.id).where(QuoteRequest.id == request_id).with_for_update()
+    # Verrou exclusif pour sérialiser les répondants concurrents — et avec
+    # `accept_quote`, qui clôt la demande.
+    qr = db.scalar(
+        select(QuoteRequest).where(QuoteRequest.id == request_id).with_for_update()
     )
+    if qr is None:
+        raise QuoteNotFound
+    # Une demande qui n'est plus `sent_to_caterers` (devis accepté →
+    # `completed`, demande annulée, tous les devis refusés) n'accepte plus
+    # aucune soumission, même si la QRC de ce traiteur est restée ouverte.
+    if qr.status != QuoteRequestStatus.sent_to_caterers:
+        raise QuoteRequestClosed
 
     quote = db.scalar(
         select(Quote).where(
@@ -441,11 +471,10 @@ def submit_quote(
     # The quote reaches the client whenever the QRC flips to
     # `transmitted_to_client` (rank 1, 2 or 3). Notify the requester
     # for every transmission, not just the closing-third one.
-    qr_obj = db.get(QuoteRequest, request_id)
-    if qr_obj is not None and qr_obj.user_id is not None:
+    if qr.user_id is not None:
         notify(
             db,
-            user_id=qr_obj.user_id,
+            user_id=qr.user_id,
             type="quote_received",
             title="Nouveau devis reçu",
             body=f"{caterer.name} vient de vous envoyer un devis.",
