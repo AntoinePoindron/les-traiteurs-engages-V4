@@ -84,7 +84,12 @@ class QuoteRequestForm(FlaskForm):
         validators=[Optional(), NumberRange(min=0, max=10000)]
     )
 
-    drinks_alcohol = BooleanField()
+    # `drinks_alcohol` is no longer collected from the form — it's
+    # derived server-side from the wizard's step-5 selection in
+    # `blueprints.client._helpers.apply_drinks`, so a tampered POST
+    # can't set it to True without ticking an alcoholic drink. The
+    # `drinks` JSON list (handled outside WTForms) is the source of
+    # truth.
     drinks_details = TextAreaField(validators=[Optional(), Length(max=5000)])
 
     wants_waitstaff = BooleanField()
