@@ -169,7 +169,19 @@
           <div class="text-sm text-text">Décoration</div>
           {% endif %}
           {% if qr.wants_setup %}
-          <div class="text-sm text-text">Installation et mise en place</div>
+          <div class="flex items-start justify-between gap-4 text-sm text-text">
+            <span>
+              Installation et mise en place
+              {% if qr.service_setup_time %}
+              <span class="text-mute">
+                &middot; à {{ qr.service_setup_time.strftime('%H:%M') }}
+              </span>
+              {% endif %}
+            </span>
+            {% if qr.service_setup_details %}
+            <span class="font-bold text-right">{{ qr.service_setup_details }}</span>
+            {% endif %}
+          </div>
           {% endif %}
           {% if qr.wants_cleanup %}
           <div class="text-sm text-text">Nettoyage</div>
