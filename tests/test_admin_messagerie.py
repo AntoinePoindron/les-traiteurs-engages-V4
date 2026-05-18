@@ -453,8 +453,6 @@ def test_client_cannot_address_a_non_support_super_admin(client, login):
     bypass the VULN-04 business-relationship gate. A second super_admin
     that isn't on the list must still 403 if the sender has no order/QR
     binding them — otherwise the env-level allowlist would be cosmetic."""
-    from sqlalchemy import select
-
     import config
     from database import session_factory
     from models import User, UserRole

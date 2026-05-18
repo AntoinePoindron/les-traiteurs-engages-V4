@@ -368,6 +368,12 @@ def send_message():
         or recipient.email.lower() in config.SUPPORT_USER_EMAILS
     )
     if not is_admin and not recipient_is_support:
+        if recipient.role == "super_admin":
+            # A non-support super_admin is never a free-form contact for a
+            # regular user: it belongs to no company and no caterer, so no
+            # order/QR context could ever place it in `_allowed_recipients_for`.
+            # Reject directly rather than hinting at a missing context.
+            return jsonify({"error": "Destinataire non autorise."}), 403
         gate_contexts: list[tuple] = []
         if order_id or quote_request_id:
             gate_contexts.append((order_id, quote_request_id))
