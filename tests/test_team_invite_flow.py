@@ -20,10 +20,19 @@ across the suite.
 """
 
 import datetime as _dt
+import hashlib as _hashlib
 import re as _re
 
 import bcrypt
 from sqlalchemy import select
+
+
+def _digest(raw: str) -> str:
+    """Mirror of `blueprints.client.team._hash_invite_token`. Kept inline
+    here so the test file is decoupled from the production hashing
+    primitive — if the prod code switches algorithm, this assertion
+    breaks loudly and the operator updates both sides deliberately."""
+    return _hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +75,13 @@ def _bob_id():
 
 def _ensure_employee(email, *, user_id=None, invite_token=None, invited_at=None):
     """Idempotent: create or update a CompanyEmployee under ACME with the
-    given fields. Returns its id (UUID)."""
+    given fields. Returns its id (UUID).
+
+    `invite_token` here is the RAW token a real admin would have minted —
+    we store its SHA-256 digest in the DB to mirror the production write
+    path. The tests then POST to `/signup/invite/<raw>` so the
+    `_resolve_invite` lookup (which hashes its input) matches.
+    """
     from database import session_factory
     from models import CompanyEmployee
 
@@ -88,7 +103,7 @@ def _ensure_employee(email, *, user_id=None, invite_token=None, invited_at=None)
             )
             s.add(row)
         row.user_id = user_id
-        row.invite_token = invite_token
+        row.invite_token = _digest(invite_token) if invite_token else None
         row.invited_at = invited_at
         s.commit()
         return row.id
@@ -177,15 +192,15 @@ def test_create_employee_generates_invite_token(client, login):
             )
         )
         assert row is not None
-        # secrets.token_urlsafe(32) → 43 chars in [A-Za-z0-9_-]; assert
-        # the exact shape so a regression to a weaker generator (literal
-        # string, counter, predictable hash) fails the test.
+        # Post-hardening: the DB stores the SHA-256 digest of the raw
+        # token (64 hex chars). The raw lives only in the admin's
+        # session for the single redirect that pops the modal.
         assert row.invite_token is not None
-        assert len(row.invite_token) == 43, (
-            f"expected 43-char urlsafe token, got len={len(row.invite_token)}"
+        assert len(row.invite_token) == 64, (
+            f"expected 64-char SHA-256 hex, got len={len(row.invite_token)}"
         )
-        assert _re.fullmatch(r"[A-Za-z0-9_-]+", row.invite_token), (
-            "token must use the urlsafe alphabet"
+        assert _re.fullmatch(r"[0-9a-f]+", row.invite_token), (
+            "stored token must be lowercase hex (SHA-256 digest)"
         )
         assert row.invited_at is not None
         assert row.user_id is None
@@ -211,11 +226,12 @@ def test_invite_rotation_changes_token(client, login):
 
     after = _fetch_employee(employee_id).invite_token
     assert after and after != before, "rotation must produce a fresh token"
-    # Same shape constraints as fresh generation — a deterministic-but-
-    # different value (e.g. a counter) would slip through `after != before`.
-    assert len(after) == 43, f"rotated token wrong length: {len(after)}"
-    assert _re.fullmatch(r"[A-Za-z0-9_-]+", after), (
-        "rotated token must use the urlsafe alphabet"
+    # Stored value is the SHA-256 digest, not the raw — a deterministic
+    # rotation (counter, predictable seed) would still slip through
+    # `after != before`, so we lock the shape down too.
+    assert len(after) == 64, f"rotated digest wrong length: {len(after)}"
+    assert _re.fullmatch(r"[0-9a-f]+", after), (
+        "rotated digest must be lowercase hex (SHA-256)"
     )
 
 
@@ -502,7 +518,9 @@ def test_signup_invite_handles_integrity_error_at_flush(client, monkeypatch):
     # after the race resolves, and user_id is not linked to the
     # never-persisted User.
     row = _fetch_employee(employee_id)
-    assert row.invite_token == token, "rollback must preserve the invite token"
+    assert row.invite_token == _digest(token), (
+        "rollback must preserve the invite digest"
+    )
     assert row.user_id is None
 
 

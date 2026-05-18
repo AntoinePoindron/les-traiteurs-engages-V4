@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import logging
 import os
 
@@ -435,12 +436,18 @@ def signup():
 def _resolve_invite(token: str) -> CompanyEmployee | None:
     """Look up an active invite by token. Returns None if the token doesn't
     match, has been redeemed, or has expired. Used by both the GET (form
-    display) and POST (acceptance) handlers below."""
+    display) and POST (acceptance) handlers below.
+
+    The column stores a SHA-256 digest of the raw token, so the lookup
+    hashes the incoming URL value before the WHERE clause. A DB leak
+    therefore exposes only digests — useless without the raw token.
+    """
     if not token:
         return None
     db = get_db()
+    digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
     employee = db.scalar(
-        select(CompanyEmployee).where(CompanyEmployee.invite_token == token)
+        select(CompanyEmployee).where(CompanyEmployee.invite_token == digest)
     )
     if employee is None:
         return None

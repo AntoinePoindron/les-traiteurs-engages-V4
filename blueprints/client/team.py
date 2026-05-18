@@ -1,9 +1,25 @@
 import datetime
+import hashlib
 import secrets
 import uuid
 
-from flask import flash, g, redirect, render_template, request, url_for
+from flask import flash, g, redirect, render_template, request, session, url_for
 from sqlalchemy import func, select
+
+
+def _hash_invite_token(raw: str) -> str:
+    """SHA-256 hex digest of an invite token — what gets persisted."""
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _stash_invite_raw(employee_id, raw: str) -> None:
+    """One-shot store of the raw invite token in the admin's session.
+
+    Persisted only long enough for /team to read it back and render the
+    copy-paste modal after a create/rotate redirect. The team page pops
+    the key so a refresh doesn't keep the raw lying around.
+    """
+    session[f"invite_raw:{employee_id}"] = raw
 
 from blueprints.client._helpers import own_service_id
 from blueprints.middleware import login_required, role_required
@@ -49,6 +65,7 @@ def register(bp):
         # immediately. Only honoured when the employee belongs to the
         # admin's company and still has an active invite token.
         invite_employee = None
+        invite_raw_token = None
         invite_id = request.args.get("invite")
         if invite_id:
             try:
@@ -64,6 +81,14 @@ def register(bp):
                         CompanyEmployee.user_id.is_(None),
                     )
                 )
+                # The raw token only exists in the admin's session for the
+                # one render after create/rotate; pop so a refresh doesn't
+                # keep it lying around. Without this, the modal can't show
+                # a usable signup URL (the DB now holds the digest).
+                if invite_employee is not None:
+                    invite_raw_token = session.pop(
+                        f"invite_raw:{invite_employee.id}", None
+                    )
 
         return render_template(
             "client/team.html",
@@ -72,6 +97,7 @@ def register(bp):
             employees=employees,
             pending_users=pending_users,
             invite_employee=invite_employee,
+            invite_raw_token=invite_raw_token,
         )
 
     @bp.route("/team/services", methods=["POST"])
@@ -167,6 +193,11 @@ def register(bp):
                 "error",
             )
             return redirect(url_for("client.team"))
+        # Mint a raw token, persist only its SHA-256 digest. The raw is
+        # surfaced once to the admin via the post-redirect modal so they
+        # can copy the signup URL. After that, only a rotate (via
+        # /team/employees/<id>/invite) can regenerate a fresh raw.
+        raw_token = secrets.token_urlsafe(32)
         employee = CompanyEmployee(
             company_id=user.company_id,
             first_name=form.first_name.data.strip(),
@@ -174,11 +205,12 @@ def register(bp):
             email=email,
             position=(form.position.data or "").strip() or None,
             service_id=own_service_id(db, user, form.service_id.data),
-            invite_token=secrets.token_urlsafe(32),
+            invite_token=_hash_invite_token(raw_token),
             invited_at=datetime.datetime.utcnow(),
         )
         db.add(employee)
         db.commit()
+        _stash_invite_raw(employee.id, raw_token)
         # Redirect with the employee id in the query so /team can detect
         # it and pop the « lien d'invitation » modal.
         return redirect(url_for("client.team", invite=str(employee.id)))
@@ -240,15 +272,19 @@ def register(bp):
                 "info",
             )
             return redirect(url_for("client.team"))
-        # 32 bytes urlsafe = 43 chars, ~256 bits — unguessable.
-        employee.invite_token = secrets.token_urlsafe(32)
+        # 32 bytes urlsafe = 43 chars, ~256 bits — unguessable. Only the
+        # digest is persisted; the raw is one-shot stashed in session
+        # so the post-redirect modal can render the signup URL.
+        raw_token = secrets.token_urlsafe(32)
+        employee.invite_token = _hash_invite_token(raw_token)
         employee.invited_at = datetime.datetime.utcnow()
         db.commit()
+        _stash_invite_raw(employee.id, raw_token)
         flash(
             "Lien d'invitation genere. Copiez-le et envoyez-le a votre collaborateur.",
             "success",
         )
-        return redirect(url_for("client.team"))
+        return redirect(url_for("client.team", invite=str(employee.id)))
 
     @bp.route("/team/employees/<uuid:employee_id>/invite/revoke", methods=["POST"])
     @login_required

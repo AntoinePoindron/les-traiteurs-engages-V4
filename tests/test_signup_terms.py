@@ -210,8 +210,14 @@ def test_signup_invite_refuses_without_accept_terms(client):
     from models import CompanyEmployee
 
     # Seed an invite row on the ACME company so the redemption is valid
-    # apart from the missing accept_terms.
+    # apart from the missing accept_terms. The DB column stores the
+    # SHA-256 digest of the raw token (see services / auth handlers),
+    # so we mirror that here while the HTTP request below still uses
+    # the raw — same shape as a real admin → invitee handoff.
+    import hashlib as _hashlib
+
     token = "terms-refusal-token-eeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    token_digest = _hashlib.sha256(token.encode("utf-8")).hexdigest()
     s = session_factory()
     try:
         from models import Company
@@ -222,7 +228,7 @@ def test_signup_invite_refuses_without_accept_terms(client):
             email="terms-invitee@test.local",
             first_name="Term",
             last_name="Invite",
-            invite_token=token,
+            invite_token=token_digest,
             invited_at=_dt.datetime.utcnow(),
         )
         s.add(emp)

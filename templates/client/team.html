@@ -173,32 +173,19 @@
             </div>
           </div>
 
-          {# Active invitation : display the signup link the admin can
-             copy/paste to the collaborator. Mail isn't wired yet, so the
-             admin handles the delivery channel manually. #}
+          {# Active invitation : the URL was shown once when the token was
+             minted (creation / rotation). The DB only stores the SHA-256
+             digest, so we can't reconstruct the URL here — the admin must
+             "Régénérer" if they need the link again. #}
           {% if e.invite_token and not e.user_id %}
-          {% set invite_url = url_for('auth.signup_invite', token=e.invite_token, _external=True) %}
           <div class="p-4 rounded-lg mb-2 bg-cream-page" style="border:1px dashed var(--c-border);">
             <div class="flex items-center gap-2 mb-2">
               <i data-lucide="link-2" class="w-4 h-4 text-navy"></i>
-              <p class="text-sm font-bold text-text">Lien d'invitation pour {{ e.first_name }} {{ e.last_name }}</p>
+              <p class="text-sm font-bold text-text">Invitation active pour {{ e.first_name }} {{ e.last_name }}</p>
             </div>
             <p class="text-xs text-mute mb-3">
-              Copiez ce lien et envoyez-le au collaborateur (mail, messagerie, etc.). Il pourra activer son compte directement avec son nom et son email&#8239;: {{ e.email }}.
+              Le lien d'invitation a été affiché à la génération. Pour récupérer un nouveau lien, cliquez sur « Régénérer » ci-dessous.
             </p>
-            <div class="flex items-center gap-2 mb-3">
-              <input type="text" id="invite-url-{{ e.id }}" value="{{ invite_url }}" readonly
-                class="w-full border rounded-lg px-3 py-2 text-xs font-mono text-text-soft outline-none border-default bg-white"
-                style="cursor:text;">
-              <button type="button"
-                      data-action="copy-to-clipboard"
-                      data-target="invite-url-{{ e.id }}"
-                      data-copied-label="Copié !"
-                      class="rounded-full text-xs font-bold px-3 py-2 inline-flex items-center gap-1 btn-navy whitespace-nowrap">
-                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                <span data-copy-label>Copier</span>
-              </button>
-            </div>
             <div class="flex items-center gap-3 text-xs">
               <span class="text-mute">
                 {% if e.invited_at %}
@@ -316,9 +303,13 @@
       </div>
     </div>
 
-    {# ---- Modal : lien d'invitation (auto-opened after creation) ---- #}
-    {% if invite_employee %}
-    {% set invite_url = url_for('auth.signup_invite', token=invite_employee.invite_token, _external=True) %}
+    {# ---- Modal : lien d'invitation (auto-opened after creation/rotation) ---- #}
+    {# `invite_raw_token` is the one-shot raw value popped from session by the
+       team() handler; the DB only stores its SHA-256 digest, so this modal is
+       the single opportunity to surface a working signup URL. After this
+       render, the admin must click « Régénérer » to mint a new one. #}
+    {% if invite_employee and invite_raw_token %}
+    {% set invite_url = url_for('auth.signup_invite', token=invite_raw_token, _external=True) %}
     <div id="modal-employee-invite-link" class="fixed inset-0 z-50 flex items-center justify-center p-4"
          style="background-color:rgba(0,0,0,0.5);" data-backdrop-dismiss>
       <div class="bg-white rounded-xl shadow-2xl w-full flex flex-col" style="max-width:560px;">

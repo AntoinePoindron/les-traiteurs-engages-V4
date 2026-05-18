@@ -18,6 +18,7 @@ No commit — caller commits.
 from __future__ import annotations
 
 import datetime
+import hashlib
 import secrets
 
 import bcrypt
@@ -27,6 +28,17 @@ from sqlalchemy.orm import Session
 import config
 from models import PasswordResetToken, User
 from services.email import render_and_send_async
+
+
+def _hash_token(raw: str) -> str:
+    """SHA-256 hex digest of a raw token.
+
+    What lives in the DB is the digest, not the raw value. The raw only
+    travels via the reset-link in the user's email; if the DB is leaked
+    (backup, malicious DBA, future SQLi), no live token is reusable
+    because the attacker would have to invert SHA-256.
+    """
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 # 1 hour is the industry-standard window for password reset links —
@@ -41,18 +53,22 @@ class ResetTokenInvalid(Exception):
     it is to the caller (would help a brute-force attacker)."""
 
 
-def issue_token(db: Session, *, user: User) -> PasswordResetToken:
-    """Create + persist a one-shot reset token for `user`. Returns the
-    row so the caller can grab the token string for the email."""
+def issue_token(db: Session, *, user: User) -> tuple[PasswordResetToken, str]:
+    """Mint a one-shot reset token. Returns `(row, raw_token)`.
+
+    The raw token is what travels in the email URL; the row stores only
+    the SHA-256 digest. Callers MUST use `raw_token` to build the user
+    link, NEVER `row.token` (which is now the digest).
+    """
     raw = secrets.token_urlsafe(32)
     row = PasswordResetToken(
         user_id=user.id,
-        token=raw,
+        token=_hash_token(raw),
         expires_at=datetime.datetime.utcnow() + RESET_TOKEN_TTL,
     )
     db.add(row)
     db.flush()
-    return row
+    return row, raw
 
 
 def consume_token(db: Session, *, raw_token: str, new_password: str) -> User:
@@ -70,7 +86,7 @@ def consume_token(db: Session, *, raw_token: str, new_password: str) -> User:
     # serialization here is cheap and obvious.
     row = db.scalar(
         select(PasswordResetToken)
-        .where(PasswordResetToken.token == raw_token)
+        .where(PasswordResetToken.token == _hash_token(raw_token))
         .with_for_update()
     )
     if row is None:
@@ -119,11 +135,11 @@ def kick_off_reset(db: Session, *, email: str) -> None:
         bcrypt.hashpw(b"timing-noise", bcrypt.gensalt())
         return
 
-    token = issue_token(db, user=user)
+    _row, raw_token = issue_token(db, user=user)
     # The auth blueprint is mounted at /, not /auth/, so the route is
     # /reset-password/<token>. Hardcoding the path beats a `url_for`
     # that would need a server-name config to produce an absolute URL.
-    reset_url = f"{config.BASE_URL}/reset-password/{token.token}"
+    reset_url = f"{config.BASE_URL}/reset-password/{raw_token}"
 
     render_and_send_async(
         to=user.email,
