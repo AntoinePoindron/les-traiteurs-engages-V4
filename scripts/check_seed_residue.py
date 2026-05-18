@@ -55,9 +55,7 @@ def main() -> int:
     s = session_factory()
     try:
         rows = s.execute(
-            select(User.email, User.is_active, User.role).where(
-                User.email.in_(seeded)
-            )
+            select(User.email, User.is_active, User.role).where(User.email.in_(seeded))
         ).all()
     finally:
         s.close()
@@ -67,8 +65,7 @@ def main() -> int:
         return 0
 
     print(
-        f"FOUND {len(rows)} seeded account(s) in this DB out of "
-        f"{len(seeded)} possible:"
+        f"FOUND {len(rows)} seeded account(s) in this DB out of {len(seeded)} possible:"
     )
     for email, is_active, role in rows:
         marker = "active" if is_active else "disabled"
