@@ -139,7 +139,6 @@ def create_app():
         UserRole=UserRole,
     )
 
-
     @app.template_filter("fr_amount")
     def _fr_amount(value, decimals: int = 0) -> str:
         """Render a number with French typography — narrow no-break space
@@ -154,11 +153,7 @@ def create_app():
         formatted = f"{numeric:,.{decimals}f}"
         # Python's `,` separator + `.` decimal → swap to FR conventions
         # via a placeholder so the two operations don't collide.
-        return (
-            formatted.replace(",", " ")
-            .replace(".", ",")
-            .replace(" ", " ")
-        )
+        return formatted.replace(",", " ").replace(".", ",").replace(" ", " ")
 
     from blueprints.admin import admin_bp
     from blueprints.api import api_bp
