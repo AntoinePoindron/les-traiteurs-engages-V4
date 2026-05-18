@@ -48,9 +48,10 @@
            would leave the dot silently hidden). The .notification-badge
            class carries all the dimensions / colours — see app.css. #}
         {% set _bell_count = notifications_unread_total or 0 %}
+        {% set _bell_s = '' if _bell_count == 1 else 's' %}
         <span class="notification-badge {% if _bell_count <= 0 %}hidden{% endif %}"
               data-count="{{ _bell_count }}"
-              aria-label="{{ _bell_count }} notification{% if _bell_count != 1 %}s{% endif %} non lue{% if _bell_count != 1 %}s{% endif %}">
+              aria-label="{{ _bell_count }} notification{{ _bell_s }} non lue{{ _bell_s }}">
           {{ _bell_count if _bell_count <= 99 else '99+' }}
         </span>
       </button>
