@@ -287,14 +287,33 @@ def _allowed_recipients_for(db, user, *, order_id=None, quote_request_id=None):
     if not (user_in_company or user_in_caterers):
         return set()
 
+    # Split the allowed set by side. A client-side user can reach every
+    # solicited caterer on the QR; a caterer-side user can only reach the
+    # client (NOT the other caterers also solicited on the same QR — they
+    # are competitors). The previous shape merged both sides into one set
+    # so caterer A could DM caterer B about a shared QR.
     allowed: set[uuid.UUID] = set()
-    if company_id:
+    if user_in_company:
+        if caterer_ids:
+            allowed.update(
+                db.scalars(
+                    select(User.id).where(User.caterer_id.in_(caterer_ids))
+                ).all()
+            )
+        if company_id:
+            allowed.update(
+                db.scalars(select(User.id).where(User.company_id == company_id)).all()
+            )
+    elif user_in_caterers:
+        if company_id:
+            allowed.update(
+                db.scalars(select(User.id).where(User.company_id == company_id)).all()
+            )
+        # Same-caterer teammates stay reachable; competitors do not.
         allowed.update(
-            db.scalars(select(User.id).where(User.company_id == company_id)).all()
-        )
-    if caterer_ids:
-        allowed.update(
-            db.scalars(select(User.id).where(User.caterer_id.in_(caterer_ids))).all()
+            db.scalars(
+                select(User.id).where(User.caterer_id == user.caterer_id)
+            ).all()
         )
     allowed.discard(user.id)
     return allowed
