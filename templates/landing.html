@@ -304,10 +304,10 @@
           <a href="{{ url_for('client.search') }}">Consulter le catalogue traiteur</a>
           <a href="{{ url_for('auth.signup') }}">S'inscrire</a>
           <a href="{{ url_for('auth.login') }}">Se connecter</a>
-          {# Lien litt&#233;ral : la page CGS vit dans le blueprint `legal`
-             (route /cgs), pas encore merg&#233; sur main &#8212; `url_for`
-             l&#232;verait un BuildError ici. &#192; repasser en
-             url_for('legal.cgs_current') une fois la PR CGS merg&#233;e. #}
+          {# TODO(#58): replace `/cgs` with url_for('legal.cgs_current')
+             once the legal blueprint lands on main. The literal path is
+             a placeholder — `url_for` would raise BuildError today because
+             the route doesn't exist yet on this branch. #}
           <a href="/cgs">CGU/CGV</a>
         </nav>
       </div>
