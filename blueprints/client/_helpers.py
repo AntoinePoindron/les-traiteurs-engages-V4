@@ -103,10 +103,23 @@ def apply_drinks(qr, request_form):
     raw form. Unknown keys are ignored — a tampered POST that smuggles
     `drinks_unicorn=1` simply doesn't land in the list.
 
+    Must be called next to `apply_quote_request_form` from every
+    handler that creates or edits a QuoteRequest, since it operates on
+    the raw `request.form` (not the WTForms instance) and so the
+    standard applier can't pick it up.
+
     `drinks_alcohol` is recomputed from the selection so the legacy
     boolean stays trustworthy without trusting the client to set it.
     """
-    selected = [slug for slug in DRINK_LABELS if request_form.get(slug)]
+    # An unticked checkbox emits no key, so a present key normally
+    # means "ticked". Accept only the truthy values the browser would
+    # actually send so a forged POST with `drinks_eau_plate=0` doesn't
+    # smuggle a checkbox in.
+    selected = [
+        slug
+        for slug in DRINK_LABELS
+        if request_form.get(slug, "").strip().lower() in ("1", "true", "on", "yes")
+    ]
     qr.drinks = selected or None
     qr.drinks_alcohol = any(slug in ALCOHOLIC_DRINKS for slug in selected)
 
