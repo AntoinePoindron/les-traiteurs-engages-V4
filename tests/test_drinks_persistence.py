@@ -194,9 +194,17 @@ def test_edit_page_pre_ticks_the_saved_selection(client, login):
     login("alice@test.local")
     created: set[uuid.UUID] = set()
     try:
+        # `is_compare_mode=on` parks the QR in `pending_review` rather
+        # than `sent_to_caterers`, which is the only status that lets
+        # the client re-open the wizard via /edit. Without it the route
+        # 302s back to the read-only detail and the assertion below fails.
         r = client.post(
             "/client/requests/new",
-            data={"drinks_eau_plate": "1", "drinks_bieres": "1"},
+            data={
+                "drinks_eau_plate": "1",
+                "drinks_bieres": "1",
+                "is_compare_mode": "on",
+            },
             follow_redirects=False,
         )
         assert r.status_code == 302
