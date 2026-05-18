@@ -24,7 +24,7 @@ from services.notifications import (
     super_admin_user_ids,
 )
 from services.slugs import generate_invoice_prefix
-from services.terms import current_terms_version
+from services.terms import current_terms_version, is_terms_accepted
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ def signup():
         # The signup form ships a single checkbox `accept_terms` whose
         # presence is enforced server-side (HTML5 `required` is only a
         # UX hint — a curl POST would bypass it).
-        accept_terms = request.form.get("accept_terms") in ("on", "1", "true")
+        accept_terms = is_terms_accepted(request.form)
 
         if not all([role, email, password, first_name, last_name, siret]):
             flash("Veuillez remplir tous les champs obligatoires.", "error")
@@ -473,7 +473,7 @@ def signup_invite(token: str):
 
     if request.method == "POST":
         password = request.form.get("password", "")
-        accept_terms = request.form.get("accept_terms") in ("on", "1", "true")
+        accept_terms = is_terms_accepted(request.form)
         if not password:
             flash("Veuillez renseigner un mot de passe.", "error")
             return render_template(
