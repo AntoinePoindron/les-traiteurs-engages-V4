@@ -256,6 +256,36 @@ button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] 
 }
 
 /* ============================================================
+   Dashboard KPI primitives
+   ------------------------------------------------------------
+   Two repeating motifs on the client/caterer dashboards:
+   - `.icon-badge`  : rounded square holding a lucide glyph at
+                      the top-left of a KPI card.
+   - `.kpi-figure`  : the big serif number underneath.
+   Naming them once keeps the dashboard markup focused on
+   structure (which KPI it is) rather than visual tokens.
+   ============================================================ */
+.icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;        /* w-9  */
+  height: 2.25rem;       /* h-9  */
+  border-radius: 0.5rem; /* rounded-lg */
+  background-color: var(--c-navy-soft);
+  color: var(--c-navy);
+  flex-shrink: 0;
+}
+
+.kpi-figure {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 1.875rem;   /* text-3xl */
+  line-height: 2.25rem;
+  color: var(--c-text);
+}
+
+/* ============================================================
    Brand utilities (token-backed)
    Mirror Tailwind's API but resolve to brand tokens.
    These live HERE, not in tailwind.css, so tailwind.css

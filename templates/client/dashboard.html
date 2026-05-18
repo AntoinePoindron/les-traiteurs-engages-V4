@@ -28,31 +28,31 @@
     <!-- KPIs -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <a href="{{ url_for('client.requests_list') }}" class="bg-white rounded-lg p-5 flex flex-col gap-3 hover:opacity-90 transition-opacity">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-          <i data-lucide="file-text" class="w-[18px] h-[18px] text-navy"></i>
+        <div class="icon-badge">
+          <i data-lucide="file-text" class="w-[18px] h-[18px]"></i>
         </div>
         <div>
-          <p class="font-display font-bold text-3xl text-black">{{ active_requests_count | default(0) }}</p>
+          <p class="kpi-figure">{{ active_requests_count | default(0) }}</p>
           <p class="text-xs mt-0.5 text-mute">Demandes actives</p>
         </div>
       </a>
 
       <a href="{{ url_for('client.orders_list') }}" class="bg-white rounded-lg p-5 flex flex-col gap-3 hover:opacity-90 transition-opacity">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-          <i data-lucide="shopping-bag" class="w-[18px] h-[18px] text-navy"></i>
+        <div class="icon-badge">
+          <i data-lucide="shopping-bag" class="w-[18px] h-[18px]"></i>
         </div>
         <div>
-          <p class="font-display font-bold text-3xl text-black">{{ recent_orders | default([]) | length }}</p>
+          <p class="kpi-figure">{{ recent_orders | default([]) | length }}</p>
           <p class="text-xs mt-0.5 text-mute">Commandes recentes</p>
         </div>
       </a>
 
       <div class="bg-white rounded-lg p-5 flex flex-col gap-3">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-          <i data-lucide="wallet" class="w-[18px] h-[18px] text-navy"></i>
+        <div class="icon-badge">
+          <i data-lucide="wallet" class="w-[18px] h-[18px]"></i>
         </div>
         <div>
-          <p class="font-display font-bold text-3xl text-black">{{ "%.0f"|format(budget_spent_total or 0) }}&nbsp;&euro;</p>
+          <p class="kpi-figure">{{ "%.0f"|format(budget_spent_total or 0) }}&nbsp;&euro;</p>
           <p class="text-xs mt-0.5 text-mute">Budget consomm&#233;</p>
         </div>
       </div>
@@ -65,8 +65,8 @@
     {% if social_impact %}
     <div class="bg-white rounded-lg p-6 mb-6">
       <div class="flex items-center gap-3 mb-4">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-navy-soft">
-          <i data-lucide="heart-handshake" class="w-[18px] h-[18px] text-navy"></i>
+        <div class="icon-badge">
+          <i data-lucide="heart-handshake" class="w-[18px] h-[18px]"></i>
         </div>
         <h2 class="font-display font-bold text-xl text-text">Impact social</h2>
       </div>
@@ -74,7 +74,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <p class="text-xs uppercase tracking-wider font-bold text-mute mb-2">Prix HT des achats inclusifs r&#233;alis&#233;s</p>
-          <p class="font-display font-bold text-3xl text-black mb-3">{{ "%.0f"|format(social_impact.total_ht) }}&nbsp;&euro;</p>
+          <p class="kpi-figure mb-3">{{ "%.0f"|format(social_impact.total_ht) }}&nbsp;&euro;</p>
           <ul class="text-sm space-y-1.5 text-text-soft">
             <li>dont <span class="font-bold text-text">{{ "%.0f"|format(social_impact.siae_ht) }}&nbsp;&euro;</span> aupr&#232;s de structures d'insertion (SIAE)</li>
             <li>dont <span class="font-bold text-text">{{ "%.0f"|format(social_impact.stpa_ht) }}&nbsp;&euro;</span> aupr&#232;s du secteur prot&#233;g&#233; et adapt&#233; (STPA)</li>
@@ -83,7 +83,7 @@
 
         <div>
           <p class="text-xs uppercase tracking-wider font-bold text-mute mb-2">Nombre d'heures financ&#233;es dans l'insertion</p>
-          <p class="font-display font-bold text-3xl text-black mb-3">{{ social_impact.hours_financed }}&nbsp;h</p>
+          <p class="kpi-figure mb-3">{{ social_impact.hours_financed }}&nbsp;h</p>
           <p class="text-xs text-mute">
             Il s'agit d'une estimation bas&#233;e sur le mode de calcul d'un &#233;chantillon non repr&#233;sentatif de l'ensemble des prestataires inclusifs.
           </p>
