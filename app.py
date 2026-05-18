@@ -24,6 +24,7 @@ from logging_config import configure_logging, install_request_id_hooks
 from models import (
     Caterer,
     Company,
+    DRINK_LABELS,
     MembershipStatus,
     Order,
     OrderStatus,
@@ -137,6 +138,7 @@ def create_app():
         QRCStatus=QRCStatus,
         MembershipStatus=MembershipStatus,
         UserRole=UserRole,
+        DRINK_LABELS=DRINK_LABELS,
     )
 
     @app.template_filter("fr_amount")

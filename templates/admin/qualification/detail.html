@@ -104,14 +104,27 @@
     </div>
     {% endif %}
 
+    {% if qr.drinks or qr.drinks_details %}
+    <div class="bg-white rounded-lg p-6">
+      <h2 class="font-display font-bold text-lg text-black mb-4">Boissons</h2>
+      <div class="flex flex-wrap gap-2">
+        {% for slug in qr.drinks or [] %}
+        {% if slug in DRINK_LABELS %}
+        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
+          <i data-lucide="cup-soda" class="w-3 h-3"></i> {{ DRINK_LABELS[slug] }}
+        </span>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% if qr.drinks_details %}
+      <p class="text-xs mt-3 text-mute">{{ qr.drinks_details }}</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
     <div class="bg-white rounded-lg p-6">
       <h2 class="font-display font-bold text-lg text-black mb-4">Services additionnels</h2>
       <div class="flex flex-wrap gap-2">
-        {% if qr.drinks_alcohol %}
-        <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
-          <i data-lucide="wine" class="w-3 h-3"></i> Boissons avec alcool
-        </span>
-        {% endif %}
         {% if qr.wants_waitstaff %}
         <span class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-cream text-text-soft">
           <i data-lucide="users" class="w-3 h-3"></i> Service en salle

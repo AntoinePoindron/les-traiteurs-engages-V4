@@ -128,7 +128,7 @@
     </div>
 
     {# ---- Card : prestation (drinks + additional services) ---- #}
-    {% set has_drinks = qr.drinks_alcohol or qr.drinks_details %}
+    {% set has_drinks = qr.drinks or qr.drinks_details %}
     {% set has_services = qr.wants_waitstaff or qr.wants_equipment or qr.wants_decoration or qr.wants_setup or qr.wants_cleanup %}
     {% if has_drinks or has_services %}
     <div class="bg-white rounded-lg p-6">
@@ -138,8 +138,12 @@
       <div>
         <p class="text-xs uppercase font-bold tracking-wider text-text-soft mb-3">Boissons</p>
         <div class="space-y-2">
-          {% if qr.drinks_alcohol %}
-          <div class="text-sm text-text">Boissons avec alcool</div>
+          {% if qr.drinks %}
+          <ul class="text-sm text-text list-disc pl-5">
+            {% for slug in qr.drinks %}
+            {% if slug in DRINK_LABELS %}<li>{{ DRINK_LABELS[slug] }}</li>{% endif %}
+            {% endfor %}
+          </ul>
           {% endif %}
           {% if qr.drinks_details %}
           <div class="text-sm text-text">{{ qr.drinks_details }}</div>
