@@ -301,6 +301,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Entree dans un champ ne doit jamais soumettre le formulaire
+  // multi-etapes : la soumission implicite du navigateur enverrait les
+  // etapes suivantes vides. Signale sur l'etape Budget mais commun a
+  // toute etape ayant un champ saisissable (un seul <form>, un bouton
+  // type="submit"). On bloque Entree et, hors etape finale, on avance
+  // comme un clic sur « Suivant » (validation incluse). Les <textarea>
+  // gardent Entree = retour a la ligne ; les boutons restent cliquables.
+  if (form) {
+    form.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      var t = ev.target;
+      if (!t || !t.tagName) return;
+      var isLineField =
+        t.tagName === 'SELECT' ||
+        (t.tagName === 'INPUT' &&
+          t.type !== 'button' &&
+          t.type !== 'submit' &&
+          t.type !== 'reset');
+      if (!isLineField) return;
+      ev.preventDefault();
+      if (currentStep < totalSteps && nextBtn) {
+        nextBtn.click();
+      }
+    });
+  }
+
   // Budget sync: bidirectional between budget_global and budget_per_person
   var budgetGlobal = document.getElementById('budget_global');
   var budgetPerPerson = document.getElementById('budget_per_person');
