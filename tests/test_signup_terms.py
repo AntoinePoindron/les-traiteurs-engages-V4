@@ -16,12 +16,29 @@ Coverage:
 
 
 def _wipe_signup_users():
-    """Remove users this suite seeds so cross-test state stays clean."""
+    """Remove users this suite seeds so cross-test state stays clean.
+
+    Signup auto-creates a CompanyEmployee row tied to every new
+    client_admin / client_user via `_ensure_admin_employee_rows`, so we
+    must drop those FK-referencing rows before the users themselves —
+    otherwise the delete trips `company_employees_user_id_fkey`.
+    """
+    from sqlalchemy import select
+
     from database import session_factory
-    from models import User
+    from models import CompanyEmployee, User
 
     s = session_factory()
     try:
+        user_ids = list(
+            s.scalars(select(User.id).where(User.email.like("terms-%@test.local")))
+        )
+        if user_ids:
+            s.execute(
+                CompanyEmployee.__table__.delete().where(
+                    CompanyEmployee.user_id.in_(user_ids)
+                )
+            )
         s.execute(User.__table__.delete().where(User.email.like("terms-%@test.local")))
         s.commit()
     finally:
