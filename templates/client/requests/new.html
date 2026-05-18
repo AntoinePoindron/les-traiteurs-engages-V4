@@ -32,8 +32,13 @@
     </div>
 
     <!-- Wizard form -->
-    <form id="wizard-form" method="POST" action="{{ url_for('client.requests_new') }}">
+    <form id="wizard-form" method="POST" action="{{ url_for('client.requests_new') }}"
+          data-back-redirect="{{ url_for('client.requests_list') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {# Idempotency token : the POST handler refuses to create a second
+         QuoteRequest if it's already seen this token (e.g. user pressed
+         "back" after submit and re-clicked Envoyer). #}
+      <input type="hidden" name="form_token" value="{{ form_token }}">
 
       <!-- STEP 1: Type de service -->
       <div id="step-1" class="bg-white rounded-lg p-6 mb-6 hidden">

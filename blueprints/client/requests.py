@@ -7,6 +7,7 @@ from flask import (
     abort,
     flash,
     g,
+    make_response,
     redirect,
     render_template,
     request,
@@ -14,6 +15,7 @@ from flask import (
     url_for,
 )
 from sqlalchemy import String, and_, cast, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
 
 from blueprints.client._helpers import (
@@ -51,6 +53,25 @@ from services.notifications import (
 from services.quotes import calculate_quote_totals
 
 logger = logging.getLogger(__name__)
+
+
+def _no_store(response):
+    """Tag a response so the browser does not keep it in history.
+
+    Without this, pressing "back" after submitting the wizard restores
+    the cached HTML — pre-ticked checkboxes carried only in DOM state
+    (not in the server-rendered attributes) appear blank, and the user
+    can re-submit a stale form. `no-store` evicts the response from
+    bfcache (Chrome/Firefox) and from regular cache, forcing the
+    browser to re-fetch on back/forward navigation.
+
+    Modern browsers honor `Cache-Control: no-store` on its own — the
+    `Pragma: no-cache` (HTTP/1.0) and `Expires: 0` headers we used to
+    add alongside are folklore here and some CDN middlewares re-
+    interpret them in surprising ways, so we keep this single header.
+    """
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 # Icon glyph (lucide) per MealType slug — kept next to the templates'
@@ -287,13 +308,23 @@ def register(bp):
             if target_caterer is not None
             else None
         )
-        return render_template(
-            "client/requests/new.html",
-            user=user,
-            services=services,
-            target_caterer=target_caterer,
-            meal_type_options=_meal_type_options(restrict_to=restrict),
-            caterer_capabilities=_caterer_capabilities(target_caterer),
+        return _no_store(
+            make_response(
+                render_template(
+                    "client/requests/new.html",
+                    user=user,
+                    services=services,
+                    target_caterer=target_caterer,
+                    meal_type_options=_meal_type_options(restrict_to=restrict),
+                    caterer_capabilities=_caterer_capabilities(target_caterer),
+                    # Idempotency token: a fresh GET in another tab
+                    # produces a new one. The POST handler uses it to
+                    # deduplicate. Combined with the `no_store` header
+                    # below, "back + resubmit" doesn't even reach this
+                    # branch — bfcache is bypassed.
+                    form_token=str(uuid.uuid4()),
+                )
+            )
         )
 
     @bp.route("/requests/new", methods=["POST"])
@@ -303,6 +334,30 @@ def register(bp):
         user = g.current_user
         db = get_db()
         form = QuoteRequestForm()
+
+        # Idempotency : the GET emits a one-shot UUID into a hidden
+        # `form_token` field. A "back + resubmit" replays the same
+        # token; we short-circuit straight to the existing detail page
+        # instead of creating a duplicate row. Scoping to company_id
+        # closes a (very unlikely) cross-tenant clash.
+        form_token = (request.form.get("form_token") or "").strip()
+        if form_token:
+            try:
+                uuid.UUID(form_token)
+            except ValueError:
+                form_token = ""
+        if form_token:
+            existing = db.scalar(
+                select(QuoteRequest).where(
+                    QuoteRequest.submission_token == form_token,
+                    QuoteRequest.company_id == user.company_id,
+                )
+            )
+            if existing is not None:
+                flash("Cette demande a deja ete envoyee.", "info")
+                return redirect(
+                    url_for("client.request_detail", request_id=existing.id)
+                )
 
         # Resolve the targeted caterer (if any) before validation so the
         # form-side `validate_meal_type` cross-field rule has the right
@@ -329,14 +384,24 @@ def register(bp):
                 if target_caterer is not None
                 else None
             )
-            return render_template(
-                "client/requests/new.html",
-                user=user,
-                services=services,
-                target_caterer=target_caterer,
-                meal_type_options=_meal_type_options(restrict_to=restrict),
-                caterer_capabilities=_caterer_capabilities(target_caterer),
-            ), 400
+            response = _no_store(
+                make_response(
+                    render_template(
+                        "client/requests/new.html",
+                        user=user,
+                        services=services,
+                        target_caterer=target_caterer,
+                        meal_type_options=_meal_type_options(restrict_to=restrict),
+                        caterer_capabilities=_caterer_capabilities(target_caterer),
+                        # Echo the token back so the user's correction
+                        # stays idempotent — a tab-restored form keeps
+                        # the same token.
+                        form_token=form_token or str(uuid.uuid4()),
+                    )
+                )
+            )
+            response.status_code = 400
+            return response
 
         service_id = own_service_id(db, user, form.company_service_id.data)
 
@@ -362,13 +427,30 @@ def register(bp):
             user_id=user.id,
             company_service_id=service_id,
             status=status,
+            submission_token=form_token or None,
         )
         apply_quote_request_form(qr, form)
         # Force the persisted is_compare_mode to match the resolved flow
         # (apply_quote_request_form may have written it from the form).
         qr.is_compare_mode = is_compare
         db.add(qr)
-        db.flush()
+        try:
+            db.flush()
+        except IntegrityError:
+            # Race condition: a concurrent POST landed first and grabbed
+            # the same token. Resolve to that one instead of failing.
+            db.rollback()
+            existing = db.scalar(
+                select(QuoteRequest).where(
+                    QuoteRequest.submission_token == form_token,
+                    QuoteRequest.company_id == user.company_id,
+                )
+            )
+            if existing is None:
+                # Token clash that's NOT the dedup case — surface it.
+                raise
+            flash("Cette demande a deja ete envoyee.", "info")
+            return redirect(url_for("client.request_detail", request_id=existing.id))
 
         if target_caterer is not None:
             db.add(
@@ -676,12 +758,16 @@ def register(bp):
             .all()
         )
 
-        return render_template(
-            "client/requests/edit.html",
-            user=user,
-            qr=qr,
-            services=services,
-            meal_type_options=_meal_type_options(),
+        return _no_store(
+            make_response(
+                render_template(
+                    "client/requests/edit.html",
+                    user=user,
+                    qr=qr,
+                    services=services,
+                    meal_type_options=_meal_type_options(),
+                )
+            )
         )
 
     @bp.route("/requests/<uuid:request_id>/edit", methods=["POST"])
@@ -711,13 +797,19 @@ def register(bp):
                 .scalars()
                 .all()
             )
-            return render_template(
-                "client/requests/edit.html",
-                user=user,
-                qr=qr,
-                services=services,
-                meal_type_options=_meal_type_options(),
-            ), 400
+            response = _no_store(
+                make_response(
+                    render_template(
+                        "client/requests/edit.html",
+                        user=user,
+                        qr=qr,
+                        services=services,
+                        meal_type_options=_meal_type_options(),
+                    )
+                )
+            )
+            response.status_code = 400
+            return response
 
         qr.company_service_id = own_service_id(db, user, form.company_service_id.data)
         apply_quote_request_form(qr, form)
