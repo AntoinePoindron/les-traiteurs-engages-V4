@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% from "components/status_badge.html" import status_badge %}
-{% from "components/structure_type_badge.html" import structure_type_badge %}
 {% from "components/ui.html" import back_button %}
 {% from "components/send_message_modal.html" import send_message_modal %}
 
@@ -187,36 +186,6 @@
       </div>
     </div>
     {% endif %}
-
-    <div class="bg-white rounded-lg p-6">
-      <h2 class="font-display font-bold text-lg text-black mb-4">Suggestions du matching</h2>
-      <p class="font-display font-bold text-3xl text-black">{{ matches|length }}</p>
-      <p class="text-xs mt-1 text-mute">
-        traiteur{{ 's' if matches|length != 1 }} propose{{ 's' if matches|length != 1 }} par le matching automatique
-      </p>
-
-      {% if matches %}
-      <div class="mt-4">
-        {% for caterer, distance in matches %}
-        <div class="flex items-center gap-3 py-3.5 border-t border-soft">
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-black">{{ caterer.name }}</p>
-            <p class="text-xs text-mute">{{ distance }} km &middot; {{ caterer.capacity_min or '?' }}-{{ caterer.capacity_max or '?' }} pers.</p>
-          </div>
-          {{ structure_type_badge(caterer.structure_type) }}
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div class="mt-4 rounded-lg p-4 flex items-start gap-3 bg-cream">
-        <i data-lucide="info" class="w-5 h-5 text-text-soft mt-0.5"></i>
-        <div>
-          <p class="text-sm font-medium text-text">Aucun matching specifique.</p>
-          <p class="text-xs mt-1 text-mute">A la validation, la demande sera envoyee a l'ensemble des traiteurs valides du catalogue.</p>
-        </div>
-      </div>
-      {% endif %}
-    </div>
 
     {% if qr.status == QuoteRequestStatus.pending_review %}
     <div class="bg-white rounded-lg p-6">

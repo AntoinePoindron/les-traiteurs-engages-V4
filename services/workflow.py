@@ -29,7 +29,6 @@ from models import (
     QuoteStatus,
     User,
 )
-from services.matching import find_matching_caterers
 from services.notifications import (
     caterer_user_ids,
     company_admin_user_ids,
@@ -231,24 +230,15 @@ def approve_quote_request(
     *,
     request_id: uuid.UUID,
 ) -> list[QuoteRequestCaterer]:
-    """Qualification admin : matche les traiteurs compatibles, crée les QRC
-    en `selected`, passe la demande en `sent_to_caterers`.
+    """Qualification admin : crée un QRC `selected` pour chaque traiteur
+    `is_validated`, passe la demande en `sent_to_caterers`.
 
     Le contrôle d'autorisation reste côté handler (`@role_required("super_admin")`).
 
-    Le super_admin peut toujours valider une demande, même si aucun
-    traiteur ne sort du moteur de matching. (Audit V1 — l'ancien gating
-    `NoMatchingCaterers` empêchait l'admin de débloquer la file ; on
-    retire l'idée de bloquer sur la compatibilité.)
-
-    Stratégie de fan-out :
-      - si le matcher renvoie ≥1 traiteur, on cible cette liste curée ;
-      - sinon (critères trop restrictifs ou demande sans coordonnées
-        géocodées), on tombe en repli sur l'ensemble des traiteurs
-        `is_validated`. Cela garantit qu'une demande validée par l'admin
-        atterrit toujours dans la file de quelqu'un — sinon le traiteur
-        ne la voit jamais (la liste `caterer/requests` filtre sur
-        `QuoteRequestCaterer.caterer_id == caterer.id`).
+    Fan-out : toute demande approuvée part vers l'ensemble du catalogue
+    validé. L'ancien pré-filtre (distance / budget / capacité / régimes)
+    a été retiré : il faisait doublon avec les filtres que chaque
+    traiteur applique déjà sur sa propre liste de demandes.
 
     Si le catalogue est vide (zéro traiteur `is_validated`), on laisse
     la demande en `pending_review` : la marquer `sent_to_caterers` sans
@@ -261,13 +251,15 @@ def approve_quote_request(
     if not qr:
         raise RequestNotFound
 
-    matches = find_matching_caterers(db, qr)
-    if matches:
-        targets = [caterer for caterer, _distance in matches]
-    else:
-        targets = list(
-            db.scalars(select(Caterer).where(Caterer.is_validated.is_(True))).all()
-        )
+    # Admin approval fans out to every validated caterer on the
+    # platform. The previous pass through a `find_matching_caterers`
+    # pre-filter (distance / budget / capacity / régimes) was retired
+    # because it created an opaque second gate on top of the catalog —
+    # caterers already discard what doesn't fit via their own catalog
+    # filters.
+    targets = list(
+        db.scalars(select(Caterer).where(Caterer.is_validated.is_(True))).all()
+    )
 
     qrcs: list[QuoteRequestCaterer] = []
     for caterer in targets:
@@ -282,11 +274,8 @@ def approve_quote_request(
     if targets:
         qr.status = QuoteRequestStatus.sent_to_caterers
 
-        # Notify every caterer that got a QRC, plus the original
-        # requester. Iterating over `targets` (not `matches`) covers the
-        # fallback-to-all-validated path so a caterer who got the demand
-        # via the empty-matcher branch still hears about it. When
-        # targets is empty (no validated caterer at all) the demand
+        # Notify every targeted caterer, plus the original requester.
+        # When targets is empty (no validated caterer at all) the demand
         # stays in pending_review — no notification, the admin handler
         # flashes the warning.
         #

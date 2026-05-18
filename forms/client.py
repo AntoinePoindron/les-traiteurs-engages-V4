@@ -106,7 +106,7 @@ class QuoteRequestForm(FlaskForm):
     message_to_caterer = TextAreaField(validators=[Optional(), Length(max=5000)])
     # Set when the wizard was launched from a specific caterer profile
     # (-> "Demander un devis" button on /caterers/<id>). Forces a
-    # single-caterer flow that skips admin matching.
+    # single-caterer flow that skips the admin qualification fan-out.
     target_caterer_id = StringField(validators=[Optional(), Length(max=36)])
 
     # The dietary checkboxes use value="1" in the templates; WTForms BooleanField

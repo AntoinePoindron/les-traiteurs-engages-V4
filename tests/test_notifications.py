@@ -44,9 +44,8 @@ def _seed_pending_qr(s, *, n_validated_caterers=2):
     """Seed a `pending_review` QuoteRequest under ACME, plus N validated
     caterers. Returns (qr_id, [caterer_ids]).
 
-    The QR has no geo coordinates so the matcher returns nothing — that
-    forces `approve_quote_request` onto its fallback-to-all-validated
-    path, which is what the fan-out test wants to exercise.
+    `approve_quote_request` fans out to every validated caterer — the
+    helper just needs a demand and a populated catalog.
     """
     from sqlalchemy import select
 
@@ -282,12 +281,10 @@ def test_bell_badge_renders_unread_count(
 # ---------------------------------------------------------------------------
 
 
-def test_approve_notifies_every_validated_caterer_when_matcher_empty(session):
-    """When the matcher returns nothing (no geo, restrictive criteria),
-    `approve_quote_request` falls back to all validated caterers AND
-    notifies them. Rebase guard: the original branch iterated over
-    `matches`, but the post-rebase code must iterate over `targets` so
-    fallback caterers are not silently skipped."""
+def test_approve_notifies_every_validated_caterer(session):
+    """`approve_quote_request` fans out to every validated caterer and
+    must notify each of them — no caterer in the catalog should be
+    silently skipped."""
     from sqlalchemy import select
 
     from models import Caterer, Notification, User
@@ -314,14 +311,14 @@ def test_approve_notifies_every_validated_caterer_when_matcher_empty(session):
             )
         )
     )
-    # My seeded caterers must be in the notified set (the rebase-guard
-    # claim). The full equality check covers any other validated
-    # caterers that might have leaked from prior tests in the run.
+    # My seeded caterers must be in the notified set. The full equality
+    # check covers any other validated caterers that might have leaked
+    # from prior tests in the run.
     for cid in my_caterer_ids:
         assert cid in all_validated_ids
     assert notified_caterer_user_ids == expected_user_ids, (
-        "every target caterer must receive a notification — fallback path "
-        "must not be silently skipped"
+        "every validated caterer must receive a notification — no caterer "
+        "in the catalog should be silently skipped"
     )
 
 
