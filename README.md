@@ -88,6 +88,10 @@ seeder refuses to run unless `FLASK_DEBUG=1` (set in
 `docker-compose.dev.yml`) or `SEED_FIXTURES_ALLOW=1` is in the
 environment, so it can't be triggered accidentally on staging or prod.
 
+> Make sure the dev overlay is the one running — `.dockerignore` strips
+> `seed_data.py` from prod-style images, so the command above only
+> resolves when the bind-mount from `docker-compose.dev.yml` is active.
+
 The accounts it creates all share the same throwaway password. Read
 [`seed_data.py`](seed_data.py) to find it — it is **not** documented
 here on purpose: a previous audit (C-3, 2026-05-13) flagged this README
