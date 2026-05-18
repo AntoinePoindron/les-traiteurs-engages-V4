@@ -780,7 +780,14 @@ def register(bp):
         user = g.current_user
 
         db = get_db()
-        qr = get_company_request(request_id, user)
+        # Lock the row until commit so an admin clicking « Approuver »
+        # mid-request can't slip the QR into sent_to_caterers (which
+        # fans out notifications + QRCs based on the OLD payload) while
+        # this handler writes the user's edits. Without the lock, the
+        # status gate below would read pending_review, the admin commit
+        # would fly through, and we'd persist the new fields on a QR
+        # whose caterers already received the previous version.
+        qr = get_company_request(request_id, user, for_update=True)
         if qr.status not in (
             QuoteRequestStatus.draft,
             QuoteRequestStatus.pending_review,

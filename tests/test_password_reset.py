@@ -57,7 +57,7 @@ def test_issue_token_persists_with_ttl_in_future(session):
     from services import password_reset as pr
 
     alice = _alice(session)
-    row = pr.issue_token(session, user=alice)
+    row, raw = pr.issue_token(session, user=alice)
     session.flush()
 
     assert row.user_id == alice.id
@@ -70,14 +70,19 @@ def test_issue_token_persists_with_ttl_in_future(session):
         select(PasswordResetToken).where(PasswordResetToken.id == row.id)
     )
     assert persisted is not None
+    # The stored column must be the SHA-256 digest of the raw token, not
+    # the raw value itself — the security guarantee of the hash-at-rest
+    # change is that a DB leak should not expose live tokens.
+    assert persisted.token == pr._hash_token(raw)
+    assert persisted.token != raw
 
 
 def test_issue_token_returns_unique_strings(session):
     from services import password_reset as pr
 
     alice = _alice(session)
-    a = pr.issue_token(session, user=alice).token
-    b = pr.issue_token(session, user=alice).token
+    _row_a, a = pr.issue_token(session, user=alice)
+    _row_b, b = pr.issue_token(session, user=alice)
     session.flush()
     assert a != b
     # `token_urlsafe(32)` => 43 chars URL-safe base64.
@@ -95,12 +100,12 @@ def test_consume_token_rotates_password_hash_and_flags_used(session):
 
     alice = _alice(session)
     old_hash = alice.password_hash
-    row = pr.issue_token(session, user=alice)
+    row, raw = pr.issue_token(session, user=alice)
     session.flush()
 
     user = pr.consume_token(
         session,
-        raw_token=row.token,
+        raw_token=raw,
         new_password="N3w-Strong-Password!",
     )
     session.flush()
@@ -129,43 +134,37 @@ def test_consume_token_rejects_already_used(session):
     from services import password_reset as pr
 
     alice = _alice(session)
-    row = pr.issue_token(session, user=alice)
+    row, raw = pr.issue_token(session, user=alice)
     session.flush()
-    pr.consume_token(session, raw_token=row.token, new_password="N3w-Strong-Password!")
+    pr.consume_token(session, raw_token=raw, new_password="N3w-Strong-Password!")
     session.flush()
 
     with pytest.raises(pr.ResetTokenInvalid):
-        pr.consume_token(
-            session, raw_token=row.token, new_password="Y3t-Another-Password!"
-        )
+        pr.consume_token(session, raw_token=raw, new_password="Y3t-Another-Password!")
 
 
 def test_consume_token_rejects_expired(session):
     from services import password_reset as pr
 
     alice = _alice(session)
-    row = pr.issue_token(session, user=alice)
+    row, raw = pr.issue_token(session, user=alice)
     row.expires_at = _dt.datetime.utcnow() - _dt.timedelta(minutes=1)
     session.flush()
 
     with pytest.raises(pr.ResetTokenInvalid):
-        pr.consume_token(
-            session, raw_token=row.token, new_password="N3w-Strong-Password!"
-        )
+        pr.consume_token(session, raw_token=raw, new_password="N3w-Strong-Password!")
 
 
 def test_consume_token_rejects_inactive_user(session):
     from services import password_reset as pr
 
     alice = _alice(session)
-    row = pr.issue_token(session, user=alice)
+    _row, raw = pr.issue_token(session, user=alice)
     alice.is_active = False
     session.flush()
 
     with pytest.raises(pr.ResetTokenInvalid):
-        pr.consume_token(
-            session, raw_token=row.token, new_password="N3w-Strong-Password!"
-        )
+        pr.consume_token(session, raw_token=raw, new_password="N3w-Strong-Password!")
 
 
 # --- kick_off_reset (no account leak) -------------------------------------
@@ -249,9 +248,9 @@ def test_consume_token_bumps_password_changed_at(session):
 
     alice = _alice(session)
     before = alice.password_changed_at
-    row = pr.issue_token(session, user=alice)
+    _row, raw = pr.issue_token(session, user=alice)
     session.flush()
-    pr.consume_token(session, raw_token=row.token, new_password="N3w-Strong-Password!")
+    pr.consume_token(session, raw_token=raw, new_password="N3w-Strong-Password!")
     session.flush()
 
     assert alice.password_changed_at is not None
@@ -293,11 +292,9 @@ def test_session_invalidated_after_password_reset(client):
         s = session_factory()
         try:
             alice = _alice(s)
-            row = pr.issue_token(s, user=alice)
+            _row, raw = pr.issue_token(s, user=alice)
             s.flush()
-            pr.consume_token(
-                s, raw_token=row.token, new_password="Reset-Strong-Password1!"
-            )
+            pr.consume_token(s, raw_token=raw, new_password="Reset-Strong-Password1!")
             s.commit()
         finally:
             s.close()

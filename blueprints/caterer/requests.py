@@ -273,6 +273,24 @@ def register(bp):
         db = get_db()
         qrc = get_caterer_qrc(qr_id, caterer.id)
         qr = qrc.quote_request
+        # If a draft already exists for this (caterer, QR), redirect to
+        # its edit page instead of minting a parallel row. The previous
+        # shape silently created a second Quote on every POST, polluting
+        # qr.quotes (visible in admin / client counters) and confusing
+        # `_derive_qrc_display_status` which uses next(... for q in
+        # qr.quotes if q.caterer_id == caterer.id, None) — first row wins,
+        # later edits land on a different one.
+        existing_draft = db.scalar(
+            select(Quote).where(
+                Quote.quote_request_id == qr_id,
+                Quote.caterer_id == caterer.id,
+                Quote.status == QuoteStatus.draft,
+            )
+        )
+        if existing_draft is not None:
+            return redirect(
+                url_for("caterer.quote_edit", qr_id=qr_id, q_id=existing_draft.id)
+            )
         form = QuoteForm()
         if not form.validate_on_submit():
             flash("Veuillez corriger les erreurs du formulaire.", "error")

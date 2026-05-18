@@ -292,15 +292,20 @@ def create_app():
                     user = None
             g.current_user = user
 
-    @app.before_request
-    def mark_notifications_read_on_entity_view():
+    @app.after_request
+    def mark_notifications_read_on_entity_view(response):
         """Clear bell-dropdown notifications whose related entity the
         user has just landed on — irrespective of how they got there
         (dashboard tile, list page, direct link, dropdown click).
 
-        Runs after `load_current_user` (registration order) so
-        `g.current_user` is set. GET-only: POSTs to the same URL are
-        actions, not "viewing".
+        Runs AFTER the route handler so a 403/404 on the underlying
+        entity (e.g. wrong company, scoping-helper abort) doesn't get
+        a chance to flip the notification's `is_read`. The handler's
+        verdict, encoded in `response.status_code`, is the right
+        oracle: only sweep on a 2xx render where the user actually
+        saw the entity.
+
+        GET-only: POSTs to the same URL are actions, not "viewing".
 
         Commits on its own because the typical detail handler is a
         read and doesn't commit; without an explicit commit here the
@@ -310,12 +315,14 @@ def create_app():
         again on the next page load.
         """
         if request.method != "GET":
-            return
+            return response
+        if not (200 <= response.status_code < 300):
+            return response
         if not g.get("current_user"):
-            return
+            return response
         endpoint = request.endpoint
         if not endpoint:
-            return
+            return response
 
         from services.notifications import (
             mark_read_by_type,
@@ -403,6 +410,7 @@ def create_app():
                 db.commit()
         except SQLAlchemyError:
             db.rollback()
+        return response
 
     @app.teardown_appcontext
     def remove_session(exc=None):
